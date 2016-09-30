@@ -1,0 +1,55 @@
+hash: 3f1a44b088371428d0fb8b320df58649d3a39bfedb22b174e32e6c8e62c64106
+updated: 2016-09-29T10:54:00.09242266-07:00
+imports:
+- name: github.com/alecthomas/log4go
+  version: e5dc62318d9bd58682f1dceb53a4b24e8253682f
+- name: github.com/boltdb/bolt
+  version: 583e8937c61f1af6513608ccc75c97b6abdf4ff9
+- name: github.com/caarlos0/env
+  version: 65331f179c42e3ffe33457b69bee55472a779cd6
+- name: github.com/cenk/backoff
+  version: 8edc80b07f38c27352fb186d971c628a6c32552b
+- name: github.com/golang/protobuf
+  version: 87c000235d3d852c1628dc9490cd21ab36a7d69f
+  subpackages:
+  - proto
+- name: github.com/gorilla/websocket
+  version: 1f512fc3f05332ba7117626cdfb4e07474e58e60
+- name: github.com/hailocab/go-hostpool
+  version: e80d13ce29ede4452c43dea11e79b9bc8a15b478
+- name: github.com/mattermost/platform
+  version: 4e293c04ee99d63b523205f4abc59d1465b760a2
+  subpackages:
+  - model
+- name: github.com/nicksnyder/go-i18n
+  version: 37e5c2de3e03e4b82693e3fcb4a6aa2cc4eb07e3
+  subpackages:
+  - i18n
+  - i18n/bundle
+  - i18n/language
+  - i18n/translation
+- name: github.com/pborman/uuid
+  version: a97ce2ca70fa5a848076093f05e639a89ca34d06
+- name: github.com/Sirupsen/logrus
+  version: 3ec0642a7fb6488f65b06f9040adc67e3990296a
+- name: golang.org/x/crypto
+  version: 6ab629be5e31660579425a738ba8870beb5b7404
+  subpackages:
+  - bcrypt
+  - pbkdf2
+  - blowfish
+- name: golang.org/x/sys
+  version: 8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9
+  subpackages:
+  - unix
+- name: gopkg.in/dancannon/gorethink.v2
+  version: 016a1d3b4d15951ab2e39bd3596718ba94d298ba
+  subpackages:
+  - encoding
+  - ql2
+  - types
+- name: gopkg.in/fatih/pool.v2
+  version: 20a0a429c5f93de45c90f5f09ea297c25e0929b3
+- name: gopkg.in/yaml.v2
+  version: a5b47d31c556af34a302ce5d659e6fea44d90de0
+devImports: []

@@ -1,0 +1,12 @@
+package: github.com/mattermost/mattermost-load-test
+import:
+- package: github.com/mattermost/platform
+  version: performance
+  subpackages:
+  - model
+- package: gopkg.in/dancannon/gorethink.v2
+  version: ^2.2.0
+- package: github.com/boltdb/bolt
+  version: ^1.3.0
+- package: github.com/caarlos0/env
+  version: ~2.0.0

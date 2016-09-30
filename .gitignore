@@ -1,0 +1,54 @@
+
+logs
+.DS_Store
+
+# Build Targets
+.prebuild
+.npminstall
+
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
+*.so
+
+# Folders
+_obj
+_test
+/vendor
+
+# Log files
+*mattermost.log
+*npm-debug.log*
+
+.tmp
+debug
+
+# Vim temporary files
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+*.un~
+Session.vim
+.netrwhist
+*~
+
+.agignore
+.ctags
+tags
+
+cache.db
+/rethinkdb_data
+bin/*
+!bin/echo_example.sh
+!bin/run_example.sh
+
+
+# built application
+mattermost-load-test
+mattermost-load-test.log
+errors.log
+stats.log
+
+#historic
+dummies
+dummies.log
+sessions.db
