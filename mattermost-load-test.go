@@ -33,9 +33,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	Cache, err := bolt.Open("my.db", 0600, nil)
-	if err != nil {
-		fmt.Println("Failed to open Cache file sessions.db", ":", err)
+	var cacheErr error
+	Cache, cacheErr = bolt.Open(Config.BoltFile, 0600, nil)
+	if cacheErr != nil {
+		fmt.Println("Failed to open Cache file sessions.db", ":", cacheErr)
 		os.Exit(1)
 	}
 	defer Cache.Close()
