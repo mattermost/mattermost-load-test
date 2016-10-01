@@ -41,7 +41,7 @@ func main() {
 	}
 	defer Cache.Close()
 
-	file, err := os.OpenFile(Config.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	logFile, err := os.OpenFile(Config.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		fmt.Println("Failed to open log file ", Config.LogPath, ":", err)
 		os.Exit(1)
@@ -52,8 +52,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	multi := io.MultiWriter(file, os.Stdout)
-	errMutli := io.MultiWriter(errfile, os.Stderr)
+	multi := io.MultiWriter(logFile, os.Stdout)
+	errMutli := io.MultiWriter(errfile, logFile, os.Stderr)
 	logInit(multi, errMutli)
 
 	Info.Println("**********************************************")
