@@ -11,23 +11,42 @@ const (
 	ThreadActive   ThreadStatus = 1
 )
 
-// Thread will will be responsible for testplan runtime
+// Thread will be responsible for testplan runtime
 type Thread struct {
-	id     int
-	status ThreadStatus
+	id       int
+	status   ThreadStatus
+	tpThread TestPlan
+	stopchan chan bool
+}
+
+func (t *Thread) Init(tp TestPlanGen, activityPipe chan<- Activity) {
+	t.tpThread = tp(t.id, activityPipe)
 }
 
 // Start kicks off test plan
-func (t *Thread) Start(tp TestPlanGen, activityPipe chan<- Activity) {
+func (t *Thread) Start(activityPipe chan<- Activity) {
+	t.stopchan = make(chan bool)
 	shouldStart := true
 	for {
-		tpThread := tp(t.id, activityPipe)
-		activityPipe <- t.started()
-		runResult := tpThread.Start()
-		shouldStart = tpThread.Stop(runResult)
-		if !shouldStart {
-			break
+		select {
+		case <- t.stopchan:
+			return
+		default:
+			activityPipe <- t.started()
+			shouldStart = t.tpThread.Start()
+			if !shouldStart {
+				activityPipe <- t.stopped()
+				return
+			}
 		}
+	}
+}
+
+func (t *Thread) Stop() {
+	t.tpThread.Stop()
+	if t.stopchan != nil {
+		defer close(t.stopchan)
+		t.stopchan <- true
 	}
 }
 

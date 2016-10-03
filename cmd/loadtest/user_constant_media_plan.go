@@ -19,6 +19,7 @@ import (
 type UserConstantMediaPlan struct {
 	id              int
 	activityChannel chan<- l.Activity
+	stopChannel     chan bool
 	mm              p.Platform
 }
 
@@ -32,7 +33,7 @@ func (tp UserConstantMediaPlan) Generator(id int, activityChannel chan<- l.Activ
 }
 
 // Start is a long running function that should only quit on error
-func (tp *UserConstantMediaPlan) Start() (shouldRestart bool) {
+func (tp *UserConstantMediaPlan) Start() bool {
 
 	defer tp.PanicCheck()
 
@@ -74,35 +75,42 @@ func (tp *UserConstantMediaPlan) Start() (shouldRestart bool) {
 	}
 
 	for {
-		if RandomChoice(Config.MediaPercent) {
-			upload, upErr := tp.mm.UploadRandomImage(channel, p.RandomMessage{})
-			if upErr != nil && !reflect.ValueOf(err).IsNil() {
-				tp.handleError(upErr, "Failed on uploading random image", false)
-				continue
+		select {
+		case <-tp.stopChannel:
+			return false
+		default:
+			if RandomChoice(Config.MediaPercent) {
+				upload, upErr := tp.mm.UploadRandomImage(channel, p.RandomMessage{})
+				if upErr != nil && !reflect.ValueOf(err).IsNil() {
+					tp.handleError(upErr, "Failed on uploading random image", false)
+					continue
+				}
+				err = tp.mm.SendAttachment(channel, "test media message", upload.Filenames, "")
+				if err != nil && !reflect.ValueOf(err).IsNil() {
+					tp.handleError(err, "Media Message Send Failed", false)
+					continue
+				}
+			} else {
+				message := p.RandomMessage{}.Plain()
+				err = tp.mm.SendMessage(channel, message, "")
+				if err != nil && !reflect.ValueOf(err).IsNil() {
+					tp.handleError(err, "Message Send Failed", false)
+					continue
+				}
 			}
-			err = tp.mm.SendAttachment(channel, "test media message", upload.Filenames, "")
-			if err != nil && !reflect.ValueOf(err).IsNil() {
-				tp.handleError(err, "Media Message Send Failed", false)
-				continue
-			}
-		} else {
-			message := p.RandomMessage{}.Plain()
-			err = tp.mm.SendMessage(channel, message, "")
-			if err != nil && !reflect.ValueOf(err).IsNil() {
-				tp.handleError(err, "Message Send Failed", false)
-				continue
-			}
+			tp.threadSendMessage()
+			time.Sleep(time.Second * time.Duration(rand.Intn(Config.MessageBreak)))
 		}
-		tp.threadSendMessage()
-		time.Sleep(time.Second * time.Duration(rand.Intn(Config.MessageBreak)))
 	}
 
 }
 
 // Stop takes the result of start(), and can change return
 // respond true if the thread should restart, false otherwise
-func (tp *UserConstantMediaPlan) Stop(runResult bool) (shouldRestart bool) {
-	return runResult
+func (tp *UserConstantMediaPlan) Stop() {
+	if tp.stopChannel != nil {
+		tp.stopChannel <- true
+	}
 }
 
 // GlobalSetup will run before the test plan. It will spin up a basic test plan
@@ -131,6 +139,7 @@ func (tp *UserConstantMediaPlan) PanicCheck() {
 }
 
 func (tp *UserConstantMediaPlan) registerActive() {
+	tp.stopChannel = make(chan bool)
 	tp.activityChannel <- l.Activity{
 		Status:  l.StatusActive,
 		ID:      tp.id,

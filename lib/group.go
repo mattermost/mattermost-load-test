@@ -12,12 +12,16 @@ type Group struct {
 	ActiveCount  int
 	ActionCount  int
 	Errors       []string
+	threads      []Thread
 	ActivityPipe chan Activity
+	chanStop     chan bool
 }
 
 func (g *Group) initialize() {
 	g.Errors = []string{}
 	g.ActivityPipe = make(chan Activity, 40000)
+	g.chanStop = make(chan bool)
+	g.threads = []Thread{}
 }
 
 // Kickstart will kick off group and connect channel listeners
@@ -59,9 +63,27 @@ func (g *Group) Kickstart(tpGen TestPlanGen, total, offset, SecRamp int) {
 
 func (g *Group) spinUpThreads(tp TestPlanGen, total, start int, sleep time.Duration) {
 	for i := start; i < total+start; i++ {
-		t := Thread{id: i}
-		go t.Start(tp, g.ActivityPipe)
-		time.Sleep(sleep)
+		select {
+		case <-g.chanStop:
+			return
+		default:
+			t := Thread{id: i}
+			t.Init(tp, g.ActivityPipe)
+			g.threads = append(g.threads, t)
+			go t.Start(g.ActivityPipe)
+			time.Sleep(sleep)
+		}
+	}
+}
+
+func (g *Group) Stop() {
+	if g.Total > len(g.threads) {
+		defer close(g.chanStop)
+		g.chanStop <- true
+	}
+
+	for _, ok := range g.threads {
+		ok.Stop()
 	}
 }
 

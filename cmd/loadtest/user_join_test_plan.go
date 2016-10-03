@@ -30,7 +30,7 @@ func (tp UserJoinTestPlan) Generator(id int, activityChannel chan<- l.Activity) 
 }
 
 // Start is a long running function that should only quit on error
-func (tp *UserJoinTestPlan) Start() (shouldRestart bool) {
+func (tp *UserJoinTestPlan) Start() bool {
 
 	defer tp.PanicCheck()
 
@@ -88,8 +88,8 @@ func (tp *UserJoinTestPlan) Start() (shouldRestart bool) {
 
 // Stop takes the result of start(), and can change return
 // respond true if the thread should restart, false otherwise
-func (tp *UserJoinTestPlan) Stop(runResult bool) (shouldRestart bool) {
-	return runResult
+func (tp *UserJoinTestPlan) Stop() {
+
 }
 
 // GlobalSetup will run before the test plan. It will spin up a basic test plan

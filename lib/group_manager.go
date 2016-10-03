@@ -15,6 +15,8 @@ type GroupManager struct {
 	Error  *log.Logger
 }
 
+var stopchan = make(chan bool)
+
 // InitDB will create the database connection and store it in group manager
 func (gm *GroupManager) InitDB(url, username, password string) {
 	db, err := CreateDBConnection(url, username, password)
@@ -29,40 +31,52 @@ func (gm *GroupManager) Start(tp TestPlanGen, count, offset, SecRamp int) {
 	if tp == nil {
 		panic("Failed to receive test plan generator")
 	}
+	gm.Info.Println("Starting tests")
 
 	gm.panicWithoutDB()
 	gm.Group = Group{}
 	go gm.startGroupCheck()
-	go gm.Group.Kickstart(tp, count, offset, SecRamp)
+	gm.Group.Kickstart(tp, count, offset, SecRamp)
+}
 
-	select {}
+func (gm *GroupManager) Stop() {
+	defer close(stopchan)
+	gm.Info.Println("Stopping tests")
+	gm.Group.Stop()
+	stopchan <- true
 }
 
 func (gm *GroupManager) startGroupCheck() {
 	defer gm.PanicCheck()
 
 	for {
-		checkin := Checkin{
-			Time:        time.Now(),
-			ThreadCount: gm.Group.Total,
-			LaunchCount: gm.Group.LaunchCount,
-			ActiveCount: gm.Group.ActiveCount,
-			ActionCount: gm.Group.ActionCount,
-			Errors:      gm.Group.Errors,
-			TestID:      gm.TestID,
+		select {
+		case <-stopchan:
+			return
+		default:
+			checkin := Checkin{
+				Time:        time.Now(),
+				ThreadCount: gm.Group.Total,
+				LaunchCount: gm.Group.LaunchCount,
+				ActiveCount: gm.Group.ActiveCount,
+				ActionCount: gm.Group.ActionCount,
+				Errors:      gm.Group.Errors,
+				TestID:      gm.TestID,
+			}
+			if gm.Info != nil {
+				gm.logGroupCheck(checkin)
+			}
+			if gm.Error != nil {
+				gm.logErrors(gm.Group.Errors)
+			}
+			if gm.DB != nil {
+				gm.DB.writeCheckin(checkin)
+			}
+			gm.Group.Errors = []string{}
+			gm.Group.ActionCount = 0
+			time.Sleep(time.Second * 5)
+
 		}
-		if gm.Info != nil {
-			gm.logGroupCheck(checkin)
-		}
-		if gm.Error != nil {
-			gm.logErrors(gm.Group.Errors)
-		}
-		if gm.DB != nil {
-			gm.DB.writeCheckin(checkin)
-		}
-		gm.Group.Errors = []string{}
-		gm.Group.ActionCount = 0
-		time.Sleep(time.Second * 5)
 	}
 }
 
