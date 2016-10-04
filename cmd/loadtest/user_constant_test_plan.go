@@ -19,6 +19,7 @@ import (
 type UserConstantTestPlan struct {
 	id              int
 	activityChannel chan<- l.Activity
+	stopChannel     chan bool
 	mm              p.Platform
 }
 
@@ -32,7 +33,7 @@ func (tp UserConstantTestPlan) Generator(id int, activityChannel chan<- l.Activi
 }
 
 // Start is a long running function that should only quit on error
-func (tp *UserConstantTestPlan) Start() (shouldRestart bool) {
+func (tp *UserConstantTestPlan) Start() bool {
 
 	defer tp.PanicCheck()
 
@@ -75,22 +76,29 @@ func (tp *UserConstantTestPlan) Start() (shouldRestart bool) {
 
 	// Send Message
 	for {
-		time.Sleep(time.Second * time.Duration(rand.Intn(Config.MessageBreak)))
-		message := p.RandomMessage{}.Plain()
-		err = tp.mm.SendMessage(channel, message, "")
-		if err != nil && !reflect.ValueOf(err).IsNil() {
-			tp.handleError(err, "Message Send Failed", false)
-			continue
+		select {
+		case <-tp.stopChannel:
+			return false
+		default:
+			time.Sleep(time.Second * time.Duration(rand.Intn(Config.MessageBreak)))
+			message := p.RandomMessage{}.Plain()
+			err = tp.mm.SendMessage(channel, message, "")
+			if err != nil && !reflect.ValueOf(err).IsNil() {
+				tp.handleError(err, "Message Send Failed", false)
+				continue
+			}
+			tp.threadSendMessage()
 		}
-		tp.threadSendMessage()
 	}
 
 }
 
 // Stop takes the result of start(), and can change return
 // respond true if the thread should restart, false otherwise
-func (tp *UserConstantTestPlan) Stop(runResult bool) (shouldRestart bool) {
-	return runResult
+func (tp *UserConstantTestPlan) Stop() {
+	if tp.stopChannel != nil {
+		tp.stopChannel <- true
+	}
 }
 
 // GlobalSetup will run before the test plan. It will spin up a basic test plan
@@ -119,6 +127,7 @@ func (tp *UserConstantTestPlan) PanicCheck() {
 }
 
 func (tp *UserConstantTestPlan) registerActive() {
+	tp.stopChannel = make(chan bool)
 	tp.activityChannel <- l.Activity{
 		Status:  l.StatusActive,
 		ID:      tp.id,

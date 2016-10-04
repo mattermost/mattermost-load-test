@@ -7,10 +7,11 @@ import (
 	"log"
 	"os"
 
+	"github.com/boltdb/bolt"
 	"github.com/caarlos0/env"
 	"github.com/mattermost/mattermost-load-test/lib"
-
-	"github.com/boltdb/bolt"
+	"os/signal"
+	"syscall"
 )
 
 var (
@@ -106,7 +107,16 @@ func main() {
 		reader.ReadString('\n')
 	}
 
-	gm.Start(testPlanGenerator, Config.Threads, Config.ThreadOffset, Config.RampSec)
+	go gm.Start(testPlanGenerator, Config.Threads, Config.ThreadOffset, Config.RampSec)
+
+	// wait for kill signal before attempting to gracefully shutdown
+	// the running service
+	fmt.Println("Waiting")
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	<-c
+	gm.Stop()
+	fmt.Println("Shutting down")
 }
 
 func logInit(multiHandle io.Writer, errHandle io.Writer) {
