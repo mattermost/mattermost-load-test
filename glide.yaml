@@ -10,3 +10,7 @@ import:
   version: ^1.3.0
 - package: github.com/caarlos0/env
   version: ~2.0.0
+- package: github.com/spf13/viper
+  vcs: git
+  repo: https://github.com/benoitmasson/viper
+  version: nested-maps
