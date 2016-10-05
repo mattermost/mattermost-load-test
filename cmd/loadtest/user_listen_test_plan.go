@@ -115,7 +115,16 @@ func (tp *UserListenTestPlan) Start() bool {
 			go func() {
 				for {
 					select {
-					case event := <-webSocketClient.EventChannel:
+					case event, ok := <-webSocketClient.EventChannel:
+
+						if !ok {
+							if webSocketClient.ListenError != nil {
+								tp.handleError(webSocketClient.ListenError, "Socket Closed", false)
+							}
+
+							return
+						}
+
 						if event.Event != model.WEBSOCKET_EVENT_POSTED {
 							continue
 						}
