@@ -29,13 +29,13 @@ func (t *Thread) Start(activityPipe chan<- Activity) {
 	shouldStart := true
 	for {
 		select {
-		case <- t.stopchan:
+		case <-t.stopchan:
 			return
 		default:
 			activityPipe <- t.started()
 			shouldStart = t.tpThread.Start()
+			activityPipe <- t.stopped()
 			if !shouldStart {
-				activityPipe <- t.stopped()
 				return
 			}
 		}
