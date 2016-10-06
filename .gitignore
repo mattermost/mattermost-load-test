@@ -42,11 +42,16 @@ bin/*
 !bin/run_example.sh
 
 
+# We just want to always use the latest
+glide.lock
+
 # built application
 mattermost-load-test
 mattermost-load-test.log
 errors.log
 stats.log
+.installdeps
+state.json
 
 #historic
 dummies
