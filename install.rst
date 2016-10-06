@@ -9,7 +9,7 @@ This install guide sets up Mattermost Load Test to replicate a set of consistent
 1. `Confirm Benchmark Hardware`_
 2. `Production Install on Ubuntu 14.04 LTS`_
 3. `Installing Mattermost Load Test`_
-4. `Configuring Mattermost Loat Test`_
+4. `Varying Mattermost Load Test`_
 
 Confirm Benchmark Hardware
 ============================================
@@ -327,9 +327,75 @@ Test setup and configure Mattermost Server
 Installing Mattermost Load Test
 ============================================
 
-TBD
+1. Download Mattermost Load Test::
 
-Configuring Mattermost Loat Test
+      git clone https://github.com/mattermost/mattermost-load-test.git
+
+2. Confirm your environment is clear (deletes ``cache.db`` if it exists)::
+
+      make clean
+
+3. Build the Mattermost Load Test:: 
+
+      make install
+
+4. Run the default load test script (this takes about 40 minutes):: 
+
+      ./bin/run_example.sh
+
+The default load test script requires about 40 minutes to create all the users. This is because Mattermost users a bcrypt function to generate user passwords that is designed to be computationally intensive. 
+
+
+Verifying Mattermost Load Test
+============================================
+
+1. Add your System Admin account to the default team (where user@example.com is the email of your System Admin account)::
+
+      platform -join_team -email="user@example.com" -team_name="team"
+
+You can now use your System Administrator account to login to Mattermost and view any of the channels where the simulated users are posting messages. 
+
+
+Estimating Performance 
 ============================================
 
 TBD
+
+Varying Mattermost Load Test
+============================================
+
+Total Potential Users 
+--------------------------------------------------
+
+Setting: ``THREADCOUNT="5000"``
+
+- Total number of simulated users 
+
+Inactive Users
+--------------------------------------------------
+
+Setting: ``THREADOFFSET="0"``
+
+- Total number of unused users 
+
+
+Setup Time 
+--------------------------------------------------
+
+Setting: ``RAMPSEC="2000"``
+
+- Number of seconds to log in all users. This setting is used to prevent errors from the CPU from being overloaded by the bcrypt function used to create new users. It can be adjusted based on the number of users and CPU utilization observed during initialization. 
+
+Max Wait 
+--------------------------------------------------
+
+Setting: ``MESSAGEBREAK="240"``
+
+- Maximum number of seconds one user randomly waits before sending the next message. The average wait time is one half of the maximum wait time. 
+
+Reply Percentage 
+--------------------------------------------------
+
+Setting: ``REPLYPERCENT="2"``
+
+- Percentage of users who reply when they receive a message. 
