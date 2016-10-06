@@ -234,7 +234,7 @@ func (tp *UserListenTestPlan) registerIncoming() {
 	tp.activityChannel <- l.Activity{
 		Status:  l.StatusIncoming,
 		ID:      tp.id,
-		Message: "Failed launch",
+		Message: "Broadcast received",
 	}
 }
 
