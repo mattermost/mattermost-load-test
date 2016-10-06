@@ -105,24 +105,30 @@ func (tp *UserListenTestPlan) Start() bool {
 				return tp.handleError(err, "Get Channel Failed", true)
 			}
 
-			webSocketClient, err = tp.mm.NewSocketClient(Config.SocketURL)
-			if err != nil {
-				return tp.handleError(err, "Open Socket Failed", true)
-			}
-
-			webSocketClient.Listen()
-
+			var webSocketClient *model.WebSocketClient
 			go func() {
 				for {
+					if webSocketClient == nil || webSocketClient.ListenError != nil {
+						webSocketClient, err = tp.mm.NewSocketClient(Config.SocketURL)
+						if err != nil {
+							tp.handleError(err, "Open Socket Failed", true)
+							return
+						}
+						webSocketClient.Listen()
+					}
+
 					select {
 					case event, ok := <-webSocketClient.EventChannel:
 
 						if !ok {
 							if webSocketClient.ListenError != nil {
-								tp.handleError(webSocketClient.ListenError, "Socket Closed", false)
+								tp.handleError(webSocketClient.ListenError, "Socket Closed, reconnect in 3 sec", false)
+								time.Sleep(3)
+								continue
+							} else {
+								tp.handleError(webSocketClient.ListenError, "Unexpected Socket Error", false)
+								return
 							}
-
-							return
 						}
 
 						if event.Event != model.WEBSOCKET_EVENT_POSTED {
