@@ -7,14 +7,15 @@ import (
 
 // Group is a simple container for the threads and stats aggregation
 type Group struct {
-	Total        int
-	LaunchCount  int
-	ActiveCount  int
-	ActionCount  int
-	Errors       []string
-	threads      []Thread
-	ActivityPipe chan Activity
-	chanStop     chan bool
+	Total         int
+	LaunchCount   int
+	ActiveCount   int
+	IncomingCount int
+	ActionCount   int
+	Errors        []string
+	threads       []Thread
+	ActivityPipe  chan Activity
+	chanStop      chan bool
 }
 
 func (g *Group) initialize() {
@@ -55,6 +56,8 @@ func (g *Group) Kickstart(tpGen TestPlanGen, total, offset, SecRamp int) {
 			g.registerThreadError(activity)
 		case StatusAction:
 			g.registerThreadAction(activity)
+		case StatusIncoming:
+			g.registerThreadIncoming(activity)
 		default:
 			panic("Unhandled Activity type in group")
 		}
@@ -76,6 +79,7 @@ func (g *Group) spinUpThreads(tp TestPlanGen, total, start int, sleep time.Durat
 	}
 }
 
+// Stop sends stop message to stop channel
 func (g *Group) Stop() {
 	if g.Total > len(g.threads) {
 		defer close(g.chanStop)
@@ -95,9 +99,9 @@ func (g *Group) registerLaunchFail(activity Activity) {
 	g.LaunchCount--
 }
 
-func (g *Group) registerThreadFinished(activity Activity) {
-	g.LaunchCount--
-}
+// func (g *Group) registerThreadFinished(activity Activity) {
+// 	g.LaunchCount--
+// }
 
 func (g *Group) registerThreadAction(activity Activity) {
 	g.ActionCount++
@@ -110,6 +114,10 @@ func (g *Group) registerThreadActive(activity Activity) {
 
 func (g *Group) registerThreadInactive(activity Activity) {
 	g.ActiveCount--
+}
+
+func (g *Group) registerThreadIncoming(activity Activity) {
+	g.IncomingCount++
 }
 
 func (g *Group) registerThreadError(activity Activity) {

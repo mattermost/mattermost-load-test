@@ -19,13 +19,14 @@ type Database struct {
 
 // Checkin database structure
 type Checkin struct {
-	Time        time.Time `gorethink:"time"`
-	ThreadCount int       `gorethink:"threadCount"`
-	LaunchCount int       `gorethink:"launchCount"`
-	ActiveCount int       `gorethink:"activeCount"`
-	ActionCount int       `gorethink:"actionCount"`
-	Errors      []string  `gorethink:"errors"`
-	TestID      string    `gorethink:"testID"`
+	Time          time.Time `gorethink:"time"`
+	ThreadCount   int       `gorethink:"threadCount"`
+	LaunchCount   int       `gorethink:"launchCount"`
+	ActiveCount   int       `gorethink:"activeCount"`
+	ActionCount   int       `gorethink:"actionCount"`
+	IncomingCount int       `gorethink:"incomingCount"`
+	Errors        []string  `gorethink:"errors"`
+	TestID        string    `gorethink:"testID"`
 }
 
 // CreateDBConnection to rethinkdb

@@ -131,6 +131,9 @@ func (tp *UserListenTestPlan) Start() bool {
 
 						post := model.PostFromJson(strings.NewReader(event.Data["post"].(string)))
 						if post != nil {
+
+							tp.registerIncoming()
+
 							if RandomChoice(Config.ReplyPercent) {
 								message := p.RandomMessage{}.Plain()
 								message = fmt.Sprintf("reply: %v", message)
@@ -231,6 +234,14 @@ func (tp *UserListenTestPlan) registerInactive() {
 func (tp *UserListenTestPlan) registerLaunchFail() {
 	tp.activityChannel <- l.Activity{
 		Status:  l.StatusLaunchFailed,
+		ID:      tp.id,
+		Message: "Failed launch",
+	}
+}
+
+func (tp *UserListenTestPlan) registerIncoming() {
+	tp.activityChannel <- l.Activity{
+		Status:  l.StatusIncoming,
 		ID:      tp.id,
 		Message: "Failed launch",
 	}
