@@ -4,12 +4,24 @@
 Mattermost Load Test Install Guide 
 ===============================================
 
-This installation guide walks through the steps of: 
+This install guide sets up Mattermost Load Test to replicate a set of consistent results.
 
-1. `Production Install on Ubuntu 14.04 LTS`_
-2. `Installing Mattermost Load Test`_
-3. `Configuring Mattermost Loat Test`_
+1. `Confirm Benchmark Hardware`_
+2. `Production Install on Ubuntu 14.04 LTS`_
+3. `Installing Mattermost Load Test`_
+4. `Configuring Mattermost Loat Test`_
 
+Confirm Benchmark Hardware
+============================================
+
+Confirm you will be able to provision the following hardware to replicate the results of Mattermost Load Tests: 
+
+- One (1) Load Test Server - Amazon EC2 instance of size `m4.xlarge`
+- One (1) Mattermost Application Server - Amazon EC2 instance of size `m4.xlarge`
+- One (1) Mattermost Database Server - Amazon MySQL RDS instance of size `m4.xlarge`
+- One (1) Mattermost Proxy - Amazon EC2 instance of size `m4.xlarge`
+
+See `Amazon EC2 Instance Types <https://aws.amazon.com/ec2/instance-types/>`_ for details on hardware used. 
 
 Production Install on Ubuntu 14.04 LTS
 ============================================
@@ -41,70 +53,18 @@ Install Ubuntu Server (x64) 14.04 LTS
 Set up Database Server
 ----------------------
 
-1.  For the purposes of this guide we will assume this server has an IP
-    address of 10.10.10.1
-2.  Install PostgreSQL 9.3+ (or MySQL 5.6+)
+The Mattermost Load Test is benchmarked using MySQL on a pre-optimized Amazon RDS instance. 
 
-    -  ``sudo apt-get install postgresql postgresql-contrib``
+To set up an Amazon Relational Database Server with MySQL (use default MySQL 5.6.27), from the EC2 main menu in Amazon Web Services click: 
 
-3.  PostgreSQL created a user account called ``postgres``. You will need
-    to log into that account with:
+   - Launch Database using RDS: 
+   - Get Started Now > Select MySQL > Select "Production" then Next Step 
+   - Select DB Instance Class `m4.xlarge` > Select 100GB to enable SSD storage 
+   - Launch DB instance 
 
-    -  ``sudo -i -u postgres``
+Final steps: 
 
-4.  You can get a PostgreSQL prompt by typing:
-
-    -  ``psql``
-
-5.  Create the Mattermost database by typing:
-
-    -  ``postgres=# CREATE DATABASE mattermost;``
-
-6.  Create the Mattermost user by typing:
-
-    -  ``postgres=# CREATE USER mmuser WITH PASSWORD 'mmuser_password';``
-
-7.  Grant the user access to the Mattermost database by typing:
-
-    -  ``postgres=# GRANT ALL PRIVILEGES ON DATABASE mattermost to mmuser;``
-
-8.  You can exit out of PostgreSQL by typing:
-
-    -  ``postgre=# \q``
-
-9.  You can exit the postgres account by typing:
-
-    -  ``exit``
-
-10. Allow Postgres to listen on all assigned IP Addresses
-
-    -  ``sudo vi /etc/postgresql/9.3/main/postgresql.conf``
-    -  Uncomment ``listen_addresses`` and change ``localhost`` to ``\*``
-
-11. Alter pg\_hba.conf to allow the mattermost server to talk to the
-    postgres database
-
-    -  ``sudo vi /etc/postgresql/9.3/main/pg_hba.conf``
-    -  Add the following line to the ``IPv4 local connections``
-    -  ``host all all 10.10.10.2/32 md5``
-
-12. Reload Postgres database
-
-    -  ``sudo /etc/init.d/postgresql reload``
-    
-    check with netstat command to see postgresql actually running on given ip and port
-    
-    - ``sudo netstat -anp | grep 5432``
-    
-    try restarting the postgresql service if reload won't work
-
-    - ``sudo service postgresql restart``
-
-13. Attempt to connect with the new created user to verify everything
-    looks good
-
-    -  ``psql --host=10.10.10.1 --dbname=mattermost --username=mmuser --password``
-    -  ``mattermost=> \q``
+- Confirm `max_connecton` is not less than setting in Mattermost config
 
 Set up Mattermost Server
 ------------------------
