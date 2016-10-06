@@ -42,14 +42,27 @@ func (c *CommandContext) PrettyPrintln(a ...interface{}) (int, error) {
 	}
 	return 0, nil
 }
+
 func (c *CommandContext) Println(a ...interface{}) (int, error) {
 	return fmt.Println(a...)
+}
+
+func (c *CommandContext) Print(a ...interface{}) (int, error) {
+	return fmt.Print(a...)
+}
+
+func (c *CommandContext) PrintErrorln(a ...interface{}) (int, error) {
+	return fmt.Println(a...)
+}
+
+func (c *CommandContext) PrintError(a ...interface{}) (int, error) {
+	return fmt.Print(a...)
 }
 
 func (c *CommandContext) PrintErrors(errors []error) {
 	for _, err := range errors {
 		if err != nil {
-			c.Println(err.Error())
+			c.PrintErrorln(err.Error())
 		}
 	}
 }
@@ -63,5 +76,12 @@ func GetClient(config *loadtestconfig.ConnectionConfiguration) *model.Client {
 	client := model.NewClient(config.ServerURL)
 	client.Login(config.AdminEmail, config.AdminPassword)
 
+	return client
+}
+
+func GetUserClient(config *loadtestconfig.ConnectionConfiguration, user *loadtestconfig.ServerStateUser) *model.Client {
+	client := model.NewClient(config.ServerURL)
+	client.AuthToken = user.SessionToken
+	client.AuthType = model.HEADER_BEARER
 	return client
 }

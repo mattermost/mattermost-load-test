@@ -73,6 +73,16 @@ func (p *Platform) Login(email, password string) error {
 	return nil
 }
 
+// Login will attempt to login to mattermost and return error otherwise
+func (p *Platform) LoginById(id, password string) error {
+	res, err := p.client.LoginById(id, password)
+	if err != nil {
+		return err
+	}
+	p.mmUser = res.Data.(*model.User)
+	return nil
+}
+
 // UpdateProfile with values if unset
 func (p *Platform) UpdateProfile(first, last, username string) error {
 	if first != "" {

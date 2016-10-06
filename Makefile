@@ -17,7 +17,7 @@ install: .installdeps
 	$(GO) install ./cmd/loadtest
 
 clean:
-	rm -f errors.log cache.db stats.log
+	rm -f errors.log cache.db stats.log status.log
 	rm -f ./cmd/mmange/mmange
 	rm -f ./cmd/mcreate/mcreate
 	rm -f ./cmd/loadtest/loadtest

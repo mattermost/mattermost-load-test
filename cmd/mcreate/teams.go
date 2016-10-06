@@ -6,6 +6,7 @@ package main
 import (
 	"github.com/mattermost/mattermost-load-test/autocreation"
 	"github.com/mattermost/mattermost-load-test/cmd/cmdlib"
+	"github.com/mattermost/mattermost-load-test/loadtestconfig"
 	"github.com/spf13/cobra"
 )
 
@@ -15,20 +16,22 @@ func createTeamsCmd(cmd *cobra.Command, args []string) {
 }
 
 func createTeams(c *cmdlib.CommandContext) {
+	c.PrettyPrintln("Creating Teams")
+
+	inputState := loadtestconfig.ServerStateFromStdin()
+
 	client := cmdlib.GetClient(&c.LoadTestConfig.ConnectionConfiguration)
 
 	results := autocreation.CreateTeams(client, &c.LoadTestConfig.TeamsConfiguration)
 
-	c.PrintResultsHeader()
-	c.PrettyPrintln("Teams: ")
-	printTeamsResults(c, results)
-}
-
-func printTeamsResults(c *cmdlib.CommandContext, results *autocreation.TeamsCreationResult) {
 	for _, result := range results.Teams {
 		if result != nil {
-			c.Println(result.ToJson())
+			inputState.Teams = append(inputState.Teams, loadtestconfig.ServerStateTeam{Id: result.Id})
 		}
 	}
+
+	c.PrintResultsHeader()
+	c.PrettyPrintln("Teams: ")
+	c.Print(inputState.ToJson())
 	c.PrintErrors(results.Errors)
 }

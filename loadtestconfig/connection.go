@@ -4,8 +4,10 @@
 package loadtestconfig
 
 type ConnectionConfiguration struct {
-	ServerURL     string
-	WebsocketURL  string
-	AdminEmail    string
-	AdminPassword string
+	ServerURL         string
+	WebsocketURL      string
+	AdminEmail        string
+	AdminPassword     string
+	RetryWebsockets   bool
+	MaxRetryWebsocket int
 }
