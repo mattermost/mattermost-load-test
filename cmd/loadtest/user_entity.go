@@ -12,12 +12,13 @@ import (
 )
 
 const (
-	STATUS_LAUNCHING int = iota
-	STATUS_ACTIVE    int = iota
-	STATUS_STOPPED   int = iota
-	STATUS_ERROR     int = iota
-	STATUS_FAILED    int = iota
-	STATUS_ACTION    int = iota
+	STATUS_LAUNCHING      int = iota
+	STATUS_ACTIVE         int = iota
+	STATUS_STOPPED        int = iota
+	STATUS_ERROR          int = iota
+	STATUS_FAILED         int = iota
+	STATUS_ACTION_SEND    int = iota
+	STATUS_ACTION_RECIEVE int = iota
 )
 
 type UserEntityStatusReport struct {
@@ -39,8 +40,10 @@ func statusString(status int) string {
 		return "ERROR"
 	case STATUS_FAILED:
 		return "FAILED"
-	case STATUS_ACTION:
-		return "ACTION"
+	case STATUS_ACTION_SEND:
+		return "ACTION_SEND"
+	case STATUS_ACTION_RECIEVE:
+		return "ACTION_RECIEVE"
 	}
 	return "SOMTHING BAD"
 }
@@ -87,8 +90,12 @@ func (config *UserEntityConfig) SendStatusFailed(err error, details string) {
 	config.SendStatus(STATUS_FAILED, err, details)
 }
 
-func (config *UserEntityConfig) SendStatusAction(details string) {
-	config.SendStatus(STATUS_ACTION, nil, details)
+func (config *UserEntityConfig) SendStatusActionSend(details string) {
+	config.SendStatus(STATUS_ACTION_SEND, nil, details)
+}
+
+func (config *UserEntityConfig) SendStatusActionRecieve(details string) {
+	config.SendStatus(STATUS_ACTION_RECIEVE, nil, details)
 }
 
 func (config *UserEntityConfig) SendStatusStopped(details string) {

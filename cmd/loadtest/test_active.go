@@ -41,7 +41,7 @@ func testActiveCmd(cmd *cobra.Command, args []string) {
 	testActive(context)
 }
 
-func doPrintStats(c *cmdlib.CommandContext, actionsCounter *ratecounter.RateCounter, errorCounter *ratecounter.RateCounter, stopChan <-chan bool) {
+func doPrintStats(c *cmdlib.CommandContext, actionsSendCounter *ratecounter.RateCounter, actionsRecieveCounter *ratecounter.RateCounter, errorCounter *ratecounter.RateCounter, stopChan <-chan bool) {
 	// Print statistics on timer
 	statsTicker := time.NewTicker(time.Second * 3)
 	defer statsTicker.Stop()
@@ -51,13 +51,14 @@ func doPrintStats(c *cmdlib.CommandContext, actionsCounter *ratecounter.RateCoun
 		case <-stopChan:
 			return
 		case <-statsTicker.C:
-			c.Println("Actions per second: " + strconv.Itoa(int(actionsCounter.Rate())))
+			c.Println("Send Actions per second: " + strconv.Itoa(int(actionsSendCounter.Rate())))
+			c.Println("Recieve Actions per second: " + strconv.Itoa(int(actionsRecieveCounter.Rate())))
 			c.Println("Errors per second: " + strconv.Itoa(int(errorCounter.Rate())))
 		}
 	}
 }
 
-func UserEntityStatusPrinter(c *cmdlib.CommandContext, statusChan <-chan UserEntityStatusReport, stopChan <-chan bool, stopWait *sync.WaitGroup) {
+func UserEntityStatusPrinter(c *cmdlib.CommandContext, statusChan <-chan UserEntityStatusReport, stopChan <-chan bool, stopWait *sync.WaitGroup, users []loadtestconfig.ServerStateUser) {
 	defer stopWait.Done()
 	logfile, err := os.Create("status.log")
 	if err != nil {
@@ -70,18 +71,22 @@ func UserEntityStatusPrinter(c *cmdlib.CommandContext, statusChan <-chan UserEnt
 	}()
 
 	// Rate counters for collecting statistics
-	actionsCounter := ratecounter.NewRateCounter(1 * time.Second)
+	actionsSendCounter := ratecounter.NewRateCounter(1 * time.Second)
+	actionsRecieveCounter := ratecounter.NewRateCounter(1 * time.Second)
 	errorCounter := ratecounter.NewRateCounter(1 * time.Second)
 
-	go doPrintStats(c, actionsCounter, errorCounter, stopChan)
+	go doPrintStats(c, actionsSendCounter, actionsRecieveCounter, errorCounter, stopChan)
 
 	handleReport := func(report *UserEntityStatusReport) {
-		if report.Status == STATUS_ACTION {
-			actionsCounter.Incr(1)
+		if report.Status == STATUS_ACTION_SEND {
+			actionsSendCounter.Incr(1)
+		} else if report.Status == STATUS_ACTION_RECIEVE {
+			actionsRecieveCounter.Incr(1)
 		} else if report.Status == STATUS_ERROR {
 			errorCounter.Incr(1)
 		}
-		logfile.WriteString(fmt.Sprintln(report))
+		entityUser := &users[report.UserEntityId%len(users)]
+		logfile.WriteString(fmt.Sprintln("UserId: ", entityUser.Id, report))
 	}
 
 	// This strange thing makes sure that the statusChan is drained before it will listen to the stopChan
@@ -118,7 +123,7 @@ func testActive(c *cmdlib.CommandContext) {
 	var printerWait sync.WaitGroup
 	statusChannel := make(chan UserEntityStatusReport, 1000)
 	printerWait.Add(1)
-	go UserEntityStatusPrinter(c, statusChannel, statusPrinterStopChan, &printerWait)
+	go UserEntityStatusPrinter(c, statusChannel, statusPrinterStopChan, &printerWait, inputState.Users)
 
 	c.Println("Starting ramp-up")
 	for entityNum := 0; entityNum < numEntities; entityNum++ {
@@ -200,7 +205,7 @@ func startWebsocketListenerUserEntity(config UserEntityConfig) {
 					return
 				}
 			}
-			config.SendStatusAction("Recieved websocket event: " + event.Event)
+			config.SendStatusActionRecieve("Recieved websocket event: " + event.Event)
 		}
 	}
 }
@@ -233,7 +238,7 @@ func startPosterUserEntity(config UserEntityConfig, channels []loadtestconfig.Se
 			if err != nil {
 				config.SendStatusError(err, "Failed to post message")
 			} else {
-				config.SendStatusAction("Posted Message")
+				config.SendStatusActionSend("Posted Message")
 			}
 			postCount++
 		}

@@ -4,8 +4,6 @@
 package main
 
 import (
-	"math/rand"
-
 	"github.com/mattermost/mattermost-load-test/autocreation"
 	"github.com/mattermost/mattermost-load-test/cmd/cmdlib"
 	"github.com/mattermost/mattermost-load-test/loadtestconfig"
@@ -117,8 +115,8 @@ func joinUsersToChannel(c *cmdlib.CommandContext) {
 
 	errors := make([]error, 0, numChannelsToJoin*len(inputState.Users))
 	for iUser, user := range inputState.Users {
-		channelsToJoin := rand.Perm(len(inputState.Channels))
-		for _, iChannel := range channelsToJoin[:numChannelsToJoin] {
+		for channelOffset := 0; channelOffset < numChannelsToJoin; channelOffset++ {
+			iChannel := (iUser + channelOffset) % len(inputState.Channels)
 			channel := inputState.Channels[iChannel]
 			client.SetTeamId(channel.TeamId)
 			_, err := client.AddChannelMember(channel.Id, user.Id)

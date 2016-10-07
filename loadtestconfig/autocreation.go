@@ -8,6 +8,7 @@ type UsersConfiguration struct {
 	UserEmailDomain   string
 	UserFirstName     string
 	UserLastName      string
+	UserUsername      string
 	UserPassword      string
 	NumUsers          int
 	UseRandomId       bool
@@ -31,10 +32,10 @@ type ChannelsConfiguration struct {
 
 func (config *ChannelsConfiguration) SetDefaultsIfRequired() {
 	if config.ChannelNamePrefix == "" {
-		config.ChannelNamePrefix = "autocreatedchannel"
+		config.ChannelNamePrefix = "autoc"
 	}
 	if config.ChannelDisplayName == "" {
-		config.ChannelDisplayName = "Autocreated Channel"
+		config.ChannelDisplayName = "AutoC "
 	}
 	if config.NumChannelsPerTeam == 0 {
 		config.NumChannelsPerTeam = 1
@@ -43,10 +44,10 @@ func (config *ChannelsConfiguration) SetDefaultsIfRequired() {
 
 func (config *TeamsConfiguration) SetDefaultsIfRequired() {
 	if config.TeamNamePrefix == "" {
-		config.TeamNamePrefix = "autocreatedteam"
+		config.TeamNamePrefix = "autot"
 	}
 	if config.TeamDisplayName == "" {
-		config.TeamDisplayName = "Autocreated Team"
+		config.TeamDisplayName = "AutoT "
 	}
 	if config.NumTeams == 0 {
 		config.NumTeams = 1
@@ -55,7 +56,7 @@ func (config *TeamsConfiguration) SetDefaultsIfRequired() {
 
 func (config *UsersConfiguration) SetDefaultsIfRequired() {
 	if config.UserEmailPrefix == "" {
-		config.UserEmailPrefix = "autocreated_test_user_"
+		config.UserEmailPrefix = "autou_"
 	}
 	if config.UserEmailDomain == "" {
 		config.UserEmailDomain = "+success@simulator.amazonses.com"
@@ -65,6 +66,9 @@ func (config *UsersConfiguration) SetDefaultsIfRequired() {
 	}
 	if config.UserLastName == "" {
 		config.UserLastName = "TestLast"
+	}
+	if config.UserUsername == "" {
+		config.UserUsername = "autou"
 	}
 	if config.UserPassword == "" {
 		config.UserPassword = "passwd"
