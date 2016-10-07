@@ -4,13 +4,14 @@
 package loadtestconfig
 
 type UsersConfiguration struct {
-	UserEmailPrefix string
-	UserEmailDomain string
-	UserFirstName   string
-	UserLastName    string
-	UserPassword    string
-	NumUsers        int
-	UseRandomId     bool
+	UserEmailPrefix   string
+	UserEmailDomain   string
+	UserFirstName     string
+	UserLastName      string
+	UserPassword      string
+	NumUsers          int
+	UseRandomId       bool
+	NumChannelsToJoin int
 }
 
 type TeamsConfiguration struct {

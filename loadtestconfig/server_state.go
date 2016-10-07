@@ -11,8 +11,9 @@ import (
 )
 
 type ServerStateUser struct {
-	Id           string
-	SessionToken string
+	Id             string
+	SessionToken   string
+	ChannelsJoined []int // Indes into the Channels[] array on ServerState
 }
 
 type ServerStateTeam struct {

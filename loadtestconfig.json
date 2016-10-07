@@ -6,6 +6,9 @@
     "TeamsConfiguration": {
         "NumTeams": 5
     },
+    "UsersConfiguration": {
+        "NumChannelsToJoin": 5
+    },
     "ConnectionConfiguration": {
         "ServerURL": "http://localhost:8065",
         "WebsocketURL": "ws://localhost:8065",

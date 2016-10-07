@@ -4,6 +4,8 @@
 package main
 
 import (
+	"math/rand"
+
 	"github.com/mattermost/mattermost-load-test/autocreation"
 	"github.com/mattermost/mattermost-load-test/cmd/cmdlib"
 	"github.com/mattermost/mattermost-load-test/loadtestconfig"
@@ -30,6 +32,7 @@ func main() {
 		Short: "Join users to channels",
 		Run:   joinChannelCmd,
 	}
+	loadtestconfig.SetIntFlag(cmdJoinChannel.Flags(), "num", "n", "Numer of channels to join each user to", "UsersConfiguration.NumChannelsToJoin", 1)
 
 	var rootCmd = &cobra.Command{Use: "mmanage"}
 	rootCmd.AddCommand(cmdTeams, cmdJoinTeam, cmdJoinChannel)
@@ -105,17 +108,24 @@ func joinUsersToChannel(c *cmdlib.CommandContext) {
 
 	inputState := loadtestconfig.ServerStateFromStdin()
 
-	userIds := inputState.GetUserIds()
-
 	client := cmdlib.GetClient(&c.LoadTestConfig.ConnectionConfiguration)
 
-	errors := make([]error, 0, len(inputState.Channels)*len(userIds))
-	for _, channel := range inputState.Channels {
-		client.SetTeamId(channel.TeamId)
-		for _, userId := range userIds {
-			_, err := client.AddChannelMember(channel.Id, userId)
+	numChannelsToJoin := c.LoadTestConfig.UsersConfiguration.NumChannelsToJoin
+	if len(inputState.Channels) < numChannelsToJoin {
+		numChannelsToJoin = len(inputState.Channels)
+	}
+
+	errors := make([]error, 0, numChannelsToJoin*len(inputState.Users))
+	for iUser, user := range inputState.Users {
+		channelsToJoin := rand.Perm(len(inputState.Channels))
+		for _, iChannel := range channelsToJoin[:numChannelsToJoin] {
+			channel := inputState.Channels[iChannel]
+			client.SetTeamId(channel.TeamId)
+			_, err := client.AddChannelMember(channel.Id, user.Id)
 			if err != nil {
 				errors = append(errors, err)
+			} else {
+				inputState.Users[iUser].ChannelsJoined = append(inputState.Users[iUser].ChannelsJoined, iChannel)
 			}
 		}
 	}

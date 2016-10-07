@@ -122,7 +122,8 @@ func testActive(c *cmdlib.CommandContext) {
 
 	c.Println("Starting ramp-up")
 	for entityNum := 0; entityNum < numEntities; entityNum++ {
-		userClient := cmdlib.GetUserClient(&c.LoadTestConfig.ConnectionConfiguration, &inputState.Users[entityNum%len(inputState.Users)])
+		entityUser := &inputState.Users[entityNum%len(inputState.Users)]
+		userClient := cmdlib.GetUserClient(&c.LoadTestConfig.ConnectionConfiguration, entityUser)
 		userWebsocketClient, err := model.NewWebSocketClient(c.LoadTestConfig.ConnectionConfiguration.WebsocketURL, userClient.AuthToken)
 		if err != nil {
 			c.PrintErrorln("Unable to setup websocket client", err)
@@ -138,8 +139,9 @@ func testActive(c *cmdlib.CommandContext) {
 			StopEntityChannel:   stopChan,
 			StopEntityWaitGroup: &stopWait,
 		}
-		stopWait.Add(1)
-		go startPosterListenerEntity(config, inputState.Channels[entityNum%len(inputState.Channels)])
+		stopWait.Add(2)
+		go startWebsocketListenerUserEntity(config)
+		go startPosterUserEntity(config, inputState.Channels, entityUser)
 		time.Sleep(time.Duration(c.LoadTestConfig.UserEntitiesConfiguration.EntityRampupDistanceMilliseconds) * time.Millisecond)
 	}
 	c.Println("Ramp-up complete")
@@ -159,8 +161,6 @@ func testActive(c *cmdlib.CommandContext) {
 
 func startPosterListenerEntity(config UserEntityConfig, channel loadtestconfig.ServerStateChannel) {
 	config.StopEntityWaitGroup.Add(1)
-	go startWebsocketListenerUserEntity(config)
-	startPosterUserEntity(config, channel)
 }
 
 func startWebsocketListenerUserEntity(config UserEntityConfig) {
@@ -205,7 +205,7 @@ func startWebsocketListenerUserEntity(config UserEntityConfig) {
 	}
 }
 
-func startPosterUserEntity(config UserEntityConfig, channel loadtestconfig.ServerStateChannel) {
+func startPosterUserEntity(config UserEntityConfig, channels []loadtestconfig.ServerStateChannel, user *loadtestconfig.ServerStateUser) {
 	config.SendStatusLaunching()
 	defer config.StopEntityWaitGroup.Done()
 	posterConfig := NewUserEntityPosterConfig(&config)
@@ -214,6 +214,8 @@ func startPosterUserEntity(config UserEntityConfig, channel loadtestconfig.Serve
 	postTicker := time.NewTicker(time.Second * time.Duration(posterConfig.PostingFrequencySeconds))
 	defer postTicker.Stop()
 
+	var postCount int64 = 0
+
 	config.SendStatusActive("Posting")
 	for {
 		select {
@@ -221,6 +223,7 @@ func startPosterUserEntity(config UserEntityConfig, channel loadtestconfig.Serve
 			config.SendStatusStopped("")
 			return
 		case <-postTicker.C:
+			channel := channels[user.ChannelsJoined[postCount%int64(len(user.ChannelsJoined))]]
 			config.Client.SetTeamId(channel.TeamId)
 			post := &model.Post{
 				ChannelId: channel.Id,
@@ -232,6 +235,7 @@ func startPosterUserEntity(config UserEntityConfig, channel loadtestconfig.Serve
 			} else {
 				config.SendStatusAction("Posted Message")
 			}
+			postCount++
 		}
 	}
 }
