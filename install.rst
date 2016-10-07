@@ -1,13 +1,13 @@
 ..  _prod-ubuntu:
 
 ===============================================
-Mattermost Load Test Install Guide 
+Mattermost Load Test Install Guide (WIP) 
 ===============================================
 
 This install guide sets up Mattermost Load Test to replicate a set of consistent results.
 
 1. `Confirm Benchmark Hardware`_
-2. `Production Install on Ubuntu 14.04 LTS`_
+2. `Production Install on Ubuntu 14.04 LTS with MySQL on Amazon RDS`_
 3. `Installing Mattermost Load Test`_
 4. `Varying Mattermost Load Test`_
 
@@ -23,8 +23,8 @@ Confirm you will be able to provision the following hardware to replicate the re
 
 See `Amazon EC2 Instance Types <https://aws.amazon.com/ec2/instance-types/>`_ for details on hardware used. 
 
-Production Install on Ubuntu 14.04 LTS
-============================================
+Production Install on Ubuntu 14.04 LTS with MySQL on Amazon RDS
+========================================================================
 
 Install Mattermost in production mode on one, two or three machines, using the following steps: 
 
