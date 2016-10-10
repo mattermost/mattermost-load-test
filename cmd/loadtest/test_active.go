@@ -4,10 +4,8 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
-	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -16,8 +14,6 @@ import (
 	"github.com/mattermost/mattermost-load-test/loadtestconfig"
 	"github.com/mattermost/platform/model"
 	"github.com/spf13/cobra"
-
-	"github.com/paulbellamy/ratecounter"
 )
 
 type UserEntityPosterConfiguration struct {
@@ -41,70 +37,6 @@ func testActiveCmd(cmd *cobra.Command, args []string) {
 	testActive(context)
 }
 
-func doPrintStats(c *cmdlib.CommandContext, actionsSendCounter *ratecounter.RateCounter, actionsRecieveCounter *ratecounter.RateCounter, errorCounter *ratecounter.RateCounter, stopChan <-chan bool) {
-	// Print statistics on timer
-	statsTicker := time.NewTicker(time.Second * 3)
-	defer statsTicker.Stop()
-
-	for {
-		select {
-		case <-stopChan:
-			return
-		case <-statsTicker.C:
-			c.Println("Send Actions per second: " + strconv.Itoa(int(actionsSendCounter.Rate())))
-			c.Println("Recieve Actions per second: " + strconv.Itoa(int(actionsRecieveCounter.Rate())))
-			c.Println("Errors per second: " + strconv.Itoa(int(errorCounter.Rate())))
-		}
-	}
-}
-
-func UserEntityStatusPrinter(c *cmdlib.CommandContext, statusChan <-chan UserEntityStatusReport, stopChan <-chan bool, stopWait *sync.WaitGroup, users []loadtestconfig.ServerStateUser) {
-	defer stopWait.Done()
-	logfile, err := os.Create("status.log")
-	if err != nil {
-		c.PrintError("Unable to open log file for entity statuses")
-		return
-	}
-	defer func() {
-		logfile.Sync()
-		logfile.Close()
-	}()
-
-	// Rate counters for collecting statistics
-	actionsSendCounter := ratecounter.NewRateCounter(1 * time.Second)
-	actionsRecieveCounter := ratecounter.NewRateCounter(1 * time.Second)
-	errorCounter := ratecounter.NewRateCounter(1 * time.Second)
-
-	go doPrintStats(c, actionsSendCounter, actionsRecieveCounter, errorCounter, stopChan)
-
-	handleReport := func(report *UserEntityStatusReport) {
-		if report.Status == STATUS_ACTION_SEND {
-			actionsSendCounter.Incr(1)
-		} else if report.Status == STATUS_ACTION_RECIEVE {
-			actionsRecieveCounter.Incr(1)
-		} else if report.Status == STATUS_ERROR {
-			errorCounter.Incr(1)
-		}
-		entityUser := &users[report.UserEntityId%len(users)]
-		logfile.WriteString(fmt.Sprintln("UserId: ", entityUser.Id, report))
-	}
-
-	// This strange thing makes sure that the statusChan is drained before it will listen to the stopChan
-	for {
-		select {
-		case report := <-statusChan:
-			handleReport(&report)
-		default:
-			select {
-			case report := <-statusChan:
-				handleReport(&report)
-			case <-stopChan:
-				return
-			}
-		}
-	}
-}
-
 func testActive(c *cmdlib.CommandContext) {
 	numEntities := c.LoadTestConfig.UserEntitiesConfiguration.NumClientEntities
 
@@ -120,15 +52,24 @@ func testActive(c *cmdlib.CommandContext) {
 
 	// Create Channel for users to report status
 	statusPrinterStopChan := make(chan bool)
+
+	// Waitgroup for waiting for status messages to finish printing
 	var printerWait sync.WaitGroup
+
+	// Channel to recieve user entity status reports
 	statusChannel := make(chan UserEntityStatusReport, 1000)
+
 	printerWait.Add(1)
 	go UserEntityStatusPrinter(c, statusChannel, statusPrinterStopChan, &printerWait, inputState.Users)
 
 	c.Println("Starting ramp-up")
 	for entityNum := 0; entityNum < numEntities; entityNum++ {
+		// Get the user for this entity. If there are not enough users
+		// for the number of entities requested, wrap around.
 		entityUser := &inputState.Users[entityNum%len(inputState.Users)]
+
 		userClient := cmdlib.GetUserClient(&c.LoadTestConfig.ConnectionConfiguration, entityUser)
+
 		userWebsocketClient, err := model.NewWebSocketClient(c.LoadTestConfig.ConnectionConfiguration.WebsocketURL, userClient.AuthToken)
 		if err != nil {
 			c.PrintErrorln("Unable to setup websocket client", err)
@@ -137,6 +78,7 @@ func testActive(c *cmdlib.CommandContext) {
 
 		config := UserEntityConfig{
 			Id:                  entityNum,
+			EntityUser:          entityUser,
 			Client:              userClient,
 			WebSocketClient:     userWebsocketClient,
 			LoadTestConfig:      c.LoadTestConfig,
@@ -162,10 +104,6 @@ func testActive(c *cmdlib.CommandContext) {
 	close(statusPrinterStopChan)
 	printerWait.Wait()
 	c.Println("DONE!")
-}
-
-func startPosterListenerEntity(config UserEntityConfig, channel loadtestconfig.ServerStateChannel) {
-	config.StopEntityWaitGroup.Add(1)
 }
 
 func startWebsocketListenerUserEntity(config UserEntityConfig) {

@@ -4,59 +4,15 @@
 package main
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/mattermost/mattermost-load-test/loadtestconfig"
 	"github.com/mattermost/platform/model"
 )
 
-const (
-	STATUS_LAUNCHING      int = iota
-	STATUS_ACTIVE         int = iota
-	STATUS_STOPPED        int = iota
-	STATUS_ERROR          int = iota
-	STATUS_FAILED         int = iota
-	STATUS_ACTION_SEND    int = iota
-	STATUS_ACTION_RECIEVE int = iota
-)
-
-type UserEntityStatusReport struct {
-	Status       int
-	Err          error
-	UserEntityId int
-	Details      string
-}
-
-func statusString(status int) string {
-	switch status {
-	case STATUS_LAUNCHING:
-		return "LAUNCHING"
-	case STATUS_ACTIVE:
-		return "ACTIVE"
-	case STATUS_STOPPED:
-		return "STOPPED"
-	case STATUS_ERROR:
-		return "ERROR"
-	case STATUS_FAILED:
-		return "FAILED"
-	case STATUS_ACTION_SEND:
-		return "ACTION_SEND"
-	case STATUS_ACTION_RECIEVE:
-		return "ACTION_RECIEVE"
-	}
-	return "SOMTHING BAD"
-}
-
-func (report UserEntityStatusReport) String() string {
-	if report.Err == nil {
-		return fmt.Sprintf("#%v [%v]: %v", report.UserEntityId, statusString(report.Status), report.Details)
-	}
-	return fmt.Sprintf("#%v [%v]: %v, %v", report.UserEntityId, statusString(report.Status), report.Details, report.Err)
-}
-
 type UserEntityConfig struct {
 	Id                  int
+	EntityUser          *loadtestconfig.ServerStateUser
 	Client              *model.Client
 	WebSocketClient     *model.WebSocketClient
 	LoadTestConfig      *loadtestconfig.LoadTestConfig
@@ -67,10 +23,10 @@ type UserEntityConfig struct {
 
 func (config *UserEntityConfig) SendStatus(status int, err error, details string) {
 	config.StatusReportChannel <- UserEntityStatusReport{
-		Status:       status,
-		Err:          err,
-		UserEntityId: config.Id,
-		Details:      details,
+		Status:  status,
+		Err:     err,
+		Config:  config,
+		Details: details,
 	}
 }
 
