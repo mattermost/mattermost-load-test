@@ -24,7 +24,7 @@ func CreateTeams(client *model.Client, config *loadtestconfig.TeamsConfiguration
 	for teamNum := 1; teamNum <= config.NumTeams; teamNum++ {
 		team := &model.Team{
 			Name:        config.TeamNamePrefix + strconv.Itoa(teamNum),
-			DisplayName: config.TeamDisplayName,
+			DisplayName: config.TeamDisplayName + strconv.Itoa(teamNum),
 			Type:        model.TEAM_OPEN,
 		}
 

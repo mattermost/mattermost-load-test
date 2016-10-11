@@ -52,6 +52,7 @@ errors.log
 stats.log
 .installdeps
 state.json
+status.log
 
 #historic
 dummies

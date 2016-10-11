@@ -1,0 +1,23 @@
+{
+    "UserEntitiesConfiguration": {
+        "NumClientEntities": 100,
+        "EntityRampupDistanceMilliseconds": 100
+    },
+    "TeamsConfiguration": {
+        "NumTeams": 5
+    },
+    "UsersConfiguration": {
+        "NumChannelsToJoin": 5
+    },
+    "ConnectionConfiguration": {
+        "ServerURL": "http://localhost:8065",
+        "WebsocketURL": "ws://localhost:8065",
+        "AdminEmail": "test@test.com",
+        "AdminPassword": "passwd",
+        "RetryWebsockets": false,
+        "MaxRetryWebsocket": 5
+    },
+    "UserEntityPosterConfiguration": {
+        "PostingFrequencySeconds": 1
+    }
+}

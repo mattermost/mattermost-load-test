@@ -15,18 +15,18 @@ type LoginUsersResult struct {
 
 func LoginUsers(client *model.Client, config *loadtestconfig.UsersConfiguration, users []string) *LoginUsersResult {
 	loginResults := &LoginUsersResult{
-		SessionTokens: make([]string, 0, len(users)),
-		Errors:        make([]error, 0, len(users)),
+		SessionTokens: make([]string, len(users)),
+		Errors:        make([]error, len(users)),
 	}
 
 	client.Logout()
 
-	for _, userId := range users {
+	for i, userId := range users {
 		_, err := client.LoginById(userId, config.UserPassword)
 		if err != nil {
-			loginResults.Errors = append(loginResults.Errors, err)
+			loginResults.Errors[i] = err
 		} else {
-			loginResults.SessionTokens = append(loginResults.SessionTokens, client.AuthToken)
+			loginResults.SessionTokens[i] = client.AuthToken
 		}
 	}
 

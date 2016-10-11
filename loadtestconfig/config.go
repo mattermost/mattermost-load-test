@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Spinpunch, Inc. All Rights Reserved.
+// Copyright (c) 2016 Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package loadtestconfig
@@ -9,16 +9,18 @@ import (
 )
 
 type LoadTestConfig struct {
-	UsersConfiguration      UsersConfiguration
-	TeamsConfiguration      TeamsConfiguration
-	ChannelsConfiguration   ChannelsConfiguration
-	ConnectionConfiguration ConnectionConfiguration
+	UsersConfiguration        UsersConfiguration
+	TeamsConfiguration        TeamsConfiguration
+	ChannelsConfiguration     ChannelsConfiguration
+	ConnectionConfiguration   ConnectionConfiguration
+	UserEntitiesConfiguration UserEntitiesConfiguration
 }
 
 func (config *LoadTestConfig) setDefaultsIfRequired() {
 	config.UsersConfiguration.SetDefaultsIfRequired()
 	config.TeamsConfiguration.SetDefaultsIfRequired()
 	config.ChannelsConfiguration.SetDefaultsIfRequired()
+	config.UserEntitiesConfiguration.SetDefaultsIfRequired()
 }
 
 func SetupConfig() error {
