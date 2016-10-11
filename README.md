@@ -11,7 +11,7 @@ mcreate users -n 5 | mcreate teams -n 1 | mcreate channels -n 10 | mmanage login
 This will create 5 users 1 team and 10 channels. It will then login all the users, join them to the team and 5 channels in that team. The 5 channels will be the 5 channels following the users numer in sequance modulo the number of channels. It then saves the server state it created in the `state.json` file.
 To start the loadtest run:
 ```
-cat state.json | loadtest active
+cat state.json | loadtest listenandpost
 ```
 This will start a loadtest using the parameters in the loadtestconfig.json file. In that file you can edit how many user entities are created, the ramp up time, and all other available settings.
 

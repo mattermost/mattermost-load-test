@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mattermost/mattermost-load-test/cmd/cmdlib"
 	"github.com/mattermost/mattermost-load-test/loadtestconfig"
 )
 
@@ -63,11 +62,11 @@ func processEntityStatusReport(out io.Writer, report UserEntityStatusReport, sta
 	out.Write([]byte(fmt.Sprintln("UserId: ", report.Config.EntityUser.Id, report)))
 }
 
-func UserEntityStatusPrinter(c *cmdlib.CommandContext, statusChan <-chan UserEntityStatusReport, stopChan <-chan bool, stopWait *sync.WaitGroup, users []loadtestconfig.ServerStateUser) {
+func UserEntityStatusPrinter(out UserEntityLogger, statusChan <-chan UserEntityStatusReport, stopChan <-chan bool, stopWait *sync.WaitGroup, users []loadtestconfig.ServerStateUser) {
 	defer stopWait.Done()
 	logfile, err := os.Create("status.log")
 	if err != nil {
-		c.PrintError("Unable to open log file for entity statuses")
+		out.Println("Unable to open log file for entity statuses")
 		return
 	}
 	defer func() {
@@ -77,7 +76,7 @@ func UserEntityStatusPrinter(c *cmdlib.CommandContext, statusChan <-chan UserEnt
 
 	stats := NewUserEntityStatistics(1 * time.Second)
 
-	go doPrintStats(c, stats, stopChan)
+	go doPrintStats(out, stats, stopChan)
 
 	// This strange thing makes sure that the statusChan is drained before it will listen to the stopChan
 	for {

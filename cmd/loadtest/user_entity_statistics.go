@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mattermost/mattermost-load-test/cmd/cmdlib"
 	"github.com/paulbellamy/ratecounter"
 )
 
@@ -43,7 +42,7 @@ func statToString(stat int64) string {
 	return strconv.Itoa(int(stat))
 }
 
-func doPrintStats(c *cmdlib.CommandContext, stats *UserEntityStatistics, stopChan <-chan bool) {
+func doPrintStats(out UserEntityLogger, stats *UserEntityStatistics, stopChan <-chan bool) {
 	// Print statistics on timer
 	statsTicker := time.NewTicker(time.Second * 3)
 	defer statsTicker.Stop()
@@ -53,10 +52,10 @@ func doPrintStats(c *cmdlib.CommandContext, stats *UserEntityStatistics, stopCha
 		case <-stopChan:
 			return
 		case <-statsTicker.C:
-			c.Println("Total Errors: " + statToString(stats.TotalErrors))
-			c.Println("Send Actions per second: " + statToString(stats.ActionSendRate.Rate()))
-			c.Println("Recieve Actions per second: " + statToString(stats.ActionRecieveRate.Rate()))
-			c.Println("Errors per second: " + statToString(stats.ErrorRate.Rate()))
+			out.Println("Total Errors: " + statToString(stats.TotalErrors))
+			out.Println("Send Actions per second: " + statToString(stats.ActionSendRate.Rate()))
+			out.Println("Recieve Actions per second: " + statToString(stats.ActionRecieveRate.Rate()))
+			out.Println("Errors per second: " + statToString(stats.ErrorRate.Rate()))
 		}
 	}
 }

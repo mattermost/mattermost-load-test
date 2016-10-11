@@ -10,12 +10,19 @@ import (
 	"github.com/mattermost/platform/model"
 )
 
+type UserEntity interface {
+	Start()
+}
+
+type UserEntityCreator func(cfg UserEntityConfig) UserEntity
+
 type UserEntityConfig struct {
 	Id                  int
 	EntityUser          *loadtestconfig.ServerStateUser
 	Client              *model.Client
 	WebSocketClient     *model.WebSocketClient
 	LoadTestConfig      *loadtestconfig.LoadTestConfig
+	State               *loadtestconfig.ServerState
 	StatusReportChannel chan<- UserEntityStatusReport
 	StopEntityChannel   <-chan bool
 	StopEntityWaitGroup *sync.WaitGroup

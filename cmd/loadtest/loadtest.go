@@ -21,9 +21,9 @@ func main() {
 	}
 
 	cmdActiveUsers := &cobra.Command{
-		Use:   "active",
+		Use:   "listenandpost",
 		Short: "A number of active users posting and listening to websocket.",
-		Run:   testActiveCmd,
+		Run:   testListenAndPostCmd,
 	}
 
 	var rootCmd = &cobra.Command{Use: "mloadtest"}
