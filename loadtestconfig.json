@@ -1,23 +1,27 @@
 {
     "UserEntitiesConfiguration": {
-        "NumClientEntities": 100,
-        "EntityRampupDistanceMilliseconds": 100
+        "NumClientEntities": 20000,
+        "EntityRampupDistanceMilliseconds": 5
     },
     "TeamsConfiguration": {
-        "NumTeams": 5
+        "NumTeams": 1
+    },
+    "ChannelsConfiguration": {
+        "NumChannelsPerTeam": 1
     },
     "UsersConfiguration": {
-        "NumChannelsToJoin": 5
+        "NumUsers": 20000,
+        "NumChannelsToJoin": 10
     },
     "ConnectionConfiguration": {
         "ServerURL": "http://localhost:8065",
         "WebsocketURL": "ws://localhost:8065",
         "AdminEmail": "test@test.com",
         "AdminPassword": "passwd",
-        "RetryWebsockets": false,
+        "RetryWebsockets": true,
         "MaxRetryWebsocket": 5
     },
     "UserEntityPosterConfiguration": {
-        "PostingFrequencySeconds": 1
+        "PostingFrequencySeconds": 240
     }
 }

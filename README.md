@@ -8,6 +8,13 @@ Compile this project to run performance load tests on the Mattermost server.
 
 Run `make install` to compile and install the binaries. This creates three (3) commands: `loadtest`, `mcreate`, and `mmanage`. For help with each of these commands, run them without parameters.
 
+### Quickstart
+
+1. Make sure you have run `make install` from above.
+2. Run `./setup.sh` and follow the prompts. It will remind you to configure the server properly.
+2. Run `./run.sh` and follow the prompts.
+
+
 ### Setting up a Load Test Environment 
 
 In preparation for running a load test, install a Mattermost server and populate it with users and a team: 

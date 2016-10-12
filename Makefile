@@ -16,6 +16,12 @@ install: .installdeps
 	$(GO) install ./cmd/mmanage
 	$(GO) install ./cmd/loadtest
 
+setup:
+	./setup.sh
+
+run:
+	./run.sh
+
 clean:
 	rm -f errors.log cache.db stats.log status.log
 	rm -f ./cmd/mmange/mmange
