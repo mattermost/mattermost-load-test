@@ -23,9 +23,13 @@ func CreateChannels(client *model.Client, config *loadtestconfig.ChannelsConfigu
 		Errors:   make([]error, 0, totalChannels),
 	}
 
+	channelChan := make(chan *model.Channel, totalChannels)
+	errorChan := make(chan error, totalChannels)
+
 	for _, teamId := range config.TeamIds {
 		client.SetTeamId(teamId)
-		for channelNumber := 1; channelNumber <= config.NumChannelsPerTeam; channelNumber++ {
+
+		ThreadSplit(config.NumChannelsPerTeam, 8, func(channelNumber int) {
 			channel := &model.Channel{
 				Name:        config.ChannelNamePrefix + strconv.Itoa(channelNumber),
 				DisplayName: config.ChannelDisplayName + strconv.Itoa(channelNumber),
@@ -39,11 +43,22 @@ func CreateChannels(client *model.Client, config *loadtestconfig.ChannelsConfigu
 
 			result, err := client.CreateChannel(channel)
 			if err != nil {
-				channelResults.Errors = append(channelResults.Errors, err)
+				errorChan <- err
 			} else {
-				channelResults.Channels = append(channelResults.Channels, result.Data.(*model.Channel))
+				channelChan <- result.Data.(*model.Channel)
 			}
-		}
+		})
+	}
+
+	close(channelChan)
+	close(errorChan)
+
+	for channel := range channelChan {
+		channelResults.Channels = append(channelResults.Channels, channel)
+	}
+
+	for err := range errorChan {
+		channelResults.Errors = append(channelResults.Errors, err)
 	}
 
 	client.SetTeamId("")

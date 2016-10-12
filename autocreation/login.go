@@ -19,16 +19,18 @@ func LoginUsers(client *model.Client, config *loadtestconfig.UsersConfiguration,
 		Errors:        make([]error, len(users)),
 	}
 
-	client.Logout()
-
-	for i, userId := range users {
-		_, err := client.LoginById(userId, config.UserPassword)
+	ThreadSplit(len(users), 8, func(i int) {
+		userId := users[i]
+		m := make(map[string]string)
+		m["id"] = userId
+		m["password"] = config.UserPassword
+		r, err := client.DoApiPost("/users/login", model.MapToJson(m))
 		if err != nil {
 			loginResults.Errors[i] = err
 		} else {
-			loginResults.SessionTokens[i] = client.AuthToken
+			loginResults.SessionTokens[i] = r.Header.Get(model.HEADER_TOKEN)
 		}
-	}
+	})
 
 	return loginResults
 }

@@ -21,7 +21,10 @@ func CreateUsers(client *model.Client, config *loadtestconfig.UsersConfiguration
 		Errors: make([]error, 0, config.NumUsers),
 	}
 
-	for userNum := 1; userNum <= config.NumUsers; userNum++ {
+	userChan := make(chan *model.User, config.NumUsers)
+	errorChan := make(chan error, config.NumUsers)
+
+	ThreadSplit(config.NumUsers, 9, func(userNum int) {
 		randomId := ""
 		if config.UseRandomId {
 			randomId = model.NewId()
@@ -30,16 +33,27 @@ func CreateUsers(client *model.Client, config *loadtestconfig.UsersConfiguration
 			Email:     config.UserEmailPrefix + randomId + strconv.Itoa(userNum) + config.UserEmailDomain,
 			FirstName: config.UserFirstName + strconv.Itoa(userNum),
 			LastName:  config.UserLastName + strconv.Itoa(userNum),
-			Username:  config.UserUsername + strconv.Itoa(userNum),
+			Username:  config.UserUsername + randomId + strconv.Itoa(userNum),
 			Password:  config.UserPassword,
 		}
 
 		result, err := client.CreateUser(user, "")
 		if err != nil {
-			userResults.Errors = append(userResults.Errors, err)
+			errorChan <- err
 		} else {
-			userResults.Users = append(userResults.Users, result.Data.(*model.User))
+			userChan <- result.Data.(*model.User)
 		}
+	})
+
+	close(userChan)
+	close(errorChan)
+
+	for user := range userChan {
+		userResults.Users = append(userResults.Users, user)
+	}
+
+	for err := range errorChan {
+		userResults.Errors = append(userResults.Errors, err)
 	}
 
 	return userResults
