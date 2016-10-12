@@ -4,9 +4,12 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/mattermost/mattermost-load-test/autocreation"
 	"github.com/mattermost/mattermost-load-test/cmd/cmdlib"
 	"github.com/mattermost/mattermost-load-test/loadtestconfig"
+	"github.com/mattermost/platform/model"
 	"github.com/spf13/cobra"
 )
 
@@ -53,18 +56,10 @@ func joinUsersToTeam(c *cmdlib.CommandContext) {
 
 	client := cmdlib.GetClient(&c.LoadTestConfig.ConnectionConfiguration)
 
-	errors := make([]error, 0, len(teamIds)*len(userIds))
-	for _, team := range teamIds {
-		for _, user := range userIds {
-			_, err := client.AddUserToTeam(team, user)
-			if err != nil {
-				errors = append(errors, err)
-			}
-		}
-	}
+	joinResult := autocreation.JoinUsersToTeams(client, userIds, teamIds)
 
 	c.Print(inputState.ToJson())
-	c.PrintErrors(errors)
+	c.PrintErrors(joinResult.Errors)
 }
 
 func loginCmd(cmd *cobra.Command, args []string) {
@@ -113,20 +108,21 @@ func joinUsersToChannel(c *cmdlib.CommandContext) {
 		numChannelsToJoin = len(inputState.Channels)
 	}
 
-	errors := make([]error, 0, numChannelsToJoin*len(inputState.Users))
-	for iUser, user := range inputState.Users {
+	errors := make([]error, numChannelsToJoin*len(inputState.Users))
+	autocreation.ThreadSplit(len(inputState.Users), 2, func(iUser int) {
 		for channelOffset := 0; channelOffset < numChannelsToJoin; channelOffset++ {
 			iChannel := (iUser + channelOffset) % len(inputState.Channels)
 			channel := inputState.Channels[iChannel]
-			client.SetTeamId(channel.TeamId)
-			_, err := client.AddChannelMember(channel.Id, user.Id)
+			data := make(map[string]string)
+			data["user_id"] = inputState.Users[iUser].Id
+			_, err := client.DoApiPost(fmt.Sprintf("/teams/%v/channels/%v/add", channel.TeamId, channel.Id), model.MapToJson(data))
 			if err != nil {
-				errors = append(errors, err)
+				errors[iUser] = err
 			} else {
 				inputState.Users[iUser].ChannelsJoined = append(inputState.Users[iUser].ChannelsJoined, iChannel)
 			}
 		}
-	}
+	})
 
 	c.Print(inputState.ToJson())
 	c.PrintErrors(errors)
