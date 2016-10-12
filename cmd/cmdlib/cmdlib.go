@@ -5,6 +5,7 @@ package cmdlib
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/mattermost/mattermost-load-test/loadtestconfig"
 	"github.com/mattermost/platform/model"
@@ -52,19 +53,21 @@ func (c *CommandContext) Print(a ...interface{}) (int, error) {
 }
 
 func (c *CommandContext) PrintErrorln(a ...interface{}) (int, error) {
-	return fmt.Println(a...)
+	return fmt.Fprintln(os.Stderr, a...)
 }
 
 func (c *CommandContext) PrintError(a ...interface{}) (int, error) {
-	return fmt.Print(a...)
+	return fmt.Fprint(os.Stderr, a...)
 }
 
 func (c *CommandContext) PrintErrors(errors []error) {
+	c.PrintErrorln("Errors where encountered: ")
 	for _, err := range errors {
 		if err != nil {
 			c.PrintErrorln(err.Error())
 		}
 	}
+	c.PrintErrorln("------------ End Errors")
 }
 
 func (c *CommandContext) PrintResultsHeader() {
