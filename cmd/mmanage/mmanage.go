@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Spinpunch, Inc. All Rights Reserved.
+// Copyright (c) 2016 Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package main
@@ -33,10 +33,17 @@ func main() {
 		Short: "Join users to channels",
 		Run:   joinChannelCmd,
 	}
+
+	cmdPing := &cobra.Command{
+		Use:   "ping",
+		Short: "Check that our connection information to the server is correct.",
+		Run:   pingCmd,
+	}
+
 	loadtestconfig.SetIntFlag(cmdJoinChannel.Flags(), "num", "n", "Numer of channels to join each user to", "UsersConfiguration.NumChannelsToJoin", 1)
 
 	var rootCmd = &cobra.Command{Use: "mmanage"}
-	rootCmd.AddCommand(cmdTeams, cmdJoinTeam, cmdJoinChannel)
+	rootCmd.AddCommand(cmdTeams, cmdJoinTeam, cmdJoinChannel, cmdPing)
 	rootCmd.Execute()
 }
 
@@ -54,7 +61,11 @@ func joinUsersToTeam(c *cmdlib.CommandContext) {
 	teamIds := inputState.GetTeamIds()
 	userIds := inputState.GetUserIds()
 
-	client := cmdlib.GetClient(&c.LoadTestConfig.ConnectionConfiguration)
+	client, err := cmdlib.GetClient(&c.LoadTestConfig.ConnectionConfiguration)
+	if err != nil {
+		c.PrintError("Failed to get client: ", err)
+		return
+	}
 
 	joinResult := autocreation.JoinUsersToTeams(client, userIds, teamIds)
 
@@ -75,7 +86,11 @@ func loginUsers(c *cmdlib.CommandContext) {
 
 	users := inputState.GetUserIds()
 
-	client := cmdlib.GetClient(&c.LoadTestConfig.ConnectionConfiguration)
+	client, err := cmdlib.GetClient(&c.LoadTestConfig.ConnectionConfiguration)
+	if err != nil {
+		c.PrintError("Failed to get client: ", err)
+		return
+	}
 
 	loginResults := autocreation.LoginUsers(client, &c.LoadTestConfig.UsersConfiguration, users)
 
@@ -101,7 +116,11 @@ func joinUsersToChannel(c *cmdlib.CommandContext) {
 
 	inputState := loadtestconfig.ServerStateFromStdin()
 
-	client := cmdlib.GetClient(&c.LoadTestConfig.ConnectionConfiguration)
+	client, err := cmdlib.GetClient(&c.LoadTestConfig.ConnectionConfiguration)
+	if err != nil {
+		c.PrintError("Failed to get client: ", err)
+		return
+	}
 
 	numChannelsToJoin := c.LoadTestConfig.UsersConfiguration.NumChannelsToJoin
 	if len(inputState.Channels) < numChannelsToJoin {

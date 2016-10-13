@@ -75,11 +75,14 @@ func (c *CommandContext) PrintResultsHeader() {
 	c.PrettyPrintln("=========")
 }
 
-func GetClient(config *loadtestconfig.ConnectionConfiguration) *model.Client {
+func GetClient(config *loadtestconfig.ConnectionConfiguration) (*model.Client, error) {
 	client := model.NewClient(config.ServerURL)
-	client.Login(config.AdminEmail, config.AdminPassword)
+	_, err := client.Login(config.AdminEmail, config.AdminPassword)
+	if err != nil {
+		return nil, err
+	}
 
-	return client
+	return client, nil
 }
 
 func GetUserClient(config *loadtestconfig.ConnectionConfiguration, user *loadtestconfig.ServerStateUser) *model.Client {

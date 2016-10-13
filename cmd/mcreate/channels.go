@@ -19,7 +19,11 @@ func createChannelsCmd(cmd *cobra.Command, args []string) {
 func createChannels(c *cmdlib.CommandContext) {
 	c.PrettyPrintln("Creating Channels")
 	inputState := loadtestconfig.ServerStateFromStdin()
-	client := cmdlib.GetClient(&c.LoadTestConfig.ConnectionConfiguration)
+	client, err := cmdlib.GetClient(&c.LoadTestConfig.ConnectionConfiguration)
+	if err != nil {
+		c.PrintError("Failed to get client: ", err)
+		return
+	}
 
 	teamIds := inputState.GetTeamIds()
 

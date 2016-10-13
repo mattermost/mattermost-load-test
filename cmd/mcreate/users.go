@@ -21,7 +21,11 @@ func createUsers(c *cmdlib.CommandContext) {
 
 	inputState := loadtestconfig.ServerStateFromStdin()
 
-	client := cmdlib.GetClient(&c.LoadTestConfig.ConnectionConfiguration)
+	client, err := cmdlib.GetClient(&c.LoadTestConfig.ConnectionConfiguration)
+	if err != nil {
+		c.PrintError("Failed to get client: ", err)
+		return
+	}
 
 	results := autocreation.CreateUsers(client, &c.LoadTestConfig.UsersConfiguration)
 
