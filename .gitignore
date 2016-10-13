@@ -45,6 +45,9 @@ bin/*
 # We just want to always use the latest
 glide.lock
 
+# Ignore dist directory
+dist
+
 # built application
 mattermost-load-test
 mattermost-load-test.log
