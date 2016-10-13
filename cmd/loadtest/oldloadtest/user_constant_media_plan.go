@@ -80,12 +80,12 @@ func (tp *UserConstantMediaPlan) Start() bool {
 			return false
 		default:
 			if RandomChoice(Config.MediaPercent) {
-				upload, upErr := tp.mm.UploadRandomImage(channel, p.RandomMessage{})
+				_, upErr := tp.mm.UploadRandomImage(channel, p.RandomMessage{})
 				if upErr != nil && !reflect.ValueOf(err).IsNil() {
 					tp.handleError(upErr, "Failed on uploading random image", false)
 					continue
 				}
-				err = tp.mm.SendAttachment(channel, "test media message", upload.Filenames, "")
+				//err = tp.mm.SendAttachment(channel, "test media message", upload., "")
 				if err != nil && !reflect.ValueOf(err).IsNil() {
 					tp.handleError(err, "Media Message Send Failed", false)
 					continue

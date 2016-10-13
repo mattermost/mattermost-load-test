@@ -267,6 +267,6 @@ func (p *Platform) UploadRandomImage(channel *model.Channel, rm RandomMessage) (
 	if err != nil {
 		return nil, err
 	}
-	upload, err := p.client.UploadPostAttachment(body.Bytes(), writer.FormDataContentType())
-	return upload.Data.(*model.FileUploadResponse), nil
+	upload, err := p.client.UploadPostAttachment(body.Bytes(), channel.Id, "somefile.ext")
+	return upload, nil
 }
