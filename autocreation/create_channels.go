@@ -29,7 +29,7 @@ func CreateChannels(client *model.Client, config *loadtestconfig.ChannelsConfigu
 	for _, teamId := range config.TeamIds {
 		client.SetTeamId(teamId)
 
-		ThreadSplit(config.NumChannelsPerTeam, 8, func(channelNumber int) {
+		ThreadSplit(config.NumChannelsPerTeam, config.CreateThreads, func(channelNumber int) {
 			channel := &model.Channel{
 				Name:        config.ChannelNamePrefix + strconv.Itoa(channelNumber),
 				DisplayName: config.ChannelDisplayName + strconv.Itoa(channelNumber),

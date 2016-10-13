@@ -24,7 +24,7 @@ func CreateUsers(client *model.Client, config *loadtestconfig.UsersConfiguration
 	userChan := make(chan *model.User, config.NumUsers)
 	errorChan := make(chan error, config.NumUsers)
 
-	ThreadSplit(config.NumUsers, 9, func(userNum int) {
+	ThreadSplit(config.NumUsers, config.CreateThreads, func(userNum int) {
 		randomId := ""
 		if config.UseRandomId {
 			randomId = model.NewId()

@@ -67,7 +67,7 @@ func joinUsersToTeam(c *cmdlib.CommandContext) {
 		return
 	}
 
-	joinResult := autocreation.JoinUsersToTeams(client, userIds, teamIds)
+	joinResult := autocreation.JoinUsersToTeams(client, userIds, teamIds, c.LoadTestConfig.TeamsConfiguration.JoinThreads)
 
 	c.Print(inputState.ToJson())
 	c.PrintErrors(joinResult.Errors)
@@ -128,7 +128,7 @@ func joinUsersToChannel(c *cmdlib.CommandContext) {
 	}
 
 	errors := make([]error, numChannelsToJoin*len(inputState.Users))
-	autocreation.ThreadSplit(len(inputState.Users), 2, func(iUser int) {
+	autocreation.ThreadSplit(len(inputState.Users), c.LoadTestConfig.ChannelsConfiguration.JoinThreads, func(iUser int) {
 		for channelOffset := 0; channelOffset < numChannelsToJoin; channelOffset++ {
 			iChannel := (iUser + channelOffset) % len(inputState.Channels)
 			channel := inputState.Channels[iChannel]

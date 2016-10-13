@@ -19,7 +19,7 @@ func LoginUsers(client *model.Client, config *loadtestconfig.UsersConfiguration,
 		Errors:        make([]error, len(users)),
 	}
 
-	ThreadSplit(len(users), 8, func(i int) {
+	ThreadSplit(len(users), config.LoginThreads, func(i int) {
 		userId := users[i]
 		m := make(map[string]string)
 		m["id"] = userId

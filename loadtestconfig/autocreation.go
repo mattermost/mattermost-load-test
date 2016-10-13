@@ -13,6 +13,8 @@ type UsersConfiguration struct {
 	NumUsers          int
 	UseRandomId       bool
 	NumChannelsToJoin int
+	CreateThreads     int
+	LoginThreads      int
 }
 
 type TeamsConfiguration struct {
@@ -20,6 +22,7 @@ type TeamsConfiguration struct {
 	TeamDisplayName string
 	NumTeams        int
 	UseRandomId     bool
+	JoinThreads     int
 }
 
 type ChannelsConfiguration struct {
@@ -28,6 +31,8 @@ type ChannelsConfiguration struct {
 	NumChannelsPerTeam int
 	TeamIds            []string
 	UseRandomId        bool
+	CreateThreads      int
+	JoinThreads        int
 }
 
 func (config *ChannelsConfiguration) SetDefaultsIfRequired() {
@@ -40,6 +45,12 @@ func (config *ChannelsConfiguration) SetDefaultsIfRequired() {
 	if config.NumChannelsPerTeam == 0 {
 		config.NumChannelsPerTeam = 1
 	}
+	if config.CreateThreads == 0 {
+		config.CreateThreads = 8
+	}
+	if config.JoinThreads == 0 {
+		config.JoinThreads = 8
+	}
 }
 
 func (config *TeamsConfiguration) SetDefaultsIfRequired() {
@@ -51,6 +62,9 @@ func (config *TeamsConfiguration) SetDefaultsIfRequired() {
 	}
 	if config.NumTeams == 0 {
 		config.NumTeams = 1
+	}
+	if config.JoinThreads == 0 {
+		config.JoinThreads = 8
 	}
 }
 
@@ -75,5 +89,11 @@ func (config *UsersConfiguration) SetDefaultsIfRequired() {
 	}
 	if config.NumUsers == 0 {
 		config.NumUsers = 1
+	}
+	if config.CreateThreads == 0 {
+		config.CreateThreads = 8
+	}
+	if config.LoginThreads == 0 {
+		config.LoginThreads = 8
 	}
 }
