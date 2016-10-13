@@ -87,6 +87,9 @@ func (config *UsersConfiguration) SetDefaultsIfRequired() {
 	if config.UserPassword == "" {
 		config.UserPassword = "passwd"
 	}
+	if config.NumChannelsToJoin == 0 {
+		config.NumChannelsToJoin = 10
+	}
 	if config.NumUsers == 0 {
 		config.NumUsers = 1
 	}

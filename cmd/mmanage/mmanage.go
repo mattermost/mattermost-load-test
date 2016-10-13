@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/mattermost/mattermost-load-test/autocreation"
 	"github.com/mattermost/mattermost-load-test/cmd/cmdlib"
@@ -127,6 +128,7 @@ func joinUsersToChannel(c *cmdlib.CommandContext) {
 		numChannelsToJoin = len(inputState.Channels)
 	}
 
+	c.PrintError("Joining users to " + strconv.Itoa(numChannelsToJoin) + " channels each.")
 	errors := make([]error, numChannelsToJoin*len(inputState.Users))
 	autocreation.ThreadSplit(len(inputState.Users), c.LoadTestConfig.ChannelsConfiguration.JoinThreads, func(iUser int) {
 		for channelOffset := 0; channelOffset < numChannelsToJoin; channelOffset++ {
