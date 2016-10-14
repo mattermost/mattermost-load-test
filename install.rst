@@ -28,7 +28,7 @@ Production Install on Ubuntu 14.04 LTS with MySQL on Amazon RDS
 
 Install Mattermost in production mode on one, two or three machines, using the following steps: 
 
-- `Install Ubuntu Server (x64) 14.04 LTS <#production-install-on-ubuntu-14-04-lts>`_
+- `Install Ubuntu Server (x64) 14.04 LTS <#install-ubuntu-server-x64-1404-lts>`_
 - `Set up Database Server <#set-up-database-server>`_
 - `Set up Mattermost Server <#set-up-mattermost-server>`_
 - `Set up NGINX Server <#set-up-nginx-server>`_
@@ -150,6 +150,7 @@ Set up NGINX Server
 
 1. For the purposes of this guide we will assume this server has an IP
    address of ``10.10.10.3``
+
 2. We use NGINX for proxying request to the Mattermost Server. The main
    benefits are:
 
@@ -158,10 +159,10 @@ Set up NGINX Server
    -  Port mapping ``:80`` to ``:8065``
    -  Standard request logs
 
+3. Install the latest version of NGINX on Ubuntu from `https://www.nginx.com/resources/wiki/start/topics/tutorials/install/ <https://www.nginx.com/resources/wiki/start/topics/tutorials/install/>`_
 
-3. Install NGINX on Ubuntu with
-
-   -  ``sudo apt-get install nginx``
+   -  NGINX version 1.10.1 or 1.11.4 are recommended to replicate results
+   -  Note: ``sudo apt-get install nginx`` wasn't used, because it installs NGINX version 1.4.
 
 4. Verify NGINX is running
 
@@ -176,42 +177,113 @@ Set up NGINX Server
 
 6. Map a FQDN (fully qualified domain name) like
    ``mattermost.example.com`` to point to the NGINX server.
-7. Configure NGINX to proxy connections from the internet to the
+
+7. Make sure resource limits are set correctly - we want `open files` to be at least 50,000
+
+   - You can verify the NGINX process has the correct amounts by running
+
+    ::
+
+        ps -aux | grep nginx
+        cat /proc/<worker process ID>/limits
+
+   - You can modify the resource limits by
+
+   - ``sudo vi /etc/nginx/nginx.conf``
+   - Add the line ``worker_rlimit_nofile 50000;``
+   - ``sudo vi /etc/security/limits.conf``
+   - Add the lines 
+      
+        ::
+        
+            root hard nofile 500000
+            www-data hard nofile 500000   
+
+8. Modify nginx.conf settings
+
+   - ``sudo vi /etc/nginx/nginx.conf``
+   - Modify ``worker_connections`` and change to ``20000``
+   - Modify ``worker_processes`` and change to ``4`` or the number of cores on your box
+   - Modify ``keepalive_timeout`` and change to ``20``
+   - Your nginx.conf settings should look something like
+
+        ::
+        
+            user  nginx;
+            worker_processes  4;
+            worker_rlimit_nofile 50000;
+
+            error_log  /var/log/nginx/error.log warn;
+            pid        /var/run/nginx.pid;
+
+
+            events {
+                worker_connections  20000;
+            }
+
+
+            http {
+                include       /etc/nginx/mime.types;
+                default_type  application/octet-stream;
+
+                log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                                  '$status $body_bytes_sent "$http_referer" '
+                                  '"$http_user_agent" "$http_x_forwarded_for"';
+
+                access_log  /var/log/nginx/access.log  main;
+
+                sendfile        on;
+                #tcp_nopush     on;
+
+                keepalive_timeout  20;
+
+                #gzip  on;
+
+                include /etc/nginx/conf.d/*.conf;
+            }
+
+9. Configure NGINX to proxy connections from the internet to the
    Mattermost Server
 
    -  Create a configuration for Mattermost
    -  ``sudo touch /etc/nginx/sites-available/mattermost``
+   -  Update the Mattermost NGINX config
+   -  ``sudo vi /etc/nginx/conf.d/default.conf``
    -  Below is a sample configuration with the minimum settings required
       to configure Mattermost
 
     ::
 
         server {
-          server_name mattermost.example.com;
+            server_name mattermost.example.com;
 
-          location / {
-             client_max_body_size 50M;
-             proxy_set_header Upgrade $http_upgrade;
-             proxy_set_header Connection "upgrade";
-             proxy_set_header Host $http_host;
-             proxy_set_header X-Real-IP $remote_addr;
-             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-             proxy_set_header X-Forwarded-Proto $scheme;
-             proxy_set_header X-Frame-Options SAMEORIGIN;
-             proxy_pass http://10.10.10.2:8065;
-          }
-       }
+        location / {
+            sendfile on;
+            proxy_connect_timeout 300;
+            proxy_send_timeout 300;
+            proxy_read_timeout 300;
+            send_timeout 300;
+            proxy_buffers 256 16k;
+            proxy_buffer_size 32k;
+            client_max_body_size 50M;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header Host $http_host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Frame-Options SAMEORIGIN;
+            proxy_pass http://10.10.10.2:8065;
+            proxy_http_version 1.1;
+            proxy_set_header Connection "";
+         }
+      }
 
-
-   * Remove the existing file with
-   * ``` sudo rm /etc/nginx/sites-enabled/default```
-   * Link the mattermost config by typing:
-   * ```sudo ln -s /etc/nginx/sites-available/mattermost /etc/nginx/sites-enabled/mattermost```
-   * Restart NGINX by typing:
-   * ``` sudo service nginx restart```
-   * Verify you can see Mattermost thru the proxy by typing:
-   * ``` curl http://localhost```
-   * You should see a page titles *Mattermost - Signup*
+   - Restart NGINX by typing:
+   - `` sudo service nginx restart```
+   - Verify you can see Mattermost thru the proxy by typing:
+   - `` curl http://localhost``
+   - You should see a page titles *Mattermost - Signup*
 
 Set up NGINX with SSL (Recommended)
 -----------------------------------
@@ -223,7 +295,7 @@ Set up NGINX with SSL (Recommended)
 -  ``git clone https://github.com/letsencrypt/letsencrypt``
 -  ``cd letsencrypt``
 
-2. Be sure that the port 80 is not use by stopping NGINX
+2. Be sure that the port 80 is not used by stopping NGINX
 
 -  ``sudo service nginx stop``
 -  ``netstat -na | grep ':80.*LISTEN'``
@@ -271,8 +343,6 @@ Set up NGINX with SSL (Recommended)
          }
       }
 
-
-
 6. Be sure to restart NGINX
   * ``\ sudo service nginx start``
 7. Add the following line to cron so the cert will renew every month
@@ -318,11 +388,15 @@ Test setup and configure Mattermost Server
    -  Set *Vary By Remote Address* to ``false``
    -  Set *Vary By HTTP Header* to ``X-Real-IP``
 
-8. Feel free to modify other settings.
-9. Restart the Mattermost Service by typing:
+8. Update **Advanced** > **Database** settings:
 
-   -  ``sudo restart mattermost``
+   -  Set *Maximum Idle Connections* to ``100``
+   -  Set *Maximum Open Connections* to ``500``
 
+9. Feel free to modify other settings.
+10. Restart the Mattermost Service by typing:
+
+    -  ``sudo restart mattermost``
 
 Installing Mattermost Load Test
 ============================================
@@ -345,6 +419,22 @@ Installing Mattermost Load Test
 
 The default load test script requires about 40 minutes to create all the users. This is because Mattermost users a bcrypt function to generate user passwords that is designed to be computationally intensive. 
 
+Load Test Setup
+------------------------------------------
+
+1. Change the time the kernel recycles closed connections from 60 seconds to 30 seconds. The change will need to be done on the NGINX server, Mattermost server and load tester server.
+
+   - ``sudo sysctl -w net.ipv4.tcp_fin_timeout=30``
+   - You can verify it's set correctly with
+   - ``cat /proc/sys/net/ipv4/tcp_fin_timeout``
+
+2. Change the number of usable ports for nginx and mattermost. The change will need to be done on the NGINX server, Mattermost server and load tester server.
+
+   - ``sudo sysctl -w net.ipv4.ip_local_port_range="1024 65000"``
+   - You can verify it's set correctly with
+   - ``cat /proc/sys/net/ipv4/ip_local_port_range``
+
+3. You should also add the changes above to ``/etc/sysctl.conf`` to be persistent across reboots.
 
 Verifying Mattermost Load Test
 ============================================
@@ -367,7 +457,7 @@ Varying Mattermost Load Test
 Total Potential Users 
 --------------------------------------------------
 
-Setting: ``THREADCOUNT="5000"``
+Setting: ``THREADCOUNT="15000"``
 
 - Total number of simulated users 
 
@@ -378,11 +468,10 @@ Setting: ``THREADOFFSET="0"``
 
 - Total number of unused users 
 
-
 Setup Time 
 --------------------------------------------------
 
-Setting: ``RAMPSEC="2000"``
+Setting: ``RAMPSEC="1000"``
 
 - Number of seconds to log in all users. This setting is used to prevent errors from the CPU from being overloaded by the bcrypt function used to create new users. It can be adjusted based on the number of users and CPU utilization observed during initialization. 
 
@@ -398,4 +487,4 @@ Reply Percentage
 
 Setting: ``REPLYPERCENT="2"``
 
-- Percentage of users who reply when they receive a message. 
+- Percentage of users who reply when they receive a message.
