@@ -17,6 +17,13 @@ Run `make install` to compile and install the binaries. This creates three (3) c
 
 ### Setting up a Load Test Environment 
 
+#### Sample DB
+
+There is a sample DB available under `sample-dbs/loadtest1-20000-shift.sql` to load this from the command line use `mysql -u username < file.sql`
+You can then run a loadtest against it using the command `cat loadtest1-20000-shift-state.json | loadtest listenandpost`
+
+#### Manually
+
 In preparation for running a load test, install a Mattermost server and populate it with users and a team: 
 
 1. Install a Mattermost server using any of the [online installation guides](https://docs.mattermost.com/guides/administrator.html#install-guides). 
