@@ -361,8 +361,14 @@ Estimating Performance
 
 TBD
 
-Varying Mattermost Load Test
+Running and Varying Mattermost Load Test
 ============================================
+
+Run the default load test script using the following command: 
+
+      ./bin/run_example.sh
+
+You can edit the file or create new scripts, while varying the following settings to evaluate performance: 
 
 Total Potential Users 
 --------------------------------------------------
@@ -399,3 +405,35 @@ Reply Percentage
 Setting: ``REPLYPERCENT="2"``
 
 - Percentage of users who reply when they receive a message. 
+
+
+Profiling CPU Performance 
+============================================
+
+You can profile CPU performance of Mattermost under load using the following process: 
+
+1. Start the Mattermost server in profiling mode::
+
+      start platform -cpuprofile
+
+2. Run the Mattermost Load Tests:
+
+   See `Running and Varying Mattermost Load Test`_
+
+3. Stop the Mattermost Load Tests: 
+
+   Wait three (3) minutes for clean shut down.
+
+4. Stop the Mattermost server:
+
+   Wait three (3) minutes for clean shut down.
+
+5. Run the pprof profiler tool to analyze the results::
+
+      go tool pprof platform mattermost.log.cpu.prof
+
+6. View the results of profiling::
+
+      web
+
+This should generate an ``svg`` file you can view in a Chrome web browser or other tools to view CPU performance. 
