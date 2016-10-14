@@ -3,7 +3,11 @@
 
 package main
 
-import "time"
+import (
+	"time"
+
+	"github.com/mattermost/platform/model"
+)
 
 type UserEntityWebsocketListener struct {
 	UserEntityConfig
@@ -18,6 +22,11 @@ func NewUserEntityWebsocketListener(cfg UserEntityConfig) UserEntity {
 func (me *UserEntityWebsocketListener) Start() {
 	me.SendStatusLaunching()
 	defer me.StopEntityWaitGroup.Done()
+
+	if err := me.WebSocketClient.Connect(); err != nil {
+		me.SendStatusFailedLaunch(err, "Failed to connect websocket")
+		return
+	}
 
 	me.WebSocketClient.Listen()
 
@@ -39,16 +48,24 @@ func (me *UserEntityWebsocketListener) Start() {
 
 				// If we are set to retry connection, first retry immediately, then backoff until retry max is reached
 				if me.LoadTestConfig.ConnectionConfiguration.RetryWebsockets {
-					if websocketRetryCount > me.LoadTestConfig.ConnectionConfiguration.MaxRetryWebsocket {
-						me.SendStatusFailed(nil, "Websocket disconneced. Max retries reached.")
-						return
+					for {
+						if websocketRetryCount > me.LoadTestConfig.ConnectionConfiguration.MaxRetryWebsocket {
+							me.SendStatusFailedActive(nil, "Websocket disconneced. Max retries reached.")
+							return
+						}
+						time.Sleep(time.Duration(websocketRetryCount) * time.Second)
+						me.WebSocketClient.EventChannel = make(chan *model.WebSocketEvent, 100)
+						me.WebSocketClient.ResponseChannel = make(chan *model.WebSocketResponse, 100)
+						if err := me.WebSocketClient.Connect(); err != nil {
+							websocketRetryCount++
+							continue
+						}
+						me.WebSocketClient.Listen()
+						websocketRetryCount++
+						continue
 					}
-					time.Sleep(time.Duration(websocketRetryCount) * time.Second)
-					me.WebSocketClient.Listen()
-					websocketRetryCount++
-					continue
 				} else {
-					me.SendStatusFailed(nil, "Websocket disconneced. No Retry.")
+					me.SendStatusFailedActive(nil, "Websocket disconneced. No Retry.")
 					return
 				}
 			}

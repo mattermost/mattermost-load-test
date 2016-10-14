@@ -49,8 +49,12 @@ func (config *UserEntityConfig) SendStatusError(err error, details string) {
 	config.SendStatus(STATUS_ERROR, err, details)
 }
 
-func (config *UserEntityConfig) SendStatusFailed(err error, details string) {
-	config.SendStatus(STATUS_FAILED, err, details)
+func (config *UserEntityConfig) SendStatusFailedLaunch(err error, details string) {
+	config.SendStatus(STATUS_FAILED_LAUNCH, err, details)
+}
+
+func (config *UserEntityConfig) SendStatusFailedActive(err error, details string) {
+	config.SendStatus(STATUS_FAILED_ACTIVE, err, details)
 }
 
 func (config *UserEntityConfig) SendStatusActionSend(details string) {

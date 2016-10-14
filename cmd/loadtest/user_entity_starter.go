@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -45,6 +46,10 @@ func StartUserEntities(config *loadtestconfig.LoadTestConfig, serverState *loadt
 	// Channel to recieve user entity status reports
 	statusChannel := make(chan UserEntityStatusReport, 1000)
 
+	// Wait group so all entities start staggered properly
+	var entityWaitChannel sync.WaitGroup
+	entityWaitChannel.Add(1)
+
 	// Create writer
 	out := &TmpLogger{
 		Writer: os.Stdout,
@@ -55,18 +60,25 @@ func StartUserEntities(config *loadtestconfig.LoadTestConfig, serverState *loadt
 
 	numEntities := config.UserEntitiesConfiguration.NumClientEntities
 
-	out.Println("Starting ramp-up")
+	out.Println("------------------------- Starting " + strconv.Itoa(numEntities) + " entities")
 	for entityNum := 0; entityNum < numEntities; entityNum++ {
+		out.Println("Starting Entity: " + strconv.Itoa(entityNum))
 		// Get the user for this entity. If there are not enough users
 		// for the number of entities requested, wrap around.
 		entityUser := &serverState.Users[entityNum%len(serverState.Users)]
 
 		userClient := cmdlib.GetUserClient(&config.ConnectionConfiguration, entityUser)
 
-		userWebsocketClient, err := model.NewWebSocketClient(config.ConnectionConfiguration.WebsocketURL, userClient.AuthToken)
-		if err != nil {
-			out.Println("Unable to setup websocket client", err)
-			continue
+		websocketURL := config.ConnectionConfiguration.WebsocketURL
+		userWebsocketClient := &model.WebSocketClient{
+			websocketURL,
+			websocketURL + model.API_URL_SUFFIX,
+			nil,
+			userClient.AuthToken,
+			1,
+			make(chan *model.WebSocketEvent, 100),
+			make(chan *model.WebSocketResponse, 100),
+			nil,
 		}
 
 		entityConfig := UserEntityConfig{
@@ -83,11 +95,17 @@ func StartUserEntities(config *loadtestconfig.LoadTestConfig, serverState *loadt
 		stopWait.Add(len(entityCreationFunctions))
 		for _, createEntity := range entityCreationFunctions {
 			entity := createEntity(entityConfig)
-			go entity.Start()
+			go func(entityNum int) {
+				entityWaitChannel.Wait()
+				time.Sleep(time.Duration(config.UserEntitiesConfiguration.EntityRampupDistanceMilliseconds) * time.Millisecond * time.Duration(entityNum))
+				entity.Start()
+			}(entityNum)
 		}
-		time.Sleep(time.Duration(config.UserEntitiesConfiguration.EntityRampupDistanceMilliseconds) * time.Millisecond)
 	}
-	out.Println("Ramp-up complete")
+	// Release the entities
+	entityWaitChannel.Done()
+
+	out.Println("------------------------- Done starting entities")
 	interrupChannel := make(chan os.Signal)
 	signal.Notify(interrupChannel, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	<-interrupChannel
