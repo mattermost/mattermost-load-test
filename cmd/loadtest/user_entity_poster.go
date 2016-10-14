@@ -20,7 +20,12 @@ type UserEntityPosterConfiguration struct {
 
 func NewUserEntityPosterConfig(config *UserEntityPoster) UserEntityPosterConfiguration {
 	var userEntityPosterConfig UserEntityPosterConfiguration
-	loadtestconfig.UnmarshalConfigStruct(&userEntityPosterConfig)
+	var cfg struct {
+		UserEntityPosterConfiguration UserEntityPosterConfiguration
+	}
+	loadtestconfig.UnmarshalConfigStruct(&cfg)
+
+	userEntityPosterConfig = cfg.UserEntityPosterConfiguration
 
 	if userEntityPosterConfig.PostingFrequencySeconds == 0 {
 		userEntityPosterConfig.PostingFrequencySeconds = 1
