@@ -18,7 +18,8 @@ const (
 	STATUS_ACTIVE         int = iota
 	STATUS_STOPPED        int = iota
 	STATUS_ERROR          int = iota
-	STATUS_FAILED         int = iota
+	STATUS_FAILED_LAUNCH  int = iota
+	STATUS_FAILED_ACTIVE  int = iota
 	STATUS_ACTION_SEND    int = iota
 	STATUS_ACTION_RECIEVE int = iota
 )
@@ -40,8 +41,10 @@ func statusString(status int) string {
 		return "STOPPED"
 	case STATUS_ERROR:
 		return "ERROR"
-	case STATUS_FAILED:
-		return "FAILED"
+	case STATUS_FAILED_LAUNCH:
+		return "FAILED_LAUNCH"
+	case STATUS_FAILED_ACTIVE:
+		return "FAILED_ACTIVE"
 	case STATUS_ACTION_SEND:
 		return "ACTION_SEND"
 	case STATUS_ACTION_RECIEVE:
