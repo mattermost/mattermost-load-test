@@ -390,8 +390,8 @@ Test setup and configure Mattermost Server
 
 8. Update **Advanced** > **Database** settings:
 
-   -  Set *Maximum Idle Connections* to ``100``
-   -  Set *Maximum Open Connections* to ``500``
+   -  Set *Maximum Idle Connections* to ``20``
+   -  Set *Maximum Open Connections* to ``300``
 
 9. Feel free to modify other settings.
 10. Restart the Mattermost Service by typing:
