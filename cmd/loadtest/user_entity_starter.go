@@ -32,6 +32,22 @@ func (logger *TmpLogger) Println(a ...interface{}) (int, error) {
 	return fmt.Fprintln(logger.Writer, a...)
 }
 
+func waitWithTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
+	c := make(chan bool)
+	go func() {
+		wg.Wait()
+		close(c)
+	}()
+	select {
+	// Everything is OK
+	case <-c:
+		return true
+	// We timed out
+	case <-time.After(timeout):
+		return false
+	}
+}
+
 func StartUserEntities(config *loadtestconfig.LoadTestConfig, serverState *loadtestconfig.ServerState, entityCreationFunctions ...UserEntityCreator) {
 	// Create a channel to signal a stop command
 	stopChan := make(chan bool)
@@ -100,9 +116,14 @@ func StartUserEntities(config *loadtestconfig.LoadTestConfig, serverState *loadt
 			entityConfig.SubEntityName = runtime.FuncForPC(reflect.ValueOf(createEntity).Pointer()).Name()[8:]
 			entity := createEntity(entityConfig)
 			go func(entityNum int) {
-				entityWaitChannel.Wait()
-				time.Sleep(time.Duration(config.UserEntitiesConfiguration.EntityRampupDistanceMilliseconds) * time.Millisecond * time.Duration(entityNum))
-				entity.Start()
+				afterChan := time.After(time.Duration(config.UserEntitiesConfiguration.EntityRampupDistanceMilliseconds) * time.Millisecond * time.Duration(entityNum))
+				select {
+				case <-stopChan:
+					return
+				case <-afterChan:
+					entityWaitChannel.Wait()
+					entity.Start()
+				}
 			}(entityNum)
 		}
 	}
@@ -116,8 +137,9 @@ func StartUserEntities(config *loadtestconfig.LoadTestConfig, serverState *loadt
 	out.Println("Shutdown signal recieved.")
 	close(stopChan)
 
-	out.Println("Waiting for user entities")
-	stopWait.Wait()
+	out.Println("Waiting for user entities, timout is 5 seconds")
+	waitWithTimeout(&stopWait, 5*time.Second)
+
 	out.Println("Flushing status reporting channel")
 	close(statusPrinterStopChan)
 	printerWait.Wait()
