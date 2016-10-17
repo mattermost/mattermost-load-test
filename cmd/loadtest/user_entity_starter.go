@@ -8,6 +8,8 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"reflect"
+	"runtime"
 	"strconv"
 	"sync"
 	"syscall"
@@ -83,6 +85,7 @@ func StartUserEntities(config *loadtestconfig.LoadTestConfig, serverState *loadt
 
 		entityConfig := UserEntityConfig{
 			Id:                  entityNum,
+			SubEntityName:       "TBD", //Filled in for each sub-entity below
 			EntityUser:          entityUser,
 			Client:              userClient,
 			WebSocketClient:     userWebsocketClient,
@@ -94,6 +97,7 @@ func StartUserEntities(config *loadtestconfig.LoadTestConfig, serverState *loadt
 		}
 		stopWait.Add(len(entityCreationFunctions))
 		for _, createEntity := range entityCreationFunctions {
+			entityConfig.SubEntityName = runtime.FuncForPC(reflect.ValueOf(createEntity).Pointer()).Name()[8:]
 			entity := createEntity(entityConfig)
 			go func(entityNum int) {
 				entityWaitChannel.Wait()

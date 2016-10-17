@@ -18,6 +18,7 @@ type UserEntityCreator func(cfg UserEntityConfig) UserEntity
 
 type UserEntityConfig struct {
 	Id                  int
+	SubEntityName       string
 	EntityUser          *loadtestconfig.ServerStateUser
 	Client              *model.Client
 	WebSocketClient     *model.WebSocketClient
