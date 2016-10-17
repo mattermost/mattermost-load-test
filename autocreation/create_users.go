@@ -17,12 +17,9 @@ type UsersCreationResult struct {
 
 func CreateUsers(client *model.Client, config *loadtestconfig.UsersConfiguration) *UsersCreationResult {
 	userResults := &UsersCreationResult{
-		Users:  make([]*model.User, 0, config.NumUsers),
-		Errors: make([]error, 0, config.NumUsers),
+		Users:  make([]*model.User, config.NumUsers),
+		Errors: make([]error, config.NumUsers),
 	}
-
-	userChan := make(chan *model.User, config.NumUsers)
-	errorChan := make(chan error, config.NumUsers)
 
 	ThreadSplit(config.NumUsers, config.CreateThreads, func(userNum int) {
 		randomId := ""
@@ -39,22 +36,11 @@ func CreateUsers(client *model.Client, config *loadtestconfig.UsersConfiguration
 
 		result, err := client.CreateUser(user, "")
 		if err != nil {
-			errorChan <- err
+			userResults.Errors[userNum] = err
 		} else {
-			userChan <- result.Data.(*model.User)
+			userResults.Users[userNum] = result.Data.(*model.User)
 		}
 	})
-
-	close(userChan)
-	close(errorChan)
-
-	for user := range userChan {
-		userResults.Users = append(userResults.Users, user)
-	}
-
-	for err := range errorChan {
-		userResults.Errors = append(userResults.Errors, err)
-	}
 
 	return userResults
 }

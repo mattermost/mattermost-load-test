@@ -19,12 +19,9 @@ func CreateChannels(client *model.Client, config *loadtestconfig.ChannelsConfigu
 	totalChannels := config.NumChannelsPerTeam * len(config.TeamIds)
 
 	channelResults := &ChannelsCreationResult{
-		Channels: make([]*model.Channel, 0, totalChannels),
-		Errors:   make([]error, 0, totalChannels),
+		Channels: make([]*model.Channel, totalChannels),
+		Errors:   make([]error, totalChannels),
 	}
-
-	channelChan := make(chan *model.Channel, totalChannels)
-	errorChan := make(chan error, totalChannels)
 
 	for _, teamId := range config.TeamIds {
 		client.SetTeamId(teamId)
@@ -43,22 +40,11 @@ func CreateChannels(client *model.Client, config *loadtestconfig.ChannelsConfigu
 
 			result, err := client.CreateChannel(channel)
 			if err != nil {
-				errorChan <- err
+				channelResults.Errors[channelNumber] = err
 			} else {
-				channelChan <- result.Data.(*model.Channel)
+				channelResults.Channels[channelNumber] = result.Data.(*model.Channel)
 			}
 		})
-	}
-
-	close(channelChan)
-	close(errorChan)
-
-	for channel := range channelChan {
-		channelResults.Channels = append(channelResults.Channels, channel)
-	}
-
-	for err := range errorChan {
-		channelResults.Errors = append(channelResults.Errors, err)
 	}
 
 	client.SetTeamId("")
