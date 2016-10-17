@@ -61,13 +61,15 @@ func (c *CommandContext) PrintError(a ...interface{}) (int, error) {
 }
 
 func (c *CommandContext) PrintErrors(errors []error) {
-	c.PrintErrorln("Errors where encountered: ")
-	for _, err := range errors {
-		if err != nil {
-			c.PrintErrorln(err.Error())
+	if len(errors) > 0 {
+		c.PrintErrorln("Errors where encountered: ")
+		for _, err := range errors {
+			if err != nil {
+				c.PrintErrorln(err.Error())
+			}
 		}
+		c.PrintErrorln("------------ End Errors")
 	}
-	c.PrintErrorln("------------ End Errors")
 }
 
 func (c *CommandContext) PrintResultsHeader() {
