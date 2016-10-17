@@ -488,3 +488,60 @@ Reply Percentage
 Setting: ``REPLYPERCENT="2"``
 
 - Percentage of users who reply when they receive a message.
+
+Tips and Useful Commands
+============================================
+
+
+Check number of Connections
+--------------------------------------------------
+
+To see the number of connections to the mattermost server you can run cmds like
+
+```bash
+sudo netstat -an | grep :8065 | wc -l
+```
+or
+```bash
+ss | grep ESTA | grep 8065
+```
+
+Look for slow SQL queries in MySQL
+--------------------------------------------------
+
+```sql
+SET GLOBAL log_output = 'TABLE';
+SET GLOBAL slow_query_log = 'ON'; 
+SET GLOBAL long_query_time = 1;
+SET GLOBAL log_queries_not_using_indexes = 'OFF';
+
+show global variables WHERE Variable_name IN ('log_output', 'slow_query_log', 'long_query_time', 'long_query_time', 'log_queries_not_using_indexes');
+```
+
+```sql
+SELECT *, CAST(sql_text AS CHAR(10000) CHARACTER SET utf8) AS Query FROM mysql.slow_log ORDER BY start_time DESC LIMIT 100 
+```
+
+```sql
+TRUNCATE mysql.slow_log; 
+```
+
+Generate Profiling Data
+--------------------------------------------------
+
+Start the server with 
+
+```bash
+./bin/platform -httpprofiler
+```
+
+Look at different profiles with
+
+```bash
+go tool pprof platform http://localhost:8065/debug/pprof/profile
+go tool pprof platform http://localhost:8065/debug/pprof/heap
+go tool pprof platform http://localhost:8065/debug/pprof/block
+go tool pprof platform http://localhost:8065/debug/pprof/goroutine
+
+```
+
