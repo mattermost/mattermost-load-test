@@ -77,9 +77,10 @@ func StartUserEntities(config *loadtestconfig.LoadTestConfig, serverState *loadt
 	go UserEntityStatusPrinter(out, statusChannel, statusPrinterStopChan, &printerWait, serverState.Users)
 
 	numEntities := config.UserEntitiesConfiguration.NumClientEntities
+	entityOffset := config.UserEntitiesConfiguration.Offset
 
 	out.Println("------------------------- Starting " + strconv.Itoa(numEntities) + " entities")
-	for entityNum := 0; entityNum < numEntities; entityNum++ {
+	for entityNum := entityOffset; entityNum < numEntities; entityNum++ {
 		out.Println("Starting Entity: " + strconv.Itoa(entityNum))
 		// Get the user for this entity. If there are not enough users
 		// for the number of entities requested, wrap around.

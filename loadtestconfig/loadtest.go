@@ -7,6 +7,7 @@ type UserEntitiesConfiguration struct {
 	NumClientEntities                int
 	ActionFrequencyMultiplier        int
 	EntityRampupDistanceMilliseconds int
+	Offset                           int
 }
 
 func (config *UserEntitiesConfiguration) SetDefaultsIfRequired() {
