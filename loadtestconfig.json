@@ -1,6 +1,7 @@
 {
     "UserEntitiesConfiguration": {
         "NumClientEntities": 20000,
+        "Offset": 0,
         "EntityRampupDistanceMilliseconds": 5
     },
     "TeamsConfiguration": {
