@@ -112,7 +112,8 @@ func joinChannelCmd(cmd *cobra.Command, args []string) {
 	joinUsersToChannel(context)
 }
 
-func joinUsersToChannel(c *cmdlib.CommandContext) {
+// Old method for distrubuting users. Keep for later.
+/*func joinUsersToChannel(c *cmdlib.CommandContext) {
 	c.PrettyPrintln("Joining users to channel")
 
 	inputState := loadtestconfig.ServerStateFromStdin()
@@ -136,6 +137,52 @@ func joinUsersToChannel(c *cmdlib.CommandContext) {
 			channel := inputState.Channels[iChannel]
 			data := make(map[string]string)
 			data["user_id"] = inputState.Users[iUser].Id
+			_, err := client.DoApiPost(fmt.Sprintf("/teams/%v/channels/%v/add", channel.TeamId, channel.Id), model.MapToJson(data))
+			if err != nil {
+				errors[iUser] = err
+			} else {
+				inputState.Users[iUser].ChannelsJoined = append(inputState.Users[iUser].ChannelsJoined, iChannel)
+			}
+		}
+	})
+
+	c.Print(inputState.ToJson())
+	c.PrintErrors(errors)
+}*/
+
+func joinUsersToChannel(c *cmdlib.CommandContext) {
+	c.PrettyPrintln("Joining users to channel")
+
+	inputState := loadtestconfig.ServerStateFromStdin()
+
+	client, err := cmdlib.GetClient(&c.LoadTestConfig.ConnectionConfiguration)
+	if err != nil {
+		c.PrintError("Failed to get client: ", err)
+		return
+	}
+
+	numChannelsToJoin := c.LoadTestConfig.UsersConfiguration.NumChannelsToJoin
+	if len(inputState.Channels) < numChannelsToJoin {
+		numChannelsToJoin = len(inputState.Channels)
+	}
+
+	numUsers := len(inputState.Users)
+	numChannels := len(inputState.Channels)
+
+	if (numUsers*numChannelsToJoin)%numChannels != 0 {
+		c.PrintError("Invalid users and channels to join sizes. Num users must be divisable by the number of channels.")
+	}
+	numUsersPerChannel := (numUsers * numChannelsToJoin) / numChannels
+
+	c.PrintError("Joining users to " + strconv.Itoa(numChannelsToJoin) + " channels each.")
+	c.PrintError("This is " + strconv.Itoa(numUsersPerChannel) + " users per channel.")
+	errors := make([]error, numChannelsToJoin*len(inputState.Users))
+	autocreation.ThreadSplit(numUsers, c.LoadTestConfig.ChannelsConfiguration.JoinThreads, func(iUser int) {
+		for iChannel := (iUser / numUsersPerChannel) * numChannelsToJoin; iChannel < ((iUser/numUsersPerChannel)+1)*(numChannelsToJoin); iChannel += 1 {
+			channel := inputState.Channels[iChannel]
+			user := inputState.Users[iUser]
+			data := make(map[string]string)
+			data["user_id"] = user.Id
 			_, err := client.DoApiPost(fmt.Sprintf("/teams/%v/channels/%v/add", channel.TeamId, channel.Id), model.MapToJson(data))
 			if err != nil {
 				errors[iUser] = err
