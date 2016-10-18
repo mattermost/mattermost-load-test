@@ -18,7 +18,7 @@ type UserEntityPosterConfiguration struct {
 	PostingFrequencySeconds int
 }
 
-func NewUserEntityPosterConfig(config *UserEntityPoster) UserEntityPosterConfiguration {
+func NewUserEntityPosterConfig() UserEntityPosterConfiguration {
 	var userEntityPosterConfig UserEntityPosterConfiguration
 	var cfg struct {
 		UserEntityPosterConfiguration UserEntityPosterConfiguration
@@ -43,7 +43,7 @@ func NewUserEntityPoster(cfg UserEntityConfig) UserEntity {
 func (me *UserEntityPoster) Start() {
 	me.SendStatusLaunching()
 	defer me.StopEntityWaitGroup.Done()
-	posterConfig := NewUserEntityPosterConfig(me)
+	posterConfig := NewUserEntityPosterConfig()
 
 	// Allows us to perform our action every x seconds
 	postTicker := time.NewTicker(time.Second * time.Duration(posterConfig.PostingFrequencySeconds))

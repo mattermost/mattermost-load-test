@@ -4,6 +4,8 @@
 package main
 
 import (
+	"strconv"
+
 	"github.com/mattermost/mattermost-load-test/cmd/cmdlib"
 	"github.com/mattermost/mattermost-load-test/loadtestconfig"
 	"github.com/spf13/cobra"
@@ -19,6 +21,10 @@ func testListenAndPost(c *cmdlib.CommandContext) {
 	inputState := loadtestconfig.ServerStateFromStdin()
 
 	c.Println("Starting listen and post load test")
+
+	posterConfig := NewUserEntityPosterConfig()
+	c.LoadTestConfig.UserEntitiesConfiguration.EntityRampupDistanceMilliseconds = (posterConfig.PostingFrequencySeconds * 1000) / c.LoadTestConfig.UserEntitiesConfiguration.NumClientEntities
+	c.Println("Calculated EntityRampupDistance: " + strconv.Itoa(c.LoadTestConfig.UserEntitiesConfiguration.EntityRampupDistanceMilliseconds))
 
 	StartUserEntities(c.LoadTestConfig, inputState, NewUserEntityWebsocketListener, NewUserEntityPoster)
 }
