@@ -15,23 +15,23 @@ type UsersCreationResult struct {
 	Errors []error
 }
 
-func CreateUsers(client *model.Client, config *loadtestconfig.UsersConfiguration) *UsersCreationResult {
+func CreateUsers(client *model.Client, config *loadtestconfig.UserCreationConfiguration) *UsersCreationResult {
 	userResults := &UsersCreationResult{
-		Users:  make([]*model.User, config.NumUsers),
-		Errors: make([]error, config.NumUsers),
+		Users:  make([]*model.User, config.Num),
+		Errors: make([]error, config.Num),
 	}
 
-	ThreadSplit(config.NumUsers, config.CreateThreads, func(userNum int) {
+	ThreadSplit(config.Num, config.CreateThreads, func(userNum int) {
 		randomId := ""
 		if config.UseRandomId {
 			randomId = model.NewId()
 		}
 		user := &model.User{
-			Email:     config.UserEmailPrefix + randomId + strconv.Itoa(userNum) + config.UserEmailDomain,
-			FirstName: config.UserFirstName + strconv.Itoa(userNum),
-			LastName:  config.UserLastName + strconv.Itoa(userNum),
-			Username:  config.UserUsername + randomId + strconv.Itoa(userNum),
-			Password:  config.UserPassword,
+			Email:     config.EmailPrefix + randomId + strconv.Itoa(userNum) + config.EmailDomain,
+			FirstName: config.FirstName + strconv.Itoa(userNum),
+			LastName:  config.LastName + strconv.Itoa(userNum),
+			Username:  config.Username + randomId + strconv.Itoa(userNum),
+			Password:  config.Password,
 		}
 
 		result, err := client.CreateUser(user, "")

@@ -76,8 +76,8 @@ func StartUserEntities(config *loadtestconfig.LoadTestConfig, serverState *loadt
 	printerWait.Add(1)
 	go UserEntityStatusPrinter(out, statusChannel, statusPrinterStopChan, &printerWait, serverState.Users)
 
-	numEntities := config.UserEntitiesConfiguration.NumClientEntities
-	entityOffset := config.UserEntitiesConfiguration.Offset
+	numEntities := config.UserEntitiesConfiguration.LastEntityNumber
+	entityOffset := config.UserEntitiesConfiguration.FirstEntityNumber
 
 	out.Println("------------------------- Starting " + strconv.Itoa(numEntities) + " entities")
 	for entityNum := entityOffset; entityNum < numEntities; entityNum++ {

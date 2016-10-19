@@ -4,19 +4,14 @@
 package loadtestconfig
 
 type UserEntitiesConfiguration struct {
-	NumClientEntities                int
-	ActionFrequencyMultiplier        int
+	FirstEntityNumber                int
+	LastEntityNumber                 int
 	EntityRampupDistanceMilliseconds int
-	Offset                           int
 }
 
 func (config *UserEntitiesConfiguration) SetDefaultsIfRequired() {
-	if config.NumClientEntities == 0 {
-		config.NumClientEntities = 100
-	}
-
-	if config.ActionFrequencyMultiplier == 0 {
-		config.ActionFrequencyMultiplier = 1
+	if config.LastEntityNumber == 0 {
+		config.LastEntityNumber = 100
 	}
 
 	if config.EntityRampupDistanceMilliseconds == 0 {

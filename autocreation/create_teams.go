@@ -15,16 +15,16 @@ type TeamsCreationResult struct {
 	Errors []error
 }
 
-func CreateTeams(client *model.Client, config *loadtestconfig.TeamsConfiguration) *TeamsCreationResult {
+func CreateTeams(client *model.Client, config *loadtestconfig.TeamCreationConfiguration) *TeamsCreationResult {
 	teamResults := &TeamsCreationResult{
-		Teams:  make([]*model.Team, 0, config.NumTeams),
-		Errors: make([]error, 0, config.NumTeams),
+		Teams:  make([]*model.Team, 0, config.Num),
+		Errors: make([]error, 0, config.Num),
 	}
 
-	for teamNum := 1; teamNum <= config.NumTeams; teamNum++ {
+	for teamNum := 1; teamNum <= config.Num; teamNum++ {
 		team := &model.Team{
-			Name:        config.TeamNamePrefix + strconv.Itoa(teamNum),
-			DisplayName: config.TeamDisplayName + strconv.Itoa(teamNum),
+			Name:        config.Name + strconv.Itoa(teamNum),
+			DisplayName: config.DisplayName + strconv.Itoa(teamNum),
 			Type:        model.TEAM_OPEN,
 		}
 

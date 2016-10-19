@@ -27,9 +27,9 @@ func createChannels(c *cmdlib.CommandContext) {
 
 	teamIds := inputState.GetTeamIds()
 
-	c.LoadTestConfig.ChannelsConfiguration.TeamIds = teamIds
+	c.LoadTestConfig.ChannelCreationConfiguration.TeamIds = teamIds
 
-	channelResults := autocreation.CreateChannels(client, &c.LoadTestConfig.ChannelsConfiguration)
+	channelResults := autocreation.CreateChannels(client, &c.LoadTestConfig.ChannelCreationConfiguration)
 
 	for _, result := range channelResults.Channels {
 		if result != nil {

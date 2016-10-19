@@ -9,17 +9,17 @@ import (
 )
 
 type LoadTestConfig struct {
-	UsersConfiguration        UsersConfiguration
-	TeamsConfiguration        TeamsConfiguration
-	ChannelsConfiguration     ChannelsConfiguration
-	ConnectionConfiguration   ConnectionConfiguration
-	UserEntitiesConfiguration UserEntitiesConfiguration
+	UserCreationConfguration     UserCreationConfiguration
+	TeamCreationConfiguration    TeamCreationConfiguration
+	ChannelCreationConfiguration ChannelCreationConfiguration
+	ConnectionConfiguration      ConnectionConfiguration
+	UserEntitiesConfiguration    UserEntitiesConfiguration
 }
 
 func (config *LoadTestConfig) setDefaultsIfRequired() {
-	config.UsersConfiguration.SetDefaultsIfRequired()
-	config.TeamsConfiguration.SetDefaultsIfRequired()
-	config.ChannelsConfiguration.SetDefaultsIfRequired()
+	config.UserCreationConfguration.SetDefaultsIfRequired()
+	config.TeamCreationConfiguration.SetDefaultsIfRequired()
+	config.ChannelCreationConfiguration.SetDefaultsIfRequired()
 	config.UserEntitiesConfiguration.SetDefaultsIfRequired()
 }
 
