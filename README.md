@@ -19,8 +19,11 @@ Run `make install` to compile and install the binaries. This creates three (3) c
 
 #### Sample DB
 
-There is a sample DB available under `sample-dbs/loadtest1-20000-shift.sql` to load this from the command line use `mysql -u username < file.sql`
-You can then run a loadtest against it using the command `cat loadtest1-20000-shift-state.json | loadtest listenandpost`
+There are some sample DBs under the `sample-dbs` directory. You will need to install git LFS to retrieve them: https://git-lfs.github.com/
+
+To load them, from the command line use `mysql -u username < file.sql`
+You can then run a loadtest against one of them using a command like `cat loadtest1-20000-shift-state.json | loadtest listenandpost`
+Some come with sample loadtestconfig.json files. 
 
 #### Manually
 

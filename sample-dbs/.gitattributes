@@ -1,0 +1,4 @@
+60000-flat-1perchan.sql filter=lfs diff=lfs merge=lfs -text
+loadtest1-5000-shift.sql filter=lfs diff=lfs merge=lfs -text
+loadtest1-20000-shift.sql filter=lfs diff=lfs merge=lfs -text
+loadtest1-clean.sql filter=lfs diff=lfs merge=lfs -text
