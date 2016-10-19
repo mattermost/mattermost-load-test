@@ -3,47 +3,47 @@
 
 package loadtestconfig
 
-type UsersConfiguration struct {
-	UserEmailPrefix   string
-	UserEmailDomain   string
-	UserFirstName     string
-	UserLastName      string
-	UserUsername      string
-	UserPassword      string
-	NumUsers          int
+type UserCreationConfiguration struct {
+	EmailPrefix       string
+	EmailDomain       string
+	FirstName         string
+	LastName          string
+	Username          string
+	Password          string
+	Num               int
 	UseRandomId       bool
 	NumChannelsToJoin int
 	CreateThreads     int
 	LoginThreads      int
 }
 
-type TeamsConfiguration struct {
-	TeamNamePrefix  string
-	TeamDisplayName string
-	NumTeams        int
-	UseRandomId     bool
-	JoinThreads     int
+type TeamCreationConfiguration struct {
+	Name        string
+	DisplayName string
+	Num         int
+	UseRandomId bool
+	JoinThreads int
 }
 
-type ChannelsConfiguration struct {
-	ChannelNamePrefix  string
-	ChannelDisplayName string
-	NumChannelsPerTeam int
-	TeamIds            []string
-	UseRandomId        bool
-	CreateThreads      int
-	JoinThreads        int
+type ChannelCreationConfiguration struct {
+	Name          string
+	DisplayName   string
+	NumPerTeam    int
+	TeamIds       []string
+	UseRandomId   bool
+	CreateThreads int
+	JoinThreads   int
 }
 
-func (config *ChannelsConfiguration) SetDefaultsIfRequired() {
-	if config.ChannelNamePrefix == "" {
-		config.ChannelNamePrefix = "autoc"
+func (config *ChannelCreationConfiguration) SetDefaultsIfRequired() {
+	if config.Name == "" {
+		config.Name = "autoc"
 	}
-	if config.ChannelDisplayName == "" {
-		config.ChannelDisplayName = "AutoC "
+	if config.DisplayName == "" {
+		config.DisplayName = "AutoC "
 	}
-	if config.NumChannelsPerTeam == 0 {
-		config.NumChannelsPerTeam = 1
+	if config.NumPerTeam == 0 {
+		config.NumPerTeam = 1
 	}
 	if config.CreateThreads == 0 {
 		config.CreateThreads = 8
@@ -53,45 +53,45 @@ func (config *ChannelsConfiguration) SetDefaultsIfRequired() {
 	}
 }
 
-func (config *TeamsConfiguration) SetDefaultsIfRequired() {
-	if config.TeamNamePrefix == "" {
-		config.TeamNamePrefix = "autot"
+func (config *TeamCreationConfiguration) SetDefaultsIfRequired() {
+	if config.Name == "" {
+		config.Name = "autot"
 	}
-	if config.TeamDisplayName == "" {
-		config.TeamDisplayName = "AutoT "
+	if config.DisplayName == "" {
+		config.DisplayName = "AutoT "
 	}
-	if config.NumTeams == 0 {
-		config.NumTeams = 1
+	if config.Num == 0 {
+		config.Num = 1
 	}
 	if config.JoinThreads == 0 {
 		config.JoinThreads = 8
 	}
 }
 
-func (config *UsersConfiguration) SetDefaultsIfRequired() {
-	if config.UserEmailPrefix == "" {
-		config.UserEmailPrefix = "autou_"
+func (config *UserCreationConfiguration) SetDefaultsIfRequired() {
+	if config.EmailPrefix == "" {
+		config.EmailPrefix = "autou_"
 	}
-	if config.UserEmailDomain == "" {
-		config.UserEmailDomain = "+success@simulator.amazonses.com"
+	if config.EmailDomain == "" {
+		config.EmailDomain = "+success@simulator.amazonses.com"
 	}
-	if config.UserFirstName == "" {
-		config.UserFirstName = "TestFirst"
+	if config.FirstName == "" {
+		config.FirstName = "TestFirst"
 	}
-	if config.UserLastName == "" {
-		config.UserLastName = "TestLast"
+	if config.LastName == "" {
+		config.LastName = "TestLast"
 	}
-	if config.UserUsername == "" {
-		config.UserUsername = "autou"
+	if config.Username == "" {
+		config.Username = "autou"
 	}
-	if config.UserPassword == "" {
-		config.UserPassword = "passwd"
+	if config.Password == "" {
+		config.Password = "passwd"
 	}
 	if config.NumChannelsToJoin == 0 {
 		config.NumChannelsToJoin = 10
 	}
-	if config.NumUsers == 0 {
-		config.NumUsers = 1
+	if config.Num == 0 {
+		config.Num = 1
 	}
 	if config.CreateThreads == 0 {
 		config.CreateThreads = 8

@@ -14,8 +14,11 @@ Run `make install` to compile and install the binaries. This creates three (3) c
 2. Run `./setup.sh` and follow the prompts. It will remind you to configure the server properly.
 2. Run `./run.sh` and follow the prompts.
 
-
 ### Setting up a Load Test Environment 
+
+#### Configuration Documentation
+
+[loadtestconfig.json documentation](loadtestconfig.md)
 
 #### Sample DB
 

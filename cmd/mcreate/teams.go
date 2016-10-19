@@ -26,7 +26,7 @@ func createTeams(c *cmdlib.CommandContext) {
 		return
 	}
 
-	results := autocreation.CreateTeams(client, &c.LoadTestConfig.TeamsConfiguration)
+	results := autocreation.CreateTeams(client, &c.LoadTestConfig.TeamCreationConfiguration)
 
 	for _, result := range results.Teams {
 		if result != nil {

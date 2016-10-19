@@ -68,7 +68,7 @@ func joinUsersToTeam(c *cmdlib.CommandContext) {
 		return
 	}
 
-	joinResult := autocreation.JoinUsersToTeams(client, userIds, teamIds, c.LoadTestConfig.TeamsConfiguration.JoinThreads)
+	joinResult := autocreation.JoinUsersToTeams(client, userIds, teamIds, c.LoadTestConfig.TeamCreationConfiguration.JoinThreads)
 
 	c.Print(inputState.ToJson())
 	c.PrintErrors(joinResult.Errors)
@@ -93,7 +93,7 @@ func loginUsers(c *cmdlib.CommandContext) {
 		return
 	}
 
-	loginResults := autocreation.LoginUsers(client, &c.LoadTestConfig.UsersConfiguration, users)
+	loginResults := autocreation.LoginUsers(client, &c.LoadTestConfig.UserCreationConfguration, users)
 
 	for i, token := range loginResults.SessionTokens {
 		if token != "" {
@@ -161,7 +161,7 @@ func joinUsersToChannel(c *cmdlib.CommandContext) {
 		return
 	}
 
-	numChannelsToJoin := c.LoadTestConfig.UsersConfiguration.NumChannelsToJoin
+	numChannelsToJoin := c.LoadTestConfig.UserCreationConfguration.NumChannelsToJoin
 	if len(inputState.Channels) < numChannelsToJoin {
 		numChannelsToJoin = len(inputState.Channels)
 	}
@@ -177,7 +177,7 @@ func joinUsersToChannel(c *cmdlib.CommandContext) {
 	c.PrintError("Joining users to " + strconv.Itoa(numChannelsToJoin) + " channels each.")
 	c.PrintError("This is " + strconv.Itoa(numUsersPerChannel) + " users per channel.")
 	errors := make([]error, numChannelsToJoin*len(inputState.Users))
-	autocreation.ThreadSplit(numUsers, c.LoadTestConfig.ChannelsConfiguration.JoinThreads, func(iUser int) {
+	autocreation.ThreadSplit(numUsers, c.LoadTestConfig.ChannelCreationConfiguration.JoinThreads, func(iUser int) {
 		for iChannel := (iUser / numUsersPerChannel) * numChannelsToJoin; iChannel < ((iUser/numUsersPerChannel)+1)*(numChannelsToJoin); iChannel += 1 {
 			channel := inputState.Channels[iChannel]
 			user := inputState.Users[iUser]

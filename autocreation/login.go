@@ -13,7 +13,7 @@ type LoginUsersResult struct {
 	Errors        []error
 }
 
-func LoginUsers(client *model.Client, config *loadtestconfig.UsersConfiguration, users []string) *LoginUsersResult {
+func LoginUsers(client *model.Client, config *loadtestconfig.UserCreationConfiguration, users []string) *LoginUsersResult {
 	loginResults := &LoginUsersResult{
 		SessionTokens: make([]string, len(users)),
 		Errors:        make([]error, len(users)),
@@ -23,7 +23,7 @@ func LoginUsers(client *model.Client, config *loadtestconfig.UsersConfiguration,
 		userId := users[i]
 		m := make(map[string]string)
 		m["id"] = userId
-		m["password"] = config.UserPassword
+		m["password"] = config.Password
 		r, err := client.DoApiPost("/users/login", model.MapToJson(m))
 		if err != nil {
 			loginResults.Errors[i] = err

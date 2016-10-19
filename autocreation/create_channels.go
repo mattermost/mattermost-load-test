@@ -15,8 +15,8 @@ type ChannelsCreationResult struct {
 	Errors   []error
 }
 
-func CreateChannels(client *model.Client, config *loadtestconfig.ChannelsConfiguration) *ChannelsCreationResult {
-	totalChannels := config.NumChannelsPerTeam * len(config.TeamIds)
+func CreateChannels(client *model.Client, config *loadtestconfig.ChannelCreationConfiguration) *ChannelsCreationResult {
+	totalChannels := config.NumPerTeam * len(config.TeamIds)
 
 	channelResults := &ChannelsCreationResult{
 		Channels: make([]*model.Channel, totalChannels),
@@ -26,10 +26,10 @@ func CreateChannels(client *model.Client, config *loadtestconfig.ChannelsConfigu
 	for _, teamId := range config.TeamIds {
 		client.SetTeamId(teamId)
 
-		ThreadSplit(config.NumChannelsPerTeam, config.CreateThreads, func(channelNumber int) {
+		ThreadSplit(config.NumPerTeam, config.CreateThreads, func(channelNumber int) {
 			channel := &model.Channel{
-				Name:        config.ChannelNamePrefix + strconv.Itoa(channelNumber),
-				DisplayName: config.ChannelDisplayName + strconv.Itoa(channelNumber),
+				Name:        config.Name + strconv.Itoa(channelNumber),
+				DisplayName: config.DisplayName + strconv.Itoa(channelNumber),
 				Type:        model.CHANNEL_OPEN,
 				TeamId:      teamId,
 			}
