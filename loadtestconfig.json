@@ -13,6 +13,9 @@
         "LastEntityNumber": 5000,
         "EntityRampupDistanceMilliseconds": 12
     },
+    "UserEntityGetChannelConfiguration": {
+        "GetFrequencySeconds": 40
+    },
     "UserEntityPosterConfiguration": {
         "PostingFrequencySeconds": 60
     },

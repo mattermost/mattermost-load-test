@@ -12,20 +12,16 @@ import (
 
 type UserEntityPoster struct {
 	UserEntityConfig
+	Config UserEntityPosterConfiguration
 }
 
 type UserEntityPosterConfiguration struct {
 	PostingFrequencySeconds int
 }
 
-func NewUserEntityPosterConfig(config *UserEntityPoster) UserEntityPosterConfiguration {
+func NewUserEntityPosterConfig() UserEntityPosterConfiguration {
 	var userEntityPosterConfig UserEntityPosterConfiguration
-	var cfg struct {
-		UserEntityPosterConfiguration UserEntityPosterConfiguration
-	}
-	loadtestconfig.UnmarshalConfigStruct(&cfg)
-
-	userEntityPosterConfig = cfg.UserEntityPosterConfiguration
+	loadtestconfig.UnmarshalConfigSubStruct(&userEntityPosterConfig)
 
 	if userEntityPosterConfig.PostingFrequencySeconds == 0 {
 		userEntityPosterConfig.PostingFrequencySeconds = 1
@@ -37,16 +33,16 @@ func NewUserEntityPosterConfig(config *UserEntityPoster) UserEntityPosterConfigu
 func NewUserEntityPoster(cfg UserEntityConfig) UserEntity {
 	return &UserEntityPoster{
 		UserEntityConfig: cfg,
+		Config:           NewUserEntityPosterConfig(),
 	}
 }
 
 func (me *UserEntityPoster) Start() {
 	me.SendStatusLaunching()
 	defer me.StopEntityWaitGroup.Done()
-	posterConfig := NewUserEntityPosterConfig(me)
 
 	// Allows us to perform our action every x seconds
-	postTicker := time.NewTicker(time.Second * time.Duration(posterConfig.PostingFrequencySeconds))
+	postTicker := time.NewTicker(time.Second * time.Duration(me.Config.PostingFrequencySeconds))
 	defer postTicker.Stop()
 
 	var postCount int64 = 0
@@ -58,7 +54,7 @@ func (me *UserEntityPoster) Start() {
 			me.SendStatusStopped("")
 			return
 		case <-postTicker.C:
-			channel := me.State.Channels[me.EntityUser.ChannelsJoined[postCount%int64(len(me.EntityUser.ChannelsJoined))]]
+			channel := me.GetChannelBasedOnActionCount(postCount)
 			me.Client.SetTeamId(channel.TeamId)
 			post := &model.Post{
 				ChannelId: channel.Id,

@@ -26,7 +26,13 @@ func main() {
 		Run:   testListenAndPostCmd,
 	}
 
+	cmdGetChannel := &cobra.Command{
+		Use:   "getchannel",
+		Short: "A number of users getting channels as if they where the web client.",
+		Run:   testGetChannelCmd,
+	}
+
 	var rootCmd = &cobra.Command{Use: "mloadtest"}
-	rootCmd.AddCommand(cmdListenTest, cmdActiveUsers)
+	rootCmd.AddCommand(cmdListenTest, cmdActiveUsers, cmdGetChannel)
 	rootCmd.Execute()
 }
