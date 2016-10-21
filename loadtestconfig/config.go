@@ -4,6 +4,8 @@
 package loadtestconfig
 
 import (
+	"reflect"
+
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -46,6 +48,10 @@ func GetConfig() *LoadTestConfig {
 
 func UnmarshalConfigStruct(configStruct interface{}) error {
 	return viper.Unmarshal(configStruct)
+}
+
+func UnmarshalConfigSubStruct(configStruct interface{}) error {
+	return viper.Sub(reflect.ValueOf(configStruct).Elem().Type().Name()).Unmarshal(configStruct)
 }
 
 func SetIntFlag(flags *pflag.FlagSet, full, short, helpText, configFileSetting string, defaultValue int) {

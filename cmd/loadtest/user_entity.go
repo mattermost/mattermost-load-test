@@ -69,3 +69,7 @@ func (config *UserEntityConfig) SendStatusActionRecieve(details string) {
 func (config *UserEntityConfig) SendStatusStopped(details string) {
 	config.SendStatus(STATUS_STOPPED, nil, details)
 }
+
+func (config *UserEntityConfig) GetChannelBasedOnActionCount(count int64) *loadtestconfig.ServerStateChannel {
+	return &config.State.Channels[config.EntityUser.ChannelsJoined[count%int64(len(config.EntityUser.ChannelsJoined))]]
+}
