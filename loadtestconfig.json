@@ -5,8 +5,9 @@
         "WebsocketURL": "ws://localhost:8065",
         "AdminEmail": "test@test.com",
         "AdminPassword": "passwd",
-        "RetryWebsockets": true,
-        "MaxRetryWebsocket": 5
+        "RetryWebsockets": false,
+        "MaxRetryWebsocket": 5,
+        "EnableRequestTiming": true
     },
     "UserEntitiesConfiguration": {
         "FirstEntityNumber": 0,

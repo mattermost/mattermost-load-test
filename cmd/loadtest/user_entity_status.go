@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"sync"
-	"time"
 
 	"github.com/mattermost/mattermost-load-test/loadtestconfig"
 )
@@ -65,7 +64,7 @@ func processEntityStatusReport(out io.Writer, report UserEntityStatusReport, sta
 	out.Write([]byte(fmt.Sprintln("UserId: ", report.Config.EntityUser.Id, report)))
 }
 
-func UserEntityStatusPrinter(out UserEntityLogger, statusChan <-chan UserEntityStatusReport, stopChan <-chan bool, stopWait *sync.WaitGroup, users []loadtestconfig.ServerStateUser) {
+func UserEntityStatusPrinter(out UserEntityLogger, statusChan <-chan UserEntityStatusReport, clientTimingChannel <-chan TimedRoundTripperReport, stopChan <-chan bool, stopWait *sync.WaitGroup, users []loadtestconfig.ServerStateUser) {
 	defer stopWait.Done()
 	logfile, err := os.Create("status.log")
 	if err != nil {
@@ -77,7 +76,7 @@ func UserEntityStatusPrinter(out UserEntityLogger, statusChan <-chan UserEntityS
 		logfile.Close()
 	}()
 
-	stats := NewUserEntityStatistics(1 * time.Second)
+	stats := NewUserEntityStatistics()
 
 	go doPrintStats(out, stats, stopChan)
 
@@ -86,10 +85,14 @@ func UserEntityStatusPrinter(out UserEntityLogger, statusChan <-chan UserEntityS
 		select {
 		case report := <-statusChan:
 			processEntityStatusReport(logfile, report, stats)
+		case timingReport := <-clientTimingChannel:
+			stats.updateClientTimingStats(timingReport)
 		default:
 			select {
 			case report := <-statusChan:
 				processEntityStatusReport(logfile, report, stats)
+			case timingReport := <-clientTimingChannel:
+				stats.updateClientTimingStats(timingReport)
 			case <-stopChan:
 				return
 			}
