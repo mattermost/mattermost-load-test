@@ -62,7 +62,7 @@ func StartUserEntities(config *loadtestconfig.LoadTestConfig, serverState *loadt
 	var printerWait sync.WaitGroup
 
 	// Channel to recieve user entity status reports
-	statusChannel := make(chan UserEntityStatusReport, 1000)
+	statusChannel := make(chan UserEntityStatusReport, 10000)
 
 	// Wait group so all entities start staggered properly
 	var entityWaitChannel sync.WaitGroup
@@ -73,8 +73,11 @@ func StartUserEntities(config *loadtestconfig.LoadTestConfig, serverState *loadt
 		Writer: os.Stdout,
 	}
 
+	// Channel to recieve timing information from the client
+	clientTimingChannel := make(chan TimedRoundTripperReport, 10000)
+
 	printerWait.Add(1)
-	go UserEntityStatusPrinter(out, statusChannel, statusPrinterStopChan, &printerWait, serverState.Users)
+	go UserEntityStatusPrinter(out, statusChannel, clientTimingChannel, statusPrinterStopChan, &printerWait, serverState.Users)
 
 	numEntities := config.UserEntitiesConfiguration.LastEntityNumber
 	entityOffset := config.UserEntitiesConfiguration.FirstEntityNumber
@@ -87,6 +90,9 @@ func StartUserEntities(config *loadtestconfig.LoadTestConfig, serverState *loadt
 		entityUser := &serverState.Users[entityNum%len(serverState.Users)]
 
 		userClient := cmdlib.GetUserClient(&config.ConnectionConfiguration, entityUser)
+		if config.ConnectionConfiguration.EnableRequestTiming {
+			userClient.HttpClient.Transport = NewTimedRoundTripper(clientTimingChannel)
+		}
 
 		websocketURL := config.ConnectionConfiguration.WebsocketURL
 		userWebsocketClient := &model.WebSocketClient{
