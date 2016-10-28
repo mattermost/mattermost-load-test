@@ -1,6 +1,11 @@
 # Mattermost Load Test
 
-Compile this project to run performance load tests on the Mattermost server. 
+Load tests for the [Mattermost Server](https://github.com/mattermost/platform)
+
+## Git LFS
+
+This repository uses Git LFS: https://git-lfs.github.com/
+To retrieve the sample databases, you will need to install it. 
 
 ## Running the tests
 
