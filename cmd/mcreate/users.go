@@ -27,7 +27,7 @@ func createUsers(c *cmdlib.CommandContext) {
 		return
 	}
 
-	results := autocreation.CreateUsers(client, &c.LoadTestConfig.UserCreationConfguration)
+	results := autocreation.CreateUsers(client, &c.LoadTestConfig.UserCreationConfiguration)
 
 	for _, result := range results.Users {
 		if result != nil {

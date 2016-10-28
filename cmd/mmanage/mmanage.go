@@ -93,7 +93,7 @@ func loginUsers(c *cmdlib.CommandContext) {
 		return
 	}
 
-	loginResults := autocreation.LoginUsers(client, &c.LoadTestConfig.UserCreationConfguration, users)
+	loginResults := autocreation.LoginUsers(client, &c.LoadTestConfig.UserCreationConfiguration, users)
 
 	for i, token := range loginResults.SessionTokens {
 		if token != "" {
@@ -161,7 +161,7 @@ func joinUsersToChannel(c *cmdlib.CommandContext) {
 		return
 	}
 
-	numChannelsToJoin := c.LoadTestConfig.UserCreationConfguration.NumChannelsToJoin
+	numChannelsToJoin := c.LoadTestConfig.UserCreationConfiguration.NumChannelsToJoin
 	if len(inputState.Channels) < numChannelsToJoin {
 		numChannelsToJoin = len(inputState.Channels)
 	}

@@ -11,7 +11,7 @@ import (
 )
 
 type LoadTestConfig struct {
-	UserCreationConfguration     UserCreationConfiguration
+	UserCreationConfiguration    UserCreationConfiguration
 	TeamCreationConfiguration    TeamCreationConfiguration
 	ChannelCreationConfiguration ChannelCreationConfiguration
 	ConnectionConfiguration      ConnectionConfiguration
@@ -19,7 +19,7 @@ type LoadTestConfig struct {
 }
 
 func (config *LoadTestConfig) setDefaultsIfRequired() {
-	config.UserCreationConfguration.SetDefaultsIfRequired()
+	config.UserCreationConfiguration.SetDefaultsIfRequired()
 	config.TeamCreationConfiguration.SetDefaultsIfRequired()
 	config.ChannelCreationConfiguration.SetDefaultsIfRequired()
 	config.UserEntitiesConfiguration.SetDefaultsIfRequired()
