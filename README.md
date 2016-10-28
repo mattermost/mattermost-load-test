@@ -2,66 +2,130 @@
 
 Compile this project to run performance load tests on the Mattermost server. 
 
-## Fast Configure & Run
+## Running the tests
 
-### Installing Mattermost Load Test
+### Setting up your loadtest environment
 
-Run `make install` to compile and install the binaries. This creates three (3) commands: `loadtest`, `mcreate`, and `mmanage`. For help with each of these commands, run them without parameters.
+1. Setup your loadtest environment using the standard install instructions: https://docs.mattermost.com/install/prod-ubuntu.html
 
-### Quickstart
+2. Setup your server that will be running the loadtests. It should be similar in power to the application server. Install the loadtest command on it. You can use `make package` to get a `tar.gz` under the `dist` directory.
 
-1. Make sure you have run `make install` from above.
-2. Run `./setup.sh` and follow the prompts. It will remind you to configure the server properly.
-2. Run `./run.sh` and follow the prompts.
+3. Perform these tweaks to maximize performance:
 
-### Setting up a Load Test Environment 
+Depending on your distribution and version, ether modify your upstart config file or your systemd config file.
 
-#### Configuration Documentation
+For upstart at `/etc/init/mattermost.conf`, add the line `limit nofile 50000 50000`:
+
+```
+start on runlevel [2345]
+stop on runlevel [016]
+respawn
+limit nofile 50000 50000
+chdir /home/ubuntu/mattermost
+setuid ubuntu
+exec bin/platform
+```
+
+For systemd at `/lib/systemd/system/mattermost.service` under `[Service]` add the line `LimitNOFILE=50000`:
+
+```
+Unit]
+Description=Mattermost Server
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/home/ubuntu/mattermost/bin/platform
+Restart=always
+LimitNOFILE=50000
+RestartSec=5
+WorkingDirectory=/home/ubuntu/mattermost
+User=ubuntu
+Group=ubuntu
+
+[Install]
+WantedBy=multi-user.target
+```
+
+
+Modify your `/etc/security/limits.conf` on all your machines. 
+Change your process limit to 8192 and your max number of open files to 65536.
+
+You can do this by adding the lines:
+
+```
+* soft nofile 65536
+* hard nofile 65536
+* soft nproc 8192
+* hard nproc 8192
+```
+
+
+Modify you nginx configuration to be:
+```
+upstream backend {
+        server <HOSTNAME_OF_YOUR_APP_SERVER>;
+}
+
+server {
+    listen 80;
+    server_name    <HOSTNAME_OF_YOUR_PROXY>;
+
+   location /api/v3/users/websocket {
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+      #proxy_set_header X-Forwarded-Ssl on;
+      client_max_body_size 50M;
+      proxy_set_header Host $http_host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_set_header X-Frame-Options SAMEORIGIN;
+      proxy_buffers 256 16k;
+      proxy_buffer_size 16k;
+      proxy_read_timeout 600s;
+      proxy_pass http://backend;
+   }
+
+   location / {
+      proxy_set_header X-Forwarded-Ssl on;
+      client_max_body_size 50M;
+      proxy_set_header Connection "";
+      proxy_set_header Host $http_host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_set_header X-Frame-Options SAMEORIGIN;
+      proxy_buffers 256 16k;
+      proxy_buffer_size 16k;
+      proxy_read_timeout 600s;
+      proxy_pass http://backend;
+    }
+}
+
+```
+
+TODO: Mention which specific tweaks to perform to nginx. 
+
+### Setting up your database
+
+To setup your database, you can use the pre-created databases under `sample-dbs`. For now the recommended database is `loadtest1-20000-shift.sql` To load them, from the command line use `mysql -u username < file.sql`
+
+After you have loaded the database, you can copy the corresponding configuration and state to your loadtest server. For `loadtest1-20000-shift.sql` those are `loadtest1-20000-shift-state.json` and `loadtest-20000-shift-loadtestconfig.json`. You will need to rename the config to `loadtestconfig.json` so it is recognized by the loadtests.
+
+### Setup your loadtestconfig.json
+
+You will need to modify at least two entries in your loadtestconfig.json. `ServerURL` needs to be set to the address of your proxy and `WebsocketURL` should be set as well. If your using a sample DB the `AdminEmail` and `AdminPassword` should be set correctly already. 
+
+If you want to know more about other configuration options, see [loadtestconfig.json documentation](loadtestconfig.md)
+
+### Running the loadtests. 
+
+Now you can run the loadtests from your loadtest machine by using the command `cat state.json | loadtest listenandpost`. This will run the loadtest. 
+
+A summary of activity will be output to the console so you can monitor the test. More detailed logging is performed in a status.log file output to the same directory the tests where run from. You can watch it by opening another terminal and running `tail -f status.log`. 
+
+
+## Configuration Documentation
 
 [loadtestconfig.json documentation](loadtestconfig.md)
-
-#### Sample DB
-
-There are some sample DBs under the `sample-dbs` directory. You will need to install git LFS to retrieve them: https://git-lfs.github.com/
-
-To load them, from the command line use `mysql -u username < file.sql`
-You can then run a loadtest against one of them using a command like `cat loadtest1-20000-shift-state.json | loadtest listenandpost`
-Some come with sample loadtestconfig.json files. 
-
-#### Manually
-
-In preparation for running a load test, install a Mattermost server and populate it with users and a team: 
-
-1. Install a Mattermost server using any of the [online installation guides](https://docs.mattermost.com/guides/administrator.html#install-guides). 
-2. Create an account on your Mattermost server. The first account created on a server is automatically provided the System Admin role. 
-3. Edit the `loadtestconfig.json` file and set `AdminEmail` and `AdminPassword` to the credentials of your System Admin account. 
-4. Then run the following command:
-
-```
-mcreate users -n 5 | mcreate teams -n 1 | mcreate channels -n 10 | mmanage login | mmanage jointeam | mmanage joinchannel -n 5 > state.json
-```
-
-This creates 5 users, 1 team and 10 channels. It then logs in all the users, joins them to the team and 5 channels in that team. The 5 channels will be the 5 channels following the users numer in sequance modulo the number of channels. 
-
-The server state created is then saved to `state.json`.
-
-### Running a Load Test 
-
-To start the loadtest run:
-```
-cat state.json | loadtest listenandpost
-```
-
-This will start a loadtest using the parameters in the `loadtestconfig.json` file. In that file you can edit how many user entities are created, the ramp up time, and all other available settings.
-
-Statistics about the run will be output to standard output. More details tracing info and specific errors are output to the file `status.log`. If you want to follow along in realtime you can use `tail -f status.log` in another terminal to view the log in real-time. 
-
-### Notes 
-
-The previous version of load test automation is available by running `loadtest old`
-
-## Advanced use
-
-TODO: WRITE ADVANCED USE
-
-There are two parts to the loadtest system. The initialization and manipulation stage, and the loadtest stage. 

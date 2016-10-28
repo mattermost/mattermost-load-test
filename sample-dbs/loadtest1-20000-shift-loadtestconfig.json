@@ -1,0 +1,34 @@
+{
+    "HELP!!!": "Confused about this configuration? See loadtestconfig.md",
+    "ConnectionConfiguration": {
+        "ServerURL": "http://<YOUR_PROXY>",
+        "WebsocketURL": "ws://<YOUR_PROXY>",
+        "AdminEmail": "test@test.com",
+        "AdminPassword": "passwd",
+        "RetryWebsockets": false,
+        "MaxRetryWebsocket": 5,
+        "EnableRequestTiming": true
+    },
+    "UserEntitiesConfiguration": {
+        "FirstEntityNumber": 0,
+        "LastEntityNumber": 20000,
+        "EntityRampupDistanceMilliseconds": 12
+    },
+    "UserEntityPosterConfiguration": {
+        "PostingFrequencySeconds": 240
+    },
+    "UserEntityGetChannelConfiguration": {
+        "GetFrequencySeconds": 40,
+        "UseEtags": true
+    },
+    "TeamCreationConfiguration": {
+        "Num": 1
+    },
+    "ChannelCreationConfiguration": {
+        "NumPerTeam": 1
+    },
+    "UserCreationConfiguration": {
+        "Num": 20000,
+        "NumChannelsToJoin": 10
+    }
+}
