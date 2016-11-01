@@ -5,13 +5,14 @@ Load tests for the [Mattermost Server](https://github.com/mattermost/platform)
 ## Git LFS
 
 This repository uses Git LFS: https://git-lfs.github.com/
+
 To retrieve the sample databases, you will need to install it. 
 
 ## Running the tests
 
 ### Setting up your loadtest environment
 
-1. Setup your loadtest environment using the standard install instructions: https://docs.mattermost.com/install/prod-ubuntu.html
+1. Setup your Load Test environment using the following instructions: https://github.com/mattermost/mattermost-load-test/blob/master/install.rst
 
 2. Setup your server that will be running the loadtests. It should be similar in power to the application server. Install the loadtest command on it. You can use `make package` to get a `tar.gz` under the `dist` directory.
 
