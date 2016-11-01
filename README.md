@@ -1,8 +1,10 @@
 # Mattermost Load Test
 
-Load tests for the [Mattermost Server](https://github.com/mattermost/platform)
+Mattermost Load Test provides infrastructure for simulating real-world usage of the [Mattermost enterprise messaging server](https://about.mattermost.com/) at scale.
 
-## Git LFS
+## Pre-requisites 
+
+### Git LFS
 
 This repository uses Git LFS: https://git-lfs.github.com/
 
@@ -10,15 +12,15 @@ To retrieve the sample databases, you will need to install it.
 
 ## Running the tests
 
-### Setting up your loadtest environment
+### Setting up your Load Test environment
 
 1. Setup your Load Test environment using the following instructions: https://github.com/mattermost/mattermost-load-test/blob/master/install.rst
 
-2. Setup your server that will be running the loadtests. It should be similar in power to the application server. Install the loadtest command on it. You can use `make package` to get a `tar.gz` under the `dist` directory.
+2. Setup your server that will be running the loadtests. It should be similar in power to the application server. Install the `loadtest` command on it. You can use `make package` to get a `tar.gz` under the `dist` directory.
 
 3. Perform these tweaks to maximize performance:
 
-Depending on your distribution and version, ether modify your upstart config file or your systemd config file.
+Depending on your distribution and version, ether modify your `upstart` config file or your `systemd` config file.
 
 For upstart at `/etc/init/mattermost.conf`, add the line `limit nofile 50000 50000`:
 
@@ -55,6 +57,7 @@ WantedBy=multi-user.target
 
 
 Modify your `/etc/security/limits.conf` on all your machines. 
+
 Change your process limit to 8192 and your max number of open files to 65536.
 
 You can do this by adding the lines:
@@ -66,8 +69,8 @@ You can do this by adding the lines:
 * hard nproc 8192
 ```
 
+Modify you NGINX configuration to be:
 
-Modify you nginx configuration to be:
 ```
 upstream backend {
         server <HOSTNAME_OF_YOUR_APP_SERVER>;
@@ -113,7 +116,7 @@ server {
 
 TODO: Mention which specific tweaks to perform to nginx. 
 
-### Setting up your database
+### Setting up your Database
 
 To setup your database, you can use the pre-created databases under `sample-dbs`. For now the recommended database is `loadtest1-20000-shift.sql` To load them, from the command line use `mysql -u username < file.sql`
 
@@ -121,7 +124,10 @@ After you have loaded the database, you can copy the corresponding configuration
 
 ### Setup your loadtestconfig.json
 
-You will need to modify at least two entries in your loadtestconfig.json. `ServerURL` needs to be set to the address of your proxy and `WebsocketURL` should be set as well. If your using a sample DB the `AdminEmail` and `AdminPassword` should be set correctly already. 
+You will need to modify at least two entries in your `loadtestconfig.json`.
+
+1. `ServerURL` needs to be set to the address of your proxy and `WebsocketURL` should be set as well.
+2. If your using a sample DB the `AdminEmail` and `AdminPassword` should be set correctly already. 
 
 If you want to know more about other configuration options, see [loadtestconfig.json documentation](loadtestconfig.md)
 
@@ -131,7 +137,6 @@ Now you can run the loadtests from your loadtest machine by using the command `c
 
 A summary of activity will be output to the console so you can monitor the test. More detailed logging is performed in a status.log file output to the same directory the tests where run from. You can watch it by opening another terminal and running `tail -f status.log`. 
 
-
 ## Configuration Documentation
 
-[loadtestconfig.json documentation](loadtestconfig.md)
+Please see [loadtestconfig.json documentation](loadtestconfig.md).
