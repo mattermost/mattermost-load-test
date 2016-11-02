@@ -65,6 +65,16 @@ or
 ss | grep ESTA | grep 8065
 ``
 
+Verify the resource limits are set correctly
+---------------------------------------------
+
+- You can verify the NGINX process has the correct amounts by running
+
+  ::
+    ps -aux | grep nginx
+    cat /proc/<worker process ID>/limits
+
+
 Look for slow SQL queries in MySQL
 --------------------------------------------------
 

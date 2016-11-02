@@ -149,6 +149,14 @@ Now you can run the loadtests from your loadtest machine by using the command `c
 
 A summary of activity will be output to the console so you can monitor the test. More detailed logging is performed in a status.log file output to the same directory the tests where run from. You can watch it by opening another terminal and running `tail -f status.log`. 
 
+### Interacting with the loaded environment
+
+The system admin user you used to setup the loadtests is now joined to every team and channel on the system. This might not be the best way to interact with your loaded environment. You can run the following commands from your mattermost installation directory to create a second system admin user:
+
+    - `./bin/platform -create_user -team_name="name" -email="user@example.com" -password="mypassword" -username="user"`
+    - `./bin/platform -assign_role -email="user@example.com" -role="system_admin"`
+
+
 ## Configuration Documentation
 
 Please see [loadtestconfig.json documentation](loadtestconfig.md).
