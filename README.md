@@ -114,7 +114,19 @@ server {
 
 ```
 
+In addtion modify your `/etc/nginx/nginx.conf`:
+
+  - Change or add `worker_connections` to `20000`
+  - Change or add `worker_processes` to the number of cores on the nginx machine (eg. `4`)
+  - Change or add `keepalive_timeout` to `20`
+  - Change or add `worker_rlimit_nofile` to `65536`
+
 TODO: Mention which specific tweaks to perform to nginx. 
+
+Modify your Mattermost configuration file `config/config.json`:
+
+  - Change `MaxIdleConns` to `20`
+  - Change `MaxOpenConns` to `300`
 
 ### Setting up your Database
 
