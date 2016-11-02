@@ -69,6 +69,18 @@ You can do this by adding the lines:
 * hard nproc 8192
 ```
 
+
+Mofify your `/etc/sysctl.conf` on all your machines.
+
+Add the lines:
+```
+net.ipv4.ip_local_port_range="1024 65000"
+net.ipv4.tcp_fin_timeout=30
+```
+
+You will need to restart the machines to let these changes take effect.
+
+
 Modify you NGINX configuration to be:
 
 ```
@@ -116,7 +128,7 @@ server {
 
 In addtion modify your `/etc/nginx/nginx.conf`:
 
-  - Change or add `worker_connections` to `20000`
+  - Change or add `worker_connections` to `120000`
   - Change or add `worker_processes` to the number of cores on the nginx machine (eg. `4`)
   - Change or add `keepalive_timeout` to `20`
   - Change or add `worker_rlimit_nofile` to `65536`
