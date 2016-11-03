@@ -1,7 +1,7 @@
 package: github.com/mattermost/mattermost-load-test
 import:
 - package: github.com/mattermost/platform
-  version: performance
+  version: master
   subpackages:
   - model
 - package: gopkg.in/dancannon/gorethink.v2
