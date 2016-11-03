@@ -149,12 +149,12 @@ func (p *Platform) GetChannels() (*model.ChannelList, error) {
 
 // GetChannel find the channel from all channels the user has joined
 func (p *Platform) GetChannel(channelName string) (*model.Channel, error) {
-	res, err := p.GetChannels()
+	channels, err := p.GetChannels()
 	if err != nil {
 		return nil, err
 	}
 	FQCN := strings.Replace(channelName, " ", "-", -1)
-	for _, channel := range res.Channels {
+	for _, channel := range *channels {
 		if channel.Name == FQCN {
 			return channel, nil
 		}
