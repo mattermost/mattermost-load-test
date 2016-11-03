@@ -69,6 +69,18 @@ You can do this by adding the lines:
 * hard nproc 8192
 ```
 
+
+Mofify your `/etc/sysctl.conf` on all your machines.
+
+Add the lines:
+```
+net.ipv4.ip_local_port_range="1024 65000"
+net.ipv4.tcp_fin_timeout=30
+```
+
+You will need to restart the machines to let these changes take effect.
+
+
 Modify you NGINX configuration to be:
 
 ```
@@ -114,7 +126,19 @@ server {
 
 ```
 
+In addtion modify your `/etc/nginx/nginx.conf`:
+
+  - Change or add `worker_connections` to `120000`
+  - Change or add `worker_processes` to the number of cores on the nginx machine (eg. `4`)
+  - Change or add `keepalive_timeout` to `20`
+  - Change or add `worker_rlimit_nofile` to `65536`
+
 TODO: Mention which specific tweaks to perform to nginx. 
+
+Modify your Mattermost configuration file `config/config.json`:
+
+  - Change `MaxIdleConns` to `20`
+  - Change `MaxOpenConns` to `300`
 
 ### Setting up your Database
 
@@ -136,6 +160,14 @@ If you want to know more about other configuration options, see [loadtestconfig.
 Now you can run the loadtests from your loadtest machine by using the command `cat state.json | loadtest listenandpost`. This will run the loadtest. 
 
 A summary of activity will be output to the console so you can monitor the test. More detailed logging is performed in a status.log file output to the same directory the tests where run from. You can watch it by opening another terminal and running `tail -f status.log`. 
+
+### Interacting with the loaded environment
+
+The system admin user you used to setup the loadtests is now joined to every team and channel on the system. This might not be the best way to interact with your loaded environment. You can run the following commands from your mattermost installation directory to create a second system admin user:
+
+    - `./bin/platform -create_user -team_name="name" -email="user@example.com" -password="mypassword" -username="user"`
+    - `./bin/platform -assign_role -email="user@example.com" -role="system_admin"`
+
 
 ## Configuration Documentation
 
