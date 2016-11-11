@@ -70,7 +70,7 @@ You can do this by adding the lines:
 ```
 
 
-Mofify your `/etc/sysctl.conf` on all your machines.
+Modify your `/etc/sysctl.conf` on all your machines.
 
 Add the lines:
 ```
