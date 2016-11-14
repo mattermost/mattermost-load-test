@@ -20,7 +20,7 @@ To retrieve the sample databases, you will need to install it.
 
 3. Perform these tweaks to maximize performance:
 
-Depending on your distribution and version, ether modify your `upstart` config file or your `systemd` config file.
+Depending on your distribution and version, either modify your `upstart` config file or your `systemd` config file.
 
 For upstart at `/etc/init/mattermost.conf`, add the line `limit nofile 50000 50000`:
 
