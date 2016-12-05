@@ -1,6 +1,15 @@
 # Mattermost Load Test
 
-Mattermost Load Test provides infrastructure for simulating real-world usage of the [Mattermost enterprise messaging server](https://about.mattermost.com/) at scale.
+Mattermost Load Test provides infrastructure for simulating real-world usage of the Mattermost Enterprise Edition E20 at scale. 
+
+In setting up this system you will: 
+
+- Deploy Mattermost in a production configuration, potentially in high availability mode
+- Optimize the performance of your Mattermost deployment 
+- Deploy a Mattermost Load Test server to apply simulated load to your production deployment 
+- Log in to your Mattermost deployment to observe it under load
+
+If you have questions about configuration, please contact your Account Manager. An overview of support available to E20 customers is available at https://about.mattermost.com/support/
 
 ## Pre-requisites 
 
