@@ -4,23 +4,35 @@ Mattermost Load Test provides infrastructure for simulating real-world usage of 
 
 ## Pre-requisites 
 
-### Git LFS
+SOFTWARE
 
-This repository uses Git LFS: https://git-lfs.github.com/
+- **Software required for Mattermost production deployment** - see [Software and Hardware Requirements Guide](https://docs.mattermost.com/install/requirements.html) for software requirements 
+- **Git Large File Storage (Git LFS)** - to retrieve the sample databases used in this repository, you need to install Git LFS from https://git-lfs.github.com/
 
-To retrieve the sample databases, you will need to install it. 
+HARDWARE
+
+- **Hardware required for Mattermost production deployment** - see [Software and Hardware Requirements Guide](https://docs.mattermost.com/install/requirements.html) for sizing hardware based on projected needs
+- **Load Test Server** - to run Load Tests with hardware similar to Mattermost application server in production setup
 
 ## Running the tests
 
-### Setting up your Load Test environment
+To run the Load Test simulation, complete the following: 
 
-1. Setup your Load Test environment using the following instructions: https://github.com/mattermost/mattermost-load-test/blob/master/install.rst
+### 1) Set up your Load Test environment 
 
-2. Setup your server that will be running the loadtests. It should be similar in power to the application server. Install the `loadtest` command on it. You can use `make package` to get a `tar.gz` under the `dist` directory.
+Follow setup instructions at: https://github.com/mattermost/mattermost-load-test/blob/master/install.rst
 
-3. Perform these tweaks to maximize performance:
+### 2) Set up your server that will be running the loadtests
 
-Depending on your distribution and version, either modify your `upstart` config file or your `systemd` config file.
+The hardward specifications of the server running Load Test should be similar to the hardware of your application server. 
+
+Install the `loadtest` command on the Load Test server. You can use `make package` to get a `tar.gz` under the `dist` directory.
+
+### 3) Perform the following optimizations to maximize performance
+
+#### a) Update either `upstart` or `systemd`
+
+Depending on your distribution and version, either modify your `upstart` config file or your `systemd` config file: 
 
 For upstart at `/etc/init/mattermost.conf`, add the line `limit nofile 50000 50000`:
 
@@ -54,7 +66,7 @@ Group=ubuntu
 [Install]
 WantedBy=multi-user.target
 ```
-
+#### b) Modify `/etc/security/limits.conf`
 
 Modify your `/etc/security/limits.conf` on all your machines. 
 
@@ -69,6 +81,7 @@ You can do this by adding the lines:
 * hard nproc 8192
 ```
 
+#### b) Modify `/etc/sysctl.conf`
 
 Modify your `/etc/sysctl.conf` on all your machines.
 
@@ -78,8 +91,9 @@ net.ipv4.ip_local_port_range="1024 65000"
 net.ipv4.tcp_fin_timeout=30
 ```
 
-You will need to restart the machines to let these changes take effect.
+You will need to restart the machines to let the changes in a) and b) take effect.
 
+#### c) Modify NGINX configuration 
 
 Modify your NGINX configuration to be:
 
@@ -135,6 +149,8 @@ In addition modify your `/etc/nginx/nginx.conf`:
 
 TODO: Mention which specific tweaks to perform on nginx. 
 
+#### d) Modify Mattermost configuration 
+
 Modify your Mattermost configuration file `config/config.json`:
 
   - Change `MaxIdleConns` to `20`
@@ -142,33 +158,36 @@ Modify your Mattermost configuration file `config/config.json`:
 
 ### Setting up your Database
 
-To setup your database, you can use the pre-created databases under `sample-dbs`. For now the recommended database is `loadtest1-20000-shift.sql` To load them, from the command line use `mysql -u username < file.sql`
+To set up your database, you can use the pre-created databases under `sample-dbs`. For now the recommended database is `loadtest1-20000-shift.sql` To load them, from the command line use `mysql -u username < file.sql`
 
 After you have loaded the database, you can copy the corresponding configuration and state to your loadtest server. For `loadtest1-20000-shift.sql` those are `loadtest1-20000-shift-state.json` and `loadtest-20000-shift-loadtestconfig.json`. You will need to rename the config to `loadtestconfig.json` so it is recognized by the loadtests.
 
-### Setup your loadtestconfig.json
+### Set up your `loadtestconfig.json`
 
 You will need to modify at least two entries in your `loadtestconfig.json`.
 
 1. `ServerURL` needs to be set to the address of your proxy and `WebsocketURL` should be set as well.
 2. If your using a sample DB the `AdminEmail` and `AdminPassword` should be set correctly already. 
 
-If you want to know more about other configuration options, see [loadtestconfig.json documentation](loadtestconfig.md)
+If you want to know more about other configuration options, see [Load Test Configuration](loadtestconfig.md) documentation. 
 
-### Running the loadtests. 
+### Running the Load Tests
 
-Now you can run the loadtests from your loadtest machine by using the command `cat state.json | loadtest listenandpost`. This will run the loadtest. 
+Now you can run the simulator from your Load Test machine by using the command `cat state.json | loadtest listenandpost`. 
 
-A summary of activity will be output to the console so you can monitor the test. More detailed logging is performed in a status.log file output to the same directory the tests where run from. You can watch it by opening another terminal and running `tail -f status.log`. 
+A summary of activity will be output to the console so you can monitor the test. More detailed logging is performed in a `status.log` file output to the same directory the tests where run from. 
 
-### Interacting with the loaded environment
+You can watch it by opening another terminal and running `tail -f status.log`. 
 
-The system admin user you used to setup the loadtests is now joined to every team and channel on the system. This might not be the best way to interact with your loaded environment. You can run the following commands from your mattermost installation directory to create a second system admin user:
+### Interacting with the Mattermost deployment under load 
+
+You can create users to interact with the Mattermost deployment while under load by using the following Command Line Interface commands: 
 
     - `./bin/platform -create_user -team_name="name" -email="user@example.com" -password="mypassword" -username="user"`
     - `./bin/platform -assign_role -email="user@example.com" -role="system_admin"`
 
+You can also use the System Administrator account set up in the Load Tests to interact with the system, however the account will be joined to every team and channel in the deployment, and may be awkward to use. 
 
 ## Configuration Documentation
 
-Please see [loadtestconfig.json documentation](loadtestconfig.md).
+Please see [Load Test Configuration](loadtestconfig.md) documentation. 
