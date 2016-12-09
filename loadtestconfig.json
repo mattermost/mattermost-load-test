@@ -15,7 +15,8 @@
         "EntityRampupDistanceMilliseconds": 12
     },
     "UserEntityGetChannelConfiguration": {
-        "GetFrequencySeconds": 40
+        "GetFrequencySeconds": 40,
+        "UseEtags": false
     },
     "UserEntityPosterConfiguration": {
         "PostingFrequencySeconds": 60
