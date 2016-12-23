@@ -38,7 +38,6 @@ Set up Mattermost Server
 
 Follow the "Setup Mattermost Server" instructions in our `Production Ubuntu Install Guide <https://docs.mattermost.com/install/prod-ubuntu.html#set-up-mattermost-server>`_ to setup your mattermost server.
 
-
 Set up NGINX Server
 -------------------
 
@@ -48,6 +47,20 @@ Additional Mattermost Configuration
 -------------------------------------
 
 Follow the "Additional Mattermost Configuration" instructions which can be done from the graphical system console. `Addtional Mattermost Configuration <https://docs.mattermost.com/install/prod-ubuntu.html#test-setup-and-configure-mattermost-server>`_
+
+Notes on Running Simulations
+-------------------------------------
+
+**1) Create a new account to evaluate performance, DO NOT use the default administrator account**
+
+The default administrator account was used to populate the database and is joined to every channel, which is not a realistic use case. If you use the default administrator account during a load test you will see an unrealistic slow down of your browser. 
+
+**2) Load Test simulates actual users**
+
+If you stop the load test, the load test users will appear disconnected from the Mattermost server, which will mark the users as "away" for 5 minutes after they are disconnected, before showing them as offline. 
+
+If you stop the load test server and start it again either wait 5-10 minutes between tests, or reset the Mattermost server to clear the "away" states of the users. 
+
 
 Tips and Useful Performance Testing Commands
 ===============================================
@@ -98,7 +111,6 @@ Start the server with:
 
 
 Look at different profiles with:
-
 
    go tool pprof platform http://localhost:8065/debug/pprof/profile
    go tool pprof platform http://localhost:8065/debug/pprof/heap
