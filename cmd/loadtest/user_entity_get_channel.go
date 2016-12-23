@@ -46,9 +46,9 @@ func (me *UserEntityGetChannel) Start() {
 
 	var getChannelCount int64 = 0
 
-	getChannelEtag := ""
-	getPostsEtag := ""
-	getChannelStatsEtag := ""
+	getChannelEtagMap := make(map[string]string)
+	getPostsEtagMap := make(map[string]string)
+	getChannelStatsEtagMap := make(map[string]string)
 
 	me.SendStatusActive("Getting channels")
 	for {
@@ -59,11 +59,16 @@ func (me *UserEntityGetChannel) Start() {
 		case <-getTicker.C:
 			channel := me.GetChannelBasedOnActionCount(getChannelCount)
 			me.Client.SetTeamId(channel.TeamId)
+
+			getChannelEtag, _ := getChannelEtagMap[channel.Id]
+			getPostsEtag, _ := getPostsEtagMap[channel.Id]
+			getChannelStatsEtag, _ := getChannelStatsEtagMap[channel.Id]
+
 			if result, err := me.Client.GetChannel(channel.Id, getChannelEtag); err != nil {
 				me.SendStatusError(err, "Failed to get channel: "+channel.Id)
 			} else {
 				if me.Config.UseEtags && result.Etag != "" {
-					getChannelEtag = result.Etag
+					getChannelEtagMap[channel.Id] = result.Etag
 				}
 				me.SendStatusActionSend("Got channel. Etag: " + getChannelEtag)
 			}
@@ -72,7 +77,7 @@ func (me *UserEntityGetChannel) Start() {
 				me.SendStatusError(err, "Failed to get posts: "+channel.Id)
 			} else {
 				if me.Config.UseEtags && result.Etag != "" {
-					getPostsEtag = result.Etag
+					getPostsEtagMap[channel.Id] = result.Etag
 				}
 				me.SendStatusActionSend("Got Posts. Etag: " + getPostsEtag)
 			}
@@ -81,7 +86,7 @@ func (me *UserEntityGetChannel) Start() {
 				me.SendStatusError(err, "Failed to get channel stats: "+channel.Id)
 			} else {
 				if me.Config.UseEtags {
-					getChannelStatsEtag = result.Etag
+					getChannelStatsEtagMap[channel.Id] = result.Etag
 				}
 				me.SendStatusActionSend("Got channel stats. Etag: " + getChannelStatsEtag)
 			}
