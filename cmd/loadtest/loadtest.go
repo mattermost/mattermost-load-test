@@ -4,21 +4,12 @@
 package main
 
 import (
-	"github.com/mattermost/mattermost-load-test/cmd/loadtest/oldloadtest"
 	"github.com/mattermost/mattermost-load-test/loadtestconfig"
 	"github.com/spf13/cobra"
 )
 
 func main() {
 	loadtestconfig.SetupConfig()
-
-	cmdListenTest := &cobra.Command{
-		Use:   "old",
-		Short: "Run the old loadtests",
-		Run: func(cmd *cobra.Command, args []string) {
-			oldloadtest.RunOldLoadTests()
-		},
-	}
 
 	cmdActiveUsers := &cobra.Command{
 		Use:   "listenandpost",
@@ -33,6 +24,6 @@ func main() {
 	}
 
 	var rootCmd = &cobra.Command{Use: "mloadtest"}
-	rootCmd.AddCommand(cmdListenTest, cmdActiveUsers, cmdGetChannel)
+	rootCmd.AddCommand(cmdActiveUsers, cmdGetChannel)
 	rootCmd.Execute()
 }
