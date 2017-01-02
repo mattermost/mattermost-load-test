@@ -200,3 +200,9 @@ You can also use the System Administrator account set up in the Load Tests to in
 ## Configuration Documentation
 
 Please see [Load Test Configuration](loadtestconfig.md) documentation. 
+
+## Compliling for non master branch Mattermost
+
+1. Edit the `glide.yaml` file under `github.com/mattermost/platform` change `version: master` to the branch you want to build against. For a release the branch is called `release-x-x`, eg `release-3.5`
+2. run `make clean`
+3. run `make package`

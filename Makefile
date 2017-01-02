@@ -38,4 +38,5 @@ clean:
 	rm -f ./cmd/mcreate/mcreate
 	rm -f ./cmd/loadtest/loadtest
 	rm -r .installdeps
+	rm -rf vendor
 	rm -rf $(DIST_ROOT)
