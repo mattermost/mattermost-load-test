@@ -1,0 +1,8 @@
+{
+	"Connection": {
+		"ServerURL": "http://localhost:8065",
+		"WebsocketURL": "ws://localhost:8065",
+		"AdminEmail": "test@test.com",
+		"AdminPassword": "passwd"
+	}
+}
