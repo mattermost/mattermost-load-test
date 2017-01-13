@@ -17,6 +17,7 @@ all: install
 
 install: .installdeps
 	$(GO) install ./cmd/mcreate
+	$(GO) install ./cmd/msetup
 	$(GO) install ./cmd/mmanage
 	$(GO) install ./cmd/loadtest
 
@@ -24,7 +25,7 @@ package: install
 	rm -rf $(DIST_ROOT)
 	mkdir -p $(DIST_PATH)/bin
 
-	cp $(GOPATH)/bin/mcreate $(DIST_PATH)/bin
+	cp $(GOPATH)/bin/msetup $(DIST_PATH)/bin
 	cp $(GOPATH)/bin/mmanage $(DIST_PATH)/bin
 	cp $(GOPATH)/bin/loadtest $(DIST_PATH)/bin
 	cp loadtestconfig.json $(DIST_PATH)
@@ -32,10 +33,14 @@ package: install
 	
 	tar -C $(DIST_ROOT) -czf $(DIST_PATH).tar.gz $(DIST_FOLDER_NAME)
 
+new-setup: install
+	msetup
+
 clean:
 	rm -f errors.log cache.db stats.log status.log
 	rm -f ./cmd/mmange/mmange
 	rm -f ./cmd/mcreate/mcreate
+	rm -f ./cmd/mcreate/msetup
 	rm -f ./cmd/loadtest/loadtest
 	rm -r .installdeps
 	rm -rf vendor
