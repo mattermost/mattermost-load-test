@@ -29,20 +29,12 @@ package: install
 	cp $(GOPATH)/bin/mmanage $(DIST_PATH)/bin
 	cp $(GOPATH)/bin/loadtest $(DIST_PATH)/bin
 	cp loadtestconfig.json $(DIST_PATH)
-	cp setup.sh $(DIST_PATH)/bin
-	cp run.sh $(DIST_PATH)/bin
 	cp README.md $(DIST_PATH)
 	
 	tar -C $(DIST_ROOT) -czf $(DIST_PATH).tar.gz $(DIST_FOLDER_NAME)
 
 new-setup: install
 	msetup
-
-setup:
-	./setup.sh
-
-run:
-	./run.sh
 
 clean:
 	rm -f errors.log cache.db stats.log status.log
@@ -51,4 +43,5 @@ clean:
 	rm -f ./cmd/mcreate/msetup
 	rm -f ./cmd/loadtest/loadtest
 	rm -r .installdeps
+	rm -rf vendor
 	rm -rf $(DIST_ROOT)
