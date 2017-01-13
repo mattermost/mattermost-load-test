@@ -26,6 +26,7 @@ package: install
 	mkdir -p $(DIST_PATH)/bin
 
 	cp $(GOPATH)/bin/msetup $(DIST_PATH)/bin
+	cp $(GOPATH)/bin/mcreate $(DIST_PATH)/bin
 	cp $(GOPATH)/bin/mmanage $(DIST_PATH)/bin
 	cp $(GOPATH)/bin/loadtest $(DIST_PATH)/bin
 	cp loadtestconfig.json $(DIST_PATH)
