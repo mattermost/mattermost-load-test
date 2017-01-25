@@ -19,6 +19,7 @@ _test
 # Log files
 *mattermost.log
 *npm-debug.log*
+loadtest.log
 
 .tmp
 debug
@@ -56,6 +57,7 @@ stats.log
 .installdeps
 state.json
 status.log
+results.txt
 
 #historic
 dummies

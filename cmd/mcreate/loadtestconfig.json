@@ -1,8 +1,0 @@
-{
-    "TeamsConfiguration": {
-        "NumTeams": 5
-    },
-    "ConnectionConfiguration": {
-        "ServerURL": "http://localhost:8065"
-    }
-}

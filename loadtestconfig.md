@@ -1,48 +1,87 @@
-# Load Test Config
+# Load Test Configuration
 
-## ConnectionConfiguration
+## Connection Configuration
 
-| Config Setting | Description |
-|----|---|
-| Server URL | The URL used to connect Mattermost server or proxy. Ex. `http://localhost:8065` |
-| WebsocketURL | The URL used to connect Mattermost websocket. Ex. `ws://localhost:8065` |
-| AdminEmail | The email address of the admin user you wish to use to create users/teams/channels. Note that this user will be a member of all the teams/channels created.  |
-| Admin Password | The password for the admin user given in AdminEmail.  |
-| RetryWebsockets | Whether or not tests that use websockets should try to reconnect on failure. |
-| MaxRetryWebsocket | If RetryWebsockets is enabled, how many times to try reconnecting before giving up. |
+### ServerURL
 
-## UserEntitiesConfiguration
+The URL to direct the load. Should be the public facing URL of the Mattermost instance. 
 
-| Config Setting | Description |
-|----|---|
-| FirstEntityNumber | The first entity number to start at. This will determine the first user that is used. Leave this at 0 unless you are testing across multiple loadtest machines. |
-| LastEntityNumber | The last entity number to use. LastEntityNumber - FirstEntityNumber determines the total number of entities that will be used in the load test. |
-| EntityRampupDistanceMilliseconds | This determines the wait time between starting individual user entities. For example, if you wanted all of your 20000 entities to start over 4 minutes. You would set this to 12 because 240000ms / 20000 entities = 12ms.
+### WebsocketURL
 
-If your tying to test across multiple machines, you need to use `FirstEntityNumber` and `LastEntityNumber` to spread the load across machines.
-For example, if you where testing 40000 users across 2 machines. The first machine would have FirstEntityNumber = 0 and LastEntityNumber = 20000. On the second machine you would set FirstEntityNumber = 20000 and LastEntityNumber = 40000.
+In most cases this will be the same URL as above with `http` replaced with `ws` or `https` replaced with `wss`.
 
-## UserEntityPosterConfiguration
+### LocalCommands
 
-| Config Setting | Description |
-|----|---|
-| Posting Frequency Seconds | User entities will post at this frequency. The start of this time is when the entity was started. Therefore posts will be spread out according to `EntityRampupDistanceMilliseconds`. Ex. If set to 60, each entity will post every minute. |
+Runs Mattermost CLI commands locally instead of over SSH. Set to true if you are running the load tests on the same machine as one of the app servers. 
 
-## TeamCreationConfiguration
+### SSHHostnamePort
 
-| Config Setting | Description |
-|----|---|
-| Num | The number of teams to create. |
+The hostname and port of any one of the app servers you are testing. Mattermost CLI commands will be run here.
 
-## ChannelCreationConfiguration
+### SSHHUsername
 
-| Config Setting | Description |
-|----|---|
-| NumPerTeam | The number of channels to create per team. |
+Username to connect over SSH with.
 
-## UserCreationConfiguration
+### SSHPassword
 
-| Config Setting | Description |
-|----|---|
-| Num | Number of users to create |
-| NumChannelsToJoin | The number of channels each user should join. For now, the only distribution is a bunched flat distribution where each users joins the first NumChannelsToJoin channels that are not full in sequential order. |
+Password to connect with or "" if using a key.
+
+### SSHKey
+
+File path of the SSH key to connect with.
+
+### MattermostInstallDir
+
+The location of the mattermost installation directory on the machine we are going to run CLI commands on. (Determined by the LocalCommands setting)
+
+### AdminEmail
+
+The email address of an admin account on the server. Will be created if it does not already exist.
+
+### AdminPassword
+
+The password for the admin account given above.
+
+### SkipBulkload
+
+If your running the test multiple times and know you have already loaded all the users into the database, this can be set to true to save time verifying this.
+
+## Loadtest Environment Config
+
+These settings control the creation of users and teams. 
+
+- Percent*Volume(Teams/Channels) determines what percentage of teams/channels are considered high/med/low volume.
+- PercentUsers*Volume(Teams/Channels) determines what percentage of users are in a team/channel considered high/med/low volume.
+- SelectionWeight settings determine how likely that class of team/channel is to be selected when picking a team/channel at random. (So a higher weight means more posts will go to it)
+
+## User Entities Configuration
+
+### TestLengthMinutes
+
+How long the test should run for.
+
+### NumActiveEntities
+
+How many entities should be run. This should be set to your number of expected active users.
+
+### ActionRateMilliseconds
+
+How often each entity should take an action. For example, for an entity that only posts this would be the time between posts.
+
+### ActionRateMaxVarianceMilliseconds
+
+This is the maximum variance in action rate for each wait period. So if the action rate was 2000ms and the max variance was 500ms. The min and max action rate would be 1500ms and 2500ms.
+
+### EnableRequestTiming
+
+Set this to true
+
+## Display Configuration
+
+### ShowUI
+
+Show the fancy UI with graphs.
+
+### LogToConsole
+
+If not showing the fancy UI, enable to disable output to the console. 

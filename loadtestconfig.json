@@ -1,34 +1,51 @@
 {
-    "HELP!!!": "Confused about this configuration? See loadtestconfig.md",
     "ConnectionConfiguration": {
         "ServerURL": "http://localhost:8065",
         "WebsocketURL": "ws://localhost:8065",
-        "AdminEmail": "test@test.com",
-        "AdminPassword": "passwd",
-        "RetryWebsockets": false,
-        "MaxRetryWebsocket": 5,
-        "EnableRequestTiming": true
+        "LocalCommands": true,
+        "SSHHostnamePort": "",
+        "SSHUsername": "",
+        "SSHPassword": "",
+        "SSHKey": "",
+        "MattermostInstallDir": "/home/ubuntu/mattermost",
+        "AdminEmail": "success+ltadmin@simulator.amazonses.com",
+        "AdminPassword": "ltpassword",
+        "SkipBulkload": false
+    },
+    "LoadtestEnviromentConfig": {
+        "NumTeams": 1,
+        "NumChannelsPerTeam": 4000,
+        "NumUsers": 20000,
+        "PercentHighVolumeTeams": 0.2,
+        "PercentMidVolumeTeams": 0.5,
+        "PercentLowVolumeTeams": 0.3,
+        "PercentUsersHighVolumeTeams": 0.9,
+        "PercentUsersMidVolumeTeams": 0.5,
+        "PercentUsersLowVolumeTeams": 0.1,
+        "PercentHighVolumeChannels": 0.2,
+        "PercentMidVolumeChannels": 0.5,
+        "PercentLowVolumeChannels": 0.3,
+        "PercentUsersHighVolumeChannel": 0.1,
+        "PercentUsersMidVolumeChannel": 0.003,
+        "PercentUsersLowVolumeChannel": 0.0002,
+        "HighVolumeTeamSelectionWeight": 3,
+        "MidVolumeTeamSelectionWeight": 2,
+        "LowVolumeTeamSelectionWeight": 1,
+        "HighVolumeChannelSelectionWeight": 1,
+        "MidVolumeChannelSelectionWeight": 3,
+        "LowVolumeChannelSelectionWeight": 1
     },
     "UserEntitiesConfiguration": {
-        "FirstEntityNumber": 0,
-        "LastEntityNumber": 5000,
-        "EntityRampupDistanceMilliseconds": 12
+        "TestLengthMinutes": 20,
+        "NumActiveEntities": 20000,
+        "ActionRateMilliseconds": 240000,
+        "ActionRateMaxVarianceMilliseconds": 60000,
+        "EnableRequestTiming": true,
+        "UploadImageChance": 0.01,
+        "DoStatusPolling": true
     },
-    "UserEntityGetChannelConfiguration": {
-        "GetFrequencySeconds": 40,
-        "UseEtags": false
-    },
-    "UserEntityPosterConfiguration": {
-        "PostingFrequencySeconds": 60
-    },
-    "TeamCreationConfiguration": {
-        "Num": 1
-    },
-    "ChannelCreationConfiguration": {
-        "NumPerTeam": 1
-    },
-    "UserCreationConfiguration": {
-        "Num": 20000,
-        "NumChannelsToJoin": 10
+    "DisplayConfiguration": {
+        "ShowUI": true,
+        "LogToConsole": true
     }
 }
