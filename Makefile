@@ -37,6 +37,9 @@ package: install
 new-setup: install
 	msetup
 
+test:
+	$(GO) test -v ./autocreation
+
 clean:
 	rm -f errors.log cache.db stats.log status.log
 	rm -f ./cmd/mmange/mmange
