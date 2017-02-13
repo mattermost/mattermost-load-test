@@ -117,5 +117,15 @@ Look at different profiles with:
    go tool pprof platform http://localhost:8065/debug/pprof/block
    go tool pprof platform http://localhost:8065/debug/pprof/goroutine
 
+Check the process list in the MySQL Database
+--------------------------------------------------
 
+   SHOW FULL PROCESSLIST
+
+
+
+Check the sql engine status in the MySQL Database
+--------------------------------------------------
+
+   SHOW ENGINE INNODB STATUS
 
