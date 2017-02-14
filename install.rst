@@ -102,6 +102,12 @@ Considering using the following:
 
    TRUNCATE mysql.slow_log; 
 
+
+To process the logs use mysqldumpslow
+
+ mysqldumpslow -s c -t 50 mysql-slowquery.log > top50.log
+
+
 Generate Profiling Data
 --------------------------------------------------
 
