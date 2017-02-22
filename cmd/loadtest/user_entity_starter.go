@@ -97,7 +97,7 @@ func StartUserEntities(config *loadtestconfig.LoadTestConfig, serverState *loadt
 		websocketURL := config.ConnectionConfiguration.WebsocketURL
 		userWebsocketClient := &model.WebSocketClient{
 			websocketURL,
-			websocketURL + model.API_URL_SUFFIX,
+			websocketURL + model.API_URL_SUFFIX_V3,
 			nil,
 			userClient.AuthToken,
 			1,
