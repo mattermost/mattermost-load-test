@@ -104,12 +104,12 @@ Considering using the following:
 
 
 To process the logs use mysqldumpslow::
- mysqldumpslow -s c -t 100 mysql-slowquery.log > top100-c.log
- mysqldumpslow -s r -t 100 mysql-slowquery.log > top100-r.log
- mysqldumpslow -s ar -t 100 mysql-slowquery.log > top100-ar.log
- mysqldumpslow -s t -t 100 mysql-slowquery.log > top100-t.log
- mysqldumpslow -s at -t 100 mysql-slowquery.log > top100-at.log
- grep "FROM Status" mysql-slowquery.log | wc -l
+ - mysqldumpslow -s c -t 100 mysql-slowquery.log > top100-c.log
+ - mysqldumpslow -s r -t 100 mysql-slowquery.log > top100-r.log
+ - mysqldumpslow -s ar -t 100 mysql-slowquery.log > top100-ar.log
+ - mysqldumpslow -s t -t 100 mysql-slowquery.log > top100-t.log
+ - mysqldumpslow -s at -t 100 mysql-slowquery.log > top100-at.log
+ - grep "FROM Status" mysql-slowquery.log | wc -l
 
 Generate Profiling Data
 --------------------------------------------------
@@ -121,10 +121,10 @@ Start the server with:
 
 Look at different profiles with:
 
-   go tool pprof platform http://localhost:8065/debug/pprof/profile
-   go tool pprof platform http://localhost:8065/debug/pprof/heap
-   go tool pprof platform http://localhost:8065/debug/pprof/block
-   go tool pprof platform http://localhost:8065/debug/pprof/goroutine
+   - go tool pprof platform http://localhost:8065/debug/pprof/profile
+   - go tool pprof platform http://localhost:8065/debug/pprof/heap
+   - go tool pprof platform http://localhost:8065/debug/pprof/block
+   - go tool pprof platform http://localhost:8065/debug/pprof/goroutine
 
 Check the process list in the MySQL Database
 --------------------------------------------------
