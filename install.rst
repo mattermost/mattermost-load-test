@@ -105,8 +105,12 @@ Considering using the following:
 
 To process the logs use mysqldumpslow
 
- mysqldumpslow -s c -t 50 mysql-slowquery.log > top50.log
-
+ mysqldumpslow -s c -t 100 mysql-slowquery.log > top100-c.log
+ mysqldumpslow -s r -t 100 mysql-slowquery.log > top100-r.log
+ mysqldumpslow -s ar -t 100 mysql-slowquery.log > top100-ar.log
+ mysqldumpslow -s t -t 100 mysql-slowquery.log > top100-t.log
+ mysqldumpslow -s at -t 100 mysql-slowquery.log > top100-at.log
+grep "FROM Status" mysql-slowquery.log | wc -l
 
 Generate Profiling Data
 --------------------------------------------------
