@@ -61,15 +61,16 @@ func (me *UserEntityWebsocketListener) Start() {
 							continue
 						}
 						me.WebSocketClient.Listen()
-						websocketRetryCount++
-						continue
+						break
 					}
 				} else {
 					me.SendStatusFailedActive(nil, "Websocket disconneced. No Retry.")
 					return
 				}
 			}
-			me.SendStatusActionRecieve("Recieved websocket event: " + event.Event)
+			if event != nil {
+				me.SendStatusActionRecieve("Recieved websocket event: " + event.Event)
+			}
 		}
 	}
 }
