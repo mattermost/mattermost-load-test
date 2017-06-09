@@ -86,6 +86,10 @@ func doStatusPolling(ec *EntityConfig) {
 func websocketListen(ec *EntityConfig) {
 	defer ec.StopWaitGroup.Done()
 
+	if ec.WebSocketClient == nil {
+		return
+	}
+
 	ec.WebSocketClient.Listen()
 
 	websocketRetryCount := 0
@@ -108,8 +112,6 @@ func websocketListen(ec *EntityConfig) {
 						return
 					}
 					time.Sleep(time.Duration(websocketRetryCount) * time.Second)
-					ec.WebSocketClient.EventChannel = make(chan *model.WebSocketEvent, 100)
-					ec.WebSocketClient.ResponseChannel = make(chan *model.WebSocketResponse, 100)
 					if err := ec.WebSocketClient.Connect(); err != nil {
 						websocketRetryCount++
 						continue
