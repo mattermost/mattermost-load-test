@@ -38,6 +38,7 @@
     "UserEntitiesConfiguration": {
         "TestLengthMinutes": 20,
         "NumActiveEntities": 20000,
+        "EntityStartNum": 0,
         "ActionRateMilliseconds": 240000,
         "ActionRateMaxVarianceMilliseconds": 60000,
         "EnableRequestTiming": true,

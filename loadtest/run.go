@@ -77,10 +77,19 @@ func RunTest(test *TestRun) error {
 
 	numEntities := len(tokens)
 	entityNum := 0
+	entitiesToSkip := cfg.UserEntitiesConfiguration.EntityStartNum
 	for _, usertype := range test.UserEntities {
 		numEntitesToCreateForType := int(math.Floor((float64(usertype.Freq) / 100.0) * float64(numEntities)))
+		startEntity := 0
+		if numEntitesToCreateForType <= entitiesToSkip {
+			entitiesToSkip -= numEntitesToCreateForType
+			continue
+		} else {
+			startEntity = entitiesToSkip
+			entitiesToSkip = 0
+		}
 		cmdlog.Info("Starting " + strconv.Itoa(numEntitesToCreateForType) + " entities")
-		for i := 0; i < numEntitesToCreateForType; i++ {
+		for i := startEntity; i < numEntitesToCreateForType; i++ {
 			cmdlog.Infof("Starting entity %v", entityNum)
 			// Get the user auth token for this entity.
 			entityToken := tokens[entityNum]

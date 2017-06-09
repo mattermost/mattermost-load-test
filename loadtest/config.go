@@ -21,6 +21,7 @@ type LoadTestConfig struct {
 type UserEntitiesConfiguration struct {
 	TestLengthMinutes                 int
 	NumActiveEntities                 int
+	EntityStartNum                    int
 	ActionRateMilliseconds            int
 	ActionRateMaxVarianceMilliseconds int
 	EnableRequestTiming               bool
