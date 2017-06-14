@@ -66,6 +66,8 @@ EnableAdminOnlyIntegrations: false
 
 ## Compliling for non master branch Mattermost
 
+Note that the loadtests only support master and possibly 1 version back (although you may need to use a branch)
+
 1. Edit the `glide.yaml` file under `github.com/mattermost/platform` change `version: master` to the branch you want to build against. For a release the branch is called `release-x-x`, eg `release-3.9`
 2. run `make clean`
 3. run `make package`

@@ -44,8 +44,11 @@ func loginAsUsers(cfg *LoadTestConfig) []string {
 func getAdminClient(serverURL string, adminEmail string, adminPass string, cmdrun ServerCommandRunner) *model.Client4 {
 	client := model.NewAPIv4Client(serverURL)
 
-	if success, resp := client.GetPing(); !success {
+	if success, resp := client.GetPing(); resp.Error != nil || success != "OK" {
 		cmdlog.Errorf("Failed to ping server at %v", serverURL)
+		if success != "" {
+			cmdlog.Errorf("Got %v from ping", success)
+		}
 		cmdlog.Error("Did you follow the setup guide and modify loadtestconfig.json?")
 		cmdlog.AppError(resp.Error)
 		return nil
