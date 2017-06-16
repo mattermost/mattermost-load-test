@@ -8,6 +8,7 @@
         "SSHPassword": "",
         "SSHKey": "",
         "MattermostInstallDir": "/home/ubuntu/mattermost",
+        "ConfigFileLoc": "",
         "AdminEmail": "success+ltadmin@simulator.amazonses.com",
         "AdminPassword": "ltpassword",
         "SkipBulkload": false

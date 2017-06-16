@@ -34,6 +34,10 @@ File path of the SSH key to connect with.
 
 The location of the mattermost installation directory on the machine we are going to run CLI commands on. (Determined by the LocalCommands setting)
 
+### ConfigFileLoc
+
+The location of the mattermost configuration file. If not empty will be passed to the mattermost binary as the --config parameter.
+
 ### AdminEmail
 
 The email address of an admin account on the server. Will be created if it does not already exist.

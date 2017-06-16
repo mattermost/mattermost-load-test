@@ -18,9 +18,10 @@ import (
 type MattermostSSHConnection struct {
 	Client               *ssh.Client
 	mattermostInstallDir string
+	configFileLoc        string
 }
 
-func ConnectSSH(sshHostnamePort, sshKey, sshUsername, sshPassword, mattermostInstallDir string) (*MattermostSSHConnection, error) {
+func ConnectSSH(sshHostnamePort, sshKey, sshUsername, sshPassword, mattermostInstallDir string, configFileLoc string) (*MattermostSSHConnection, error) {
 	var config *ssh.ClientConfig
 	if sshKey != "" {
 		key, err := ioutil.ReadFile(sshKey)
@@ -58,6 +59,7 @@ func ConnectSSH(sshHostnamePort, sshKey, sshUsername, sshPassword, mattermostIns
 	return &MattermostSSHConnection{
 		Client:               client,
 		mattermostInstallDir: mattermostInstallDir,
+		configFileLoc:        configFileLoc,
 	}, nil
 }
 
@@ -80,7 +82,11 @@ func (c *MattermostSSHConnection) RunCommand(command string) (bool, string) {
 }
 
 func (c *MattermostSSHConnection) RunPlatformCommand(args string) (bool, string) {
-	return c.RunCommand("cd " + c.mattermostInstallDir + " && ./bin/platform " + args)
+	if c.configFileLoc != "" {
+		return c.RunCommand("cd " + c.mattermostInstallDir + " && ./bin/platform " + args + " --config " + c.configFileLoc)
+	} else {
+		return c.RunCommand("cd " + c.mattermostInstallDir + " && ./bin/platform " + args)
+	}
 }
 
 func (c *MattermostSSHConnection) SendLoadtestFile(buf *bytes.Buffer) error {

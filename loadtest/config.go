@@ -38,6 +38,7 @@ type ConnectionConfiguration struct {
 	SSHPassword          string
 	SSHKey               string
 	MattermostInstallDir string
+	ConfigFileLoc        string
 	AdminEmail           string
 	AdminPassword        string
 	SkipBulkload         bool
