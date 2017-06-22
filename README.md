@@ -42,7 +42,7 @@ Install the `loadtest` command on the Load Test server. You can use `make packag
 
 Edit the configuration file on the load test machine. Make sure the fields under "ConnectionConfiguration" are set correctly.
 
-You can find explanations of the configuration fields in the [Configruation File Documentation](loadtestconfg.md)
+You can find explanations of the configuration fields in the [Configruation File Documentation](loadtestconfig.md)
 
 ### 4) Run the tests
 
