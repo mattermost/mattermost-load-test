@@ -42,7 +42,7 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 		return nil, err
 	}
 
-	cmdlog.Info("Gernating bulkload file.")
+	cmdlog.Info("Generating bulkload file.")
 	bulkloadResult := autocreation.GenerateBulkloadFile(&cfg.LoadtestEnviromentConfig)
 	cmdlog.Info("Sending loadtest file.")
 	if err := cmdrun.SendLoadtestFile(&bulkloadResult.File); err != nil {
