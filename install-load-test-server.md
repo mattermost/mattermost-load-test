@@ -1,10 +1,12 @@
-# Installing the loadtest program
+# Installing the `loadtest` program
+
+Before downloading the source and building the `loadtest` program, you must install a few prerequisites. If your machine is already set up for building Mattermost Server, you can skip to Step 5 where you install Glide.
 
 1. Install the build-essential package.
 
     `sudo apt-get install build-essential`
 
-1. If you're installing loadtest on Linux: Download and install Go 1.8 for Linux:
+1. If you're installing `loadtest` on Linux: Download and install Go 1.8 for Linux.
 
     a. Download the Go binary.
 
@@ -18,15 +20,15 @@
 
       `sudo chown -R {user}.{group} /usr/local/go`
 
-1. If you're installing loadtest on Mac: Download and install Go:
+1. If you're installing `loadtest` on Mac: Download and install Go.
 
     `brew install go`
 
-1. Set up your Go workspace:
+1. Set up your Go workspace.
 
     a. `mkdir -p ~/go/bin`
 
-    b. Add the following lines to your ~/.bashrc file:
+    b. Add the following lines to your `~/.bashrc` file:
 
       ```bash
       export GOPATH=$HOME/go
@@ -35,15 +37,15 @@
       ulimit -n 8096
       ```
 
-      Reload your bash configuration.
+    c. Reload your bash configuration.
 
       `source ~/.bashrc`
 
-1. Install Glide
+1. Install Glide.
 
     `curl https://glide.sh/get | sh`
 
-1. Download the Mattermost loadtest code:
+1. Download the Mattermost `loadtest` code.
 
     a. Create the directory for the code.
 
@@ -53,11 +55,11 @@
 
       `cd ~/go/src/github.com/mattermost`
 
-    c. Clone the loadtest repository.
+    c. Clone the `loadtest` repository.
 
       `git clone https://github.com/mattermost/mattermost-load-test.git`
 
-1. Build the loadtest binary
+1. Build the `loadtest` binary.
 
     ```console
     cd ~/go/src/github.com/mattermost/mattermost-load-test
