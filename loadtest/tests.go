@@ -151,62 +151,12 @@ func actionPost(c *EntityConfig) {
 	}
 }
 
-func actionPost3(c *EntityConfig) {
-	team, channel := c.UserData.PickTeamChannel()
-	if team == nil || channel == nil {
-		return
-	}
-	channelId := c.ChannelMap[team.Name+channel.Name]
-	teamId := c.TeamMap[team.Name]
-
-	if channelId == "" {
-		cmdlog.Error("Unable to get channel from map")
-		return
-	}
-	if teamId == "" {
-		cmdlog.Error("Unable to get team from map")
-		return
-	}
-
-	post := &model.Post{
-		ChannelId: channelId,
-		Message:   fake.Sentences(),
-	}
-
-	c.Client3.SetTeamId(teamId)
-	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.UploadImageChance {
-		numFiles := rand.Intn(3) + 1
-		fileIds := make([]string, numFiles, numFiles)
-		for i := 0; i < numFiles; i++ {
-			if data, err, filename := readRandomTestFile(); err != nil {
-				cmdlog.Errorf("Problem reading test file. Error %v", err.Error())
-			} else {
-				if file, err := c.Client3.UploadPostAttachment(data, channelId, filename); err != nil {
-					cmdlog.Error("Unable to upload file. Error: " + err.Error())
-					return
-				} else {
-					fileIds[i] = file.FileInfos[0].Id
-				}
-			}
-		}
-		post.FileIds = fileIds
-	}
-
-	_, err := c.Client3.CreatePost(post)
-	if err != nil {
-		cmdlog.Infof("Failed to post to team %v on channel %v as user %v with token %v. Error: %v", team.Name, channel.Name, c.UserData.Username, c.Client3.AuthToken, err.Error())
-	}
-}
-
 func actionGetChannel(c *EntityConfig) {
 	team, channel := c.UserData.PickTeamChannel()
 	if team == nil || channel == nil {
 		return
 	}
 	channelId := c.ChannelMap[team.Name+channel.Name]
-	teamId := c.TeamMap[team.Name]
-
-	c.Client3.SetTeamId(teamId)
 
 	if _, resp := c.Client.ViewChannel("me", &model.ChannelView{
 		ChannelId:     channelId,
@@ -232,18 +182,18 @@ func actionGetChannel(c *EntityConfig) {
 	} else {
 		for _, post := range posts.Posts {
 			if post.HasReactions {
-				if _, err := c.Client3.ListReactions(channelId, post.Id); resp.Error != nil {
-					cmdlog.Errorf("Unable to get reactions for post. Channel: %v, User: %v, Post: %v, Error: %v", channelId, c.UserData.Username, post.Id, err.Error())
+				if _, resp := c.Client.GetReactions(post.Id); resp.Error != nil {
+					cmdlog.Errorf("Unable to get reactions for post. Channel: %v, User: %v, Post: %v, Error: %v", channelId, c.UserData.Username, post.Id, resp.Error.Error())
 				}
 			}
 			if len(post.FileIds) > 0 {
-				if files, err := c.Client3.GetFileInfosForPost(channelId, post.Id, ""); resp.Error != nil {
-					cmdlog.Errorf("Unable to get file infos for post. Channel: %v, User: %v, Post: %v, Error: %v", channelId, c.UserData.Username, post.Id, err.Error())
+				if files, resp := c.Client.GetFileInfosForPost(post.Id, ""); resp.Error != nil {
+					cmdlog.Errorf("Unable to get file infos for post. Channel: %v, User: %v, Post: %v, Error: %v", channelId, c.UserData.Username, post.Id, resp.Error.Error())
 				} else {
 					for _, file := range files {
 						if file.IsImage() {
-							if _, err := c.Client3.GetFileThumbnail(file.Id); err != nil {
-								cmdlog.Errorf("Unable to get file thumbnail for file. Channel: %v, User: %v, Post: %v, File: %v, Error: %v", channelId, c.UserData.Username, post.Id, file.Id, err.Error())
+							if _, resp := c.Client.GetFileThumbnail(file.Id); resp.Error != nil {
+								cmdlog.Errorf("Unable to get file thumbnail for file. Channel: %v, User: %v, Post: %v, File: %v, Error: %v", channelId, c.UserData.Username, post.Id, file.Id, resp.Error.Error())
 							}
 						}
 					}
@@ -320,11 +270,7 @@ var posterEntity UserEntity = UserEntity{
 	Actions: []randutil.Choice{
 		{
 			Item:   actionPost,
-			Weight: 50,
-		},
-		{
-			Item:   actionPost3,
-			Weight: 50,
+			Weight: 1,
 		},
 	},
 }

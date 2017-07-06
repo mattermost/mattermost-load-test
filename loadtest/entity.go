@@ -23,7 +23,6 @@ type EntityConfig struct {
 	ChannelMap          map[string]string
 	TeamMap             map[string]string
 	Client              *model.Client4
-	Client3             *model.Client
 	WebSocketClient     *model.WebSocketClient
 	ActionRate          time.Duration
 	LoadTestConfig      *LoadTestConfig

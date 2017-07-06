@@ -96,12 +96,8 @@ func RunTest(test *TestRun) error {
 
 			// Create some clients
 			userClient := newClientFromToken(entityToken, cfg.ConnectionConfiguration.ServerURL)
-			userClient3 := newV3ClientFromToken(entityToken, cfg.ConnectionConfiguration.ServerURL)
 			if cfg.UserEntitiesConfiguration.EnableRequestTiming {
 				userClient.HttpClient.Transport = NewTimedRoundTripper(clientTimingChannel)
-			}
-			if cfg.UserEntitiesConfiguration.EnableRequestTiming {
-				userClient3.HttpClient.Transport = NewTimedRoundTripper(clientTimingChannel3)
 			}
 
 			// Websocket client
@@ -122,7 +118,6 @@ func RunTest(test *TestRun) error {
 				ChannelMap:          serverData.ChannelIdMap,
 				TeamMap:             serverData.TeamIdMap,
 				Client:              userClient,
-				Client3:             userClient3,
 				WebSocketClient:     userWebsocketClient,
 				ActionRate:          actionRate,
 				LoadTestConfig:      cfg,
