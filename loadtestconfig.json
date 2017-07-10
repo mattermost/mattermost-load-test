@@ -11,7 +11,8 @@
         "ConfigFileLoc": "",
         "AdminEmail": "success+ltadmin@simulator.amazonses.com",
         "AdminPassword": "ltpassword",
-        "SkipBulkload": false
+        "SkipBulkload": false,
+        "ResultsWebhook": ""
     },
     "LoadtestEnviromentConfig": {
         "NumTeams": 1,

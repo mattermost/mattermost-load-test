@@ -42,6 +42,7 @@ type ConnectionConfiguration struct {
 	AdminEmail           string
 	AdminPassword        string
 	SkipBulkload         bool
+	ResultsWebhook       string
 }
 
 type DisplayConfiguration struct {

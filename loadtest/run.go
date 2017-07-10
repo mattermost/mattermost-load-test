@@ -4,10 +4,13 @@
 package loadtest
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math"
 	"math/rand"
+	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -171,8 +174,31 @@ func RunTest(test *TestRun) error {
 	report := clientTimingStats.PrintReport()
 	cmdlog.Info(report)
 	ioutil.WriteFile("results.txt", []byte(report), 0644)
+	if cfg.ConnectionConfiguration.ResultsWebhook != "" {
+		sendResultsWebhook(report, cfg.ConnectionConfiguration.ResultsWebhook)
+	}
 
 	cmdlog.Info("DONE!")
 
 	return nil
+}
+
+func sendResultsWebhook(report string, hookURL string) {
+	webhookRequest := &model.IncomingWebhookRequest{
+		Text:     report,
+		Username: "loadtests",
+		Type:     "",
+	}
+	b, err := json.Marshal(webhookRequest)
+	if err != nil {
+		cmdlog.Error("Unable to marshal json for send results webhook request")
+		return
+	}
+
+	var buf bytes.Buffer
+	buf.WriteString(string(b))
+
+	if _, err := http.Post(hookURL, "application/json", &buf); err != nil {
+		cmdlog.Error("Failed to post send results webhook. Error: " + err.Error())
+	}
 }
