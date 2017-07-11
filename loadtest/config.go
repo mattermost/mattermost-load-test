@@ -43,6 +43,7 @@ type ConnectionConfiguration struct {
 	AdminPassword        string
 	SkipBulkload         bool
 	ResultsWebhook       string
+	WaitForServerStart   bool
 }
 
 type DisplayConfiguration struct {

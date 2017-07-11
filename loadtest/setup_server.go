@@ -6,6 +6,8 @@ package loadtest
 import (
 	"fmt"
 
+	"time"
+
 	"github.com/mattermost/mattermost-load-test/autocreation"
 	"github.com/mattermost/mattermost-load-test/cmdlog"
 	"github.com/mattermost/platform/model"
@@ -18,6 +20,14 @@ type ServerSetupData struct {
 }
 
 func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
+	if cfg.ConnectionConfiguration.WaitForServerStart {
+		waitClient := model.NewAPIv4Client(cfg.ConnectionConfiguration.ServerURL)
+		for success, resp := waitClient.GetPing(); resp.Error != nil || success != "OK"; success, resp = waitClient.GetPing() {
+			cmdlog.Info("Waiting for server to be up")
+			time.Sleep(5 * time.Second)
+		}
+	}
+
 	cmdlog.Info("Connecting to load server.")
 	var cmdrun ServerCommandRunner
 	var cmderr error

@@ -12,7 +12,8 @@
         "AdminEmail": "success+ltadmin@simulator.amazonses.com",
         "AdminPassword": "ltpassword",
         "SkipBulkload": false,
-        "ResultsWebhook": ""
+        "ResultsWebhook": "",
+        "WaitForServerStart": false
     },
     "LoadtestEnviromentConfig": {
         "NumTeams": 1,
@@ -48,7 +49,7 @@
         "DoStatusPolling": true
     },
     "DisplayConfiguration": {
-        "ShowUI": true,
+        "ShowUI": false,
         "LogToConsole": true
     }
 }
