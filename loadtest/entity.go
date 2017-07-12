@@ -35,7 +35,7 @@ type EntityConfig struct {
 func runEntity(ec *EntityConfig) {
 	defer func() {
 		if r := recover(); r != nil {
-			cmdlog.Errorf("%s: %s", r, debug.Stack())
+			cmdlog.Errorf("Recovered: %s: %s", r, debug.Stack())
 			ec.StopWaitGroup.Add(1)
 			go runEntity(ec)
 		}

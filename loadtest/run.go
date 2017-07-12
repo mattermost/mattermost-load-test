@@ -175,6 +175,7 @@ func RunTest(test *TestRun) error {
 	cmdlog.Info(report)
 	ioutil.WriteFile("results.txt", []byte(report), 0644)
 	if cfg.ConnectionConfiguration.ResultsWebhook != "" {
+		cmdlog.Info("Sending results to webhook.")
 		sendResultsWebhook(report, cfg.ConnectionConfiguration.ResultsWebhook)
 	}
 
