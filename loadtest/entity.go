@@ -41,9 +41,13 @@ func runEntity(ec *EntityConfig) {
 		}
 	}()
 	defer ec.StopWaitGroup.Done()
-	time.Sleep(time.Millisecond * time.Duration(ec.EntityNumber*(ec.LoadTestConfig.UserEntitiesConfiguration.ActionRateMilliseconds*ec.LoadTestConfig.UserEntitiesConfiguration.NumActiveEntities)))
-	timer := time.NewTimer(0)
 
+	actionRateMaxVarianceMilliseconds := ec.LoadTestConfig.UserEntitiesConfiguration.ActionRateMaxVarianceMilliseconds
+
+	// Space out the entites at the start.
+	cmdlog.Infof("Entity %v started", ec.EntityNumber)
+
+	timer := time.NewTimer(0)
 	for {
 		select {
 		case <-ec.StopChannel:
@@ -55,8 +59,9 @@ func runEntity(ec *EntityConfig) {
 				return
 			}
 			action.Item.(func(*EntityConfig))(ec)
-			time.Sleep(time.Millisecond * time.Duration(rand.Intn(ec.LoadTestConfig.UserEntitiesConfiguration.ActionRateMaxVarianceMilliseconds)))
-			timer.Reset(ec.ActionRate)
+			halfVarianceDuration := time.Duration(actionRateMaxVarianceMilliseconds / 2.0)
+			randomDurationWithinVariance := time.Duration(rand.Intn(actionRateMaxVarianceMilliseconds))
+			timer.Reset(ec.ActionRate + randomDurationWithinVariance - halfVarianceDuration)
 		}
 	}
 }
@@ -70,7 +75,7 @@ func doStatusPolling(ec *EntityConfig) {
 		}
 	}()
 	defer ec.StopWaitGroup.Done()
-	time.Sleep(time.Millisecond * time.Duration(ec.EntityNumber*(ec.LoadTestConfig.UserEntitiesConfiguration.ActionRateMilliseconds*ec.LoadTestConfig.UserEntitiesConfiguration.NumActiveEntities)))
+
 	ticker := time.NewTicker(60 * time.Second)
 	for {
 		select {

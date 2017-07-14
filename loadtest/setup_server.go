@@ -48,6 +48,9 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 
 	cmdlog.Info("Checking configuration parameters.")
 	adminClient := getAdminClient(cfg.ConnectionConfiguration.ServerURL, cfg.ConnectionConfiguration.AdminEmail, cfg.ConnectionConfiguration.AdminPassword, cmdrun)
+	if adminClient == nil {
+		return nil, fmt.Errorf("Unable create admin client.")
+	}
 	if err := checkConfigForLoadtests(adminClient); err != nil {
 		return nil, err
 	}

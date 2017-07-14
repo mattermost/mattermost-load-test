@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
@@ -141,8 +140,9 @@ func RunTest(test *TestRun) error {
 				go doStatusPolling(entityConfig)
 			}
 
-			// Spread out the entities to avoid everything happening at once
-			time.Sleep(time.Millisecond * time.Duration(rand.Intn(20)))
+			sleepTime := actionRate / time.Duration(numEntities)
+			time.Sleep(sleepTime)
+
 			entityNum++
 		}
 	}
