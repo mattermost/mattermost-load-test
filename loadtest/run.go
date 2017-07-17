@@ -171,7 +171,16 @@ func RunTest(test *TestRun) error {
 	close(stopMonitors)
 	waitWithTimeout(&waitMonitors, 10*time.Second)
 
-	report := clientTimingStats.PrintReport()
+	report := "\n"
+	report += "--------------------------------------\n"
+	report += "-------- Loadtest Results ------------\n"
+	report += "--------------------------------------\n"
+	timingsReport := clientTimingStats.PrintReport()
+	configReport := cfg.PrintReport()
+
+	report += configReport
+	report += timingsReport
+
 	cmdlog.Info(report)
 	ioutil.WriteFile("results.txt", []byte(report), 0644)
 	if cfg.ConnectionConfiguration.ResultsWebhook != "" {

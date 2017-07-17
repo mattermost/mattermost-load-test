@@ -4,9 +4,13 @@
 package loadtest
 
 import (
+	"bytes"
+	"fmt"
+	"html/template"
 	"reflect"
 
 	"github.com/mattermost/mattermost-load-test/autocreation"
+	"github.com/mattermost/mattermost-load-test/cmdlog"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -47,8 +51,9 @@ type ConnectionConfiguration struct {
 }
 
 type DisplayConfiguration struct {
-	ShowUI       bool
-	LogToConsole bool
+	ShowUI           bool
+	LogToConsole     bool
+	CustomReportText string
 }
 
 func GetConfig() (*LoadTestConfig, error) {
@@ -67,6 +72,29 @@ func GetConfig() (*LoadTestConfig, error) {
 	}
 
 	return cfg, nil
+}
+
+func (cfg *LoadTestConfig) PrintReport() string {
+	const settingsTemplateString = `Test Length: {{.UserEntitiesConfiguration.TestLengthMinutes}} minutes
+Number of Active Entities: {{.UserEntitiesConfiguration.NumActiveEntities}}
+Action Rate: {{.UserEntitiesConfiguration.ActionRateMilliseconds}} ms
+Action Rate Max Variance: {{.UserEntitiesConfiguration.ActionRateMaxVarianceMilliseconds}} ms
+Server: {{.ConnectionConfiguration.ServerURL}}
+{{.DisplayConfiguration.CustomReportText}}
+`
+	settingsTemplate := template.Must(template.New("settings").Parse(settingsTemplateString))
+
+	var buf bytes.Buffer
+	fmt.Fprintln(&buf, "")
+	fmt.Fprintln(&buf, "--------- Settings Report ------------")
+
+	if err := settingsTemplate.Execute(&buf, cfg); err != nil {
+		cmdlog.Error("Error executing template: " + err.Error())
+	}
+
+	fmt.Fprintln(&buf, "")
+
+	return buf.String()
 }
 
 func unmarshalConfigStruct(configStruct interface{}) error {

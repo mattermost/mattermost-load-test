@@ -144,7 +144,7 @@ Inter Quartile Range: {{.InterQuartileRange}}
 
 	var buf bytes.Buffer
 	fmt.Fprintln(&buf, "")
-	fmt.Fprintln(&buf, "--------- Loadtest Report ------------")
+	fmt.Fprintln(&buf, "--------- Timings Report ------------")
 
 	for _, route := range ts.RouteNames {
 		fmt.Fprintln(&buf, "Route: "+route)
