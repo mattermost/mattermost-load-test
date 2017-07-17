@@ -15,3 +15,5 @@ import:
   repo: https://github.com/benoitmasson/viper
   vcs: git
 - package: github.com/icrowley/fake
+- package: github.com/montanaflynn/stats
+  version: 0.2.0

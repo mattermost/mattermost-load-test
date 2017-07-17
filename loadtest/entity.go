@@ -44,9 +44,6 @@ func runEntity(ec *EntityConfig) {
 
 	actionRateMaxVarianceMilliseconds := ec.LoadTestConfig.UserEntitiesConfiguration.ActionRateMaxVarianceMilliseconds
 
-	// Space out the entites at the start.
-	cmdlog.Infof("Entity %v started", ec.EntityNumber)
-
 	timer := time.NewTimer(0)
 	for {
 		select {
