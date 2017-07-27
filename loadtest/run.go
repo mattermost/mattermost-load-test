@@ -5,12 +5,12 @@ package loadtest
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
-	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"strconv"
 	"sync"
@@ -155,6 +155,13 @@ func RunTest(test *TestRun) error {
 	cmdlog.Infof("Test set to run for %v minutes", cfg.UserEntitiesConfiguration.TestLengthMinutes)
 	timeoutchan := time.After(time.Duration(cfg.UserEntitiesConfiguration.TestLengthMinutes) * time.Minute)
 
+	if cfg.ResultsConfiguration.PProfDelayMinutes != 0 {
+		go func() {
+			time.Sleep(time.Duration(cfg.ResultsConfiguration.PProfDelayMinutes) * time.Minute)
+			RunProfile(cfg.ConnectionConfiguration.PProfURL)
+		}()
+	}
+
 	select {
 	case <-interrupChannel:
 		cmdlog.Info("Interupted!")
@@ -183,9 +190,26 @@ func RunTest(test *TestRun) error {
 
 	cmdlog.Info(report)
 	ioutil.WriteFile("results.txt", []byte(report), 0644)
-	if cfg.ConnectionConfiguration.ResultsWebhook != "" {
-		cmdlog.Info("Sending results to webhook.")
-		sendResultsWebhook(report, cfg.ConnectionConfiguration.ResultsWebhook)
+
+	files := []string{
+		"results.txt",
+		"loadtest.log",
+	}
+
+	if cfg.ResultsConfiguration.PProfDelayMinutes != 0 {
+		files = append(files, "goroutine.svg", "block.svg", "profile.svg")
+	}
+
+	if cfg.ResultsConfiguration.SendReportToMMServer {
+		cmdlog.Info("Sending results to mm server.")
+		sendResultsToMMServer(
+			cfg.ResultsConfiguration.ResultsServerURL,
+			cfg.ResultsConfiguration.ResultsUsername,
+			cfg.ResultsConfiguration.ResultsPassword,
+			cfg.ResultsConfiguration.ResultsChannelId,
+			cfg.ResultsConfiguration.CustomReportText,
+			files,
+		)
 	}
 
 	cmdlog.Info("DONE!")
@@ -193,22 +217,68 @@ func RunTest(test *TestRun) error {
 	return nil
 }
 
-func sendResultsWebhook(report string, hookURL string) {
-	webhookRequest := &model.IncomingWebhookRequest{
-		Text:     report,
-		Username: "loadtests",
-		Type:     "",
-	}
-	b, err := json.Marshal(webhookRequest)
-	if err != nil {
-		cmdlog.Error("Unable to marshal json for send results webhook request")
-		return
+func RunProfile(pprofurl string) {
+	cmdgoroutine := exec.Command("go", "tool", "pprof", "-svg", pprofurl+"/goroutine")
+	cmdblock := exec.Command("go", "tool", "pprof", "-svg", pprofurl+"/block")
+	cmdprofile := exec.Command("go", "tool", "pprof", "-seconds=300", "-svg", pprofurl+"/profile")
+
+	datagoroutine, _ := cmdgoroutine.Output()
+	ioutil.WriteFile("goroutine.svg", datagoroutine, 0644)
+
+	datablock, _ := cmdblock.Output()
+	ioutil.WriteFile("block.svg", datablock, 0644)
+
+	dataprofile, _ := cmdprofile.Output()
+	ioutil.WriteFile("profile.svg", dataprofile, 0644)
+}
+
+func sendResultsToMMServer(server, username, password, channelId, message string, attachments []string) error {
+	client := model.NewAPIv4Client(server)
+
+	user, resp := client.Login(username, password)
+	if resp.Error != nil {
+		return resp.Error
 	}
 
-	var buf bytes.Buffer
-	buf.WriteString(string(b))
+	var fileIds []string
+	if len(attachments) != 0 {
+		for _, filename := range attachments {
+			file, err := os.Open(filename)
+			if err != nil {
+				fmt.Print("Unable to find: " + filename)
+				fmt.Println(" Error: " + err.Error())
+				continue
+			}
+			data := &bytes.Buffer{}
+			if _, err := io.Copy(data, file); err != nil {
+				fmt.Print("Unable to copy file: " + filename)
+				fmt.Println(" Error: " + err.Error())
+				continue
+			}
+			file.Close()
 
-	if _, err := http.Post(hookURL, "application/json", &buf); err != nil {
-		cmdlog.Error("Failed to post send results webhook. Error: " + err.Error())
+			fileUploadResp, resp := client.UploadFile(data.Bytes(), channelId, filename)
+			if resp.Error != nil || fileUploadResp == nil || len(fileUploadResp.FileInfos) != 1 {
+				fmt.Print("Unable to upload file: " + filename)
+				fmt.Println(" Error: " + resp.Error.Error())
+				continue
+			}
+
+			fileIds = append(fileIds, fileUploadResp.FileInfos[0].Id)
+		}
 	}
+
+	_, resp = client.CreatePost(&model.Post{
+		UserId:    user.Id,
+		ChannelId: channelId,
+		Message:   message,
+		Type:      model.POST_DEFAULT,
+		FileIds:   fileIds,
+	})
+	if resp != nil && resp.Error != nil {
+		fmt.Print("Unable to create post.")
+		fmt.Println(" Error: " + resp.Error.Error())
+	}
+
+	return nil
 }

@@ -50,6 +50,12 @@ func main() {
 		Run:   pingCmd,
 	}
 
+	cmdPprof := &cobra.Command{
+		Use:   "pprof",
+		Short: "Run a pprof",
+		Run:   pprofCmd,
+	}
+
 	var rootCmd = &cobra.Command{Use: "loadtest"}
 
 	commands := make([]*cobra.Command, 0, len(tests))
@@ -65,11 +71,19 @@ func main() {
 		})
 	}
 	rootCmd.AddCommand(commands...)
-	rootCmd.AddCommand(cmdPing)
+	rootCmd.AddCommand(cmdPing, cmdPprof)
 	rootCmd.Execute()
 }
 
 func pingCmd(cmd *cobra.Command, args []string) {
 	// Print a paragraph
 	fmt.Println(fake.Paragraph())
+}
+
+func pprofCmd(cmd *cobra.Command, args []string) {
+	cfg, err := loadtest.GetConfig()
+	if err != nil {
+		fmt.Println("Unable to find configuration file: " + err.Error())
+	}
+	loadtest.RunProfile(cfg.ConnectionConfiguration.PProfURL)
 }

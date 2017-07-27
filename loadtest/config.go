@@ -20,6 +20,7 @@ type LoadTestConfig struct {
 	ConnectionConfiguration   ConnectionConfiguration
 	UserEntitiesConfiguration UserEntitiesConfiguration
 	DisplayConfiguration      DisplayConfiguration
+	ResultsConfiguration      ResultsConfiguration
 }
 
 type UserEntitiesConfiguration struct {
@@ -36,6 +37,7 @@ type UserEntitiesConfiguration struct {
 type ConnectionConfiguration struct {
 	ServerURL            string
 	WebsocketURL         string
+	PProfURL             string
 	LocalCommands        bool
 	SSHHostnamePort      string
 	SSHUsername          string
@@ -46,14 +48,22 @@ type ConnectionConfiguration struct {
 	AdminEmail           string
 	AdminPassword        string
 	SkipBulkload         bool
-	ResultsWebhook       string
 	WaitForServerStart   bool
 }
 
+type ResultsConfiguration struct {
+	CustomReportText     string
+	SendReportToMMServer bool
+	ResultsServerURL     string
+	ResultsChannelId     string
+	ResultsUsername      string
+	ResultsPassword      string
+	PProfDelayMinutes    int
+}
+
 type DisplayConfiguration struct {
-	ShowUI           bool
-	LogToConsole     bool
-	CustomReportText string
+	ShowUI       bool
+	LogToConsole bool
 }
 
 func GetConfig() (*LoadTestConfig, error) {

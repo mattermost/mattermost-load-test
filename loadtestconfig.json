@@ -2,6 +2,7 @@
     "ConnectionConfiguration": {
         "ServerURL": "http://localhost:8065",
         "WebsocketURL": "ws://localhost:8065",
+        "PProfURL": "http://localhost:8067/debug/pprof",
         "LocalCommands": true,
         "SSHHostnamePort": "",
         "SSHUsername": "",
@@ -51,5 +52,14 @@
     "DisplayConfiguration": {
         "ShowUI": false,
         "LogToConsole": true
+    },
+    "ResultsConfiguration": {
+        "CustomReportText": "",
+        "SendReportToMMServer": false,
+        "ResultsServerURL": "",
+        "ResultsChannelId": "",
+        "ResultsUsername": "",
+        "ResultsPassword": "",
+        "PProfDelayMinutes": 0
     }
 }
