@@ -156,8 +156,10 @@ func RunTest(test *TestRun) error {
 	timeoutchan := time.After(time.Duration(cfg.UserEntitiesConfiguration.TestLengthMinutes) * time.Minute)
 
 	if cfg.ResultsConfiguration.PProfDelayMinutes != 0 {
+		cmdlog.Infof("Will run PProf after %v minutes.", cfg.ResultsConfiguration.PProfDelayMinutes)
 		go func() {
 			time.Sleep(time.Duration(cfg.ResultsConfiguration.PProfDelayMinutes) * time.Minute)
+			cmdlog.Info("Running PProf.")
 			RunProfile(cfg.ConnectionConfiguration.PProfURL)
 		}()
 	}
