@@ -85,5 +85,5 @@ func pprofCmd(cmd *cobra.Command, args []string) {
 	if err != nil {
 		fmt.Println("Unable to find configuration file: " + err.Error())
 	}
-	loadtest.RunProfile(cfg.ConnectionConfiguration.PProfURL)
+	loadtest.RunProfile(cfg.ConnectionConfiguration.PProfURL, cfg.ResultsConfiguration.PProfLength)
 }

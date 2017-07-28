@@ -60,6 +60,7 @@
         "ResultsChannelId": "",
         "ResultsUsername": "",
         "ResultsPassword": "",
-        "PProfDelayMinutes": 0
+        "PProfDelayMinutes": 15,
+        "PProfLength": 240
     }
 }

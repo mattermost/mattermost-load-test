@@ -59,6 +59,7 @@ type ResultsConfiguration struct {
 	ResultsUsername      string
 	ResultsPassword      string
 	PProfDelayMinutes    int
+	PProfLength          int
 }
 
 type DisplayConfiguration struct {

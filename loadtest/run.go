@@ -160,7 +160,7 @@ func RunTest(test *TestRun) error {
 		go func() {
 			time.Sleep(time.Duration(cfg.ResultsConfiguration.PProfDelayMinutes) * time.Minute)
 			cmdlog.Info("Running PProf.")
-			RunProfile(cfg.ConnectionConfiguration.PProfURL)
+			RunProfile(cfg.ConnectionConfiguration.PProfURL, cfg.ResultsConfiguration.PProfLength)
 		}()
 	}
 
@@ -219,18 +219,27 @@ func RunTest(test *TestRun) error {
 	return nil
 }
 
-func RunProfile(pprofurl string) {
+func RunProfile(pprofurl string, profileLength int) {
 	cmdgoroutine := exec.Command("go", "tool", "pprof", "-svg", pprofurl+"/goroutine")
 	cmdblock := exec.Command("go", "tool", "pprof", "-svg", pprofurl+"/block")
-	cmdprofile := exec.Command("go", "tool", "pprof", "-seconds=300", "-svg", pprofurl+"/profile")
+	cmdprofile := exec.Command("go", "tool", "pprof", "-seconds="+strconv.Itoa(profileLength), "-svg", pprofurl+"/profile")
 
-	datagoroutine, _ := cmdgoroutine.Output()
+	datagoroutine, err := cmdgoroutine.Output()
+	if err != nil {
+		cmdlog.Error("Error running goroutine profile: " + err.Error())
+	}
 	ioutil.WriteFile("goroutine.svg", datagoroutine, 0644)
 
-	datablock, _ := cmdblock.Output()
+	datablock, err := cmdblock.Output()
+	if err != nil {
+		cmdlog.Error("Error running block profile: " + err.Error())
+	}
 	ioutil.WriteFile("block.svg", datablock, 0644)
 
-	dataprofile, _ := cmdprofile.Output()
+	dataprofile, err := cmdprofile.Output()
+	if err != nil {
+		cmdlog.Error("Error running cpu profile: " + err.Error())
+	}
 	ioutil.WriteFile("profile.svg", dataprofile, 0644)
 }
 
