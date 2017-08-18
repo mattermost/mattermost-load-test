@@ -17,3 +17,7 @@ import:
 - package: github.com/icrowley/fake
 - package: github.com/montanaflynn/stats
   version: 0.2.0
+- package: github.com/gizak/termui
+  version: ^2.2.0
+- package: github.com/op/go-logging
+  version: ^1.0.0
