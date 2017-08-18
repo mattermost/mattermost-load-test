@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"reflect"
 )
 
 type Choice struct {
@@ -32,6 +33,17 @@ func IntRange(min, max int) (int, error) {
 		result = min + int(b.Int64())
 	}
 	return result, nil
+}
+
+// Shuffle funtion from: https://stackoverflow.com/questions/12264789/shuffle-array-in-go
+func Shuffle(slice interface{}) {
+	rv := reflect.ValueOf(slice)
+	swap := reflect.Swapper(slice)
+	length := rv.Len()
+	for i := length - 1; i > 0; i-- {
+		j, _ := IntRange(0, i+1)
+		swap(i, j)
+	}
 }
 
 // Modified version of weighted choice from https://github.com/jmcvetta/randutil

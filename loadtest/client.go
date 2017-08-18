@@ -5,6 +5,7 @@ package loadtest
 
 import (
 	"fmt"
+	"math/rand"
 	"runtime"
 	"strconv"
 	"time"
@@ -29,13 +30,24 @@ func newClientFromToken(token string, serverUrl string) *model.Client4 {
 
 func loginAsUsers(cfg *LoadTestConfig) []string {
 	tokens := make([]string, cfg.UserEntitiesConfiguration.NumActiveEntities)
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	order := r.Perm(cfg.LoadtestEnviromentConfig.NumUsers)
 
-	ThreadSplit(cfg.UserEntitiesConfiguration.NumActiveEntities, runtime.GOMAXPROCS(0)*2, PrintCounter, func(usernum int) {
+	ThreadSplit(cfg.UserEntitiesConfiguration.NumActiveEntities, runtime.GOMAXPROCS(0)*2, PrintCounter, func(entityNum int) {
+		// Add the usernum to start from
+		userNum := entityNum + cfg.UserEntitiesConfiguration.EntityStartNum
 		client := model.NewClient(cfg.ConnectionConfiguration.ServerURL)
-		if _, err := client.Login("success+user"+strconv.Itoa(usernum)+"@simulator.amazonses.com", "Loadtestpassword1"); err != nil {
-			cmdlog.Errorf("Unable to login as user %v", usernum)
+
+		// Random selection if picked
+		if cfg.UserEntitiesConfiguration.RandomizeEntitySelection {
+			userNum = order[entityNum]
 		}
-		tokens[usernum] = client.AuthToken
+
+		if _, err := client.Login("success+user"+strconv.Itoa(userNum)+"@simulator.amazonses.com", "Loadtestpassword1"); err != nil {
+			cmdlog.Errorf("Unable to login as user %v", userNum)
+		}
+		cmdlog.Infof("Entity %v has logged in as user %v.", entityNum, userNum)
+		tokens[entityNum] = client.AuthToken
 	})
 
 	return tokens

@@ -47,7 +47,8 @@
         "ActionRateMaxVarianceMilliseconds": 60000,
         "EnableRequestTiming": true,
         "UploadImageChance": 0.01,
-        "DoStatusPolling": true
+        "DoStatusPolling": true,
+        "RandomizeEntitySelection": true
     },
     "DisplayConfiguration": {
         "ShowUI": false,

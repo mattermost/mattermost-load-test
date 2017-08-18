@@ -32,6 +32,7 @@ type UserEntitiesConfiguration struct {
 	EnableRequestTiming               bool
 	UploadImageChance                 float64
 	DoStatusPolling                   bool
+	RandomizeEntitySelection          bool
 }
 
 type ConnectionConfiguration struct {
