@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"time"
 
@@ -48,7 +49,11 @@ func ConnectSSH(sshHostnamePort, sshKey, sshUsername, sshPassword, mattermostIns
 			},
 		}
 	}
-	config.HostKeyCallback = ssh.InsecureIgnoreHostKey()
+
+	config.HostKeyCallback = func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+		return nil
+	}
+
 	config.Timeout = time.Second * 10
 
 	client, err := ssh.Dial("tcp", sshHostnamePort, config)
