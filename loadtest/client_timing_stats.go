@@ -31,7 +31,7 @@ type RouteStats struct {
 	NumHits            int64
 	NumErrors          int64
 	Duration           []float64
-	DurationLastMinute *ratecounter.AvgRateCounter
+	DurationLastMinute *ratecounter.RateCounter
 	Max                float64
 	Min                float64
 	Mean               float64
@@ -48,7 +48,7 @@ func NewRouteStats() *RouteStats {
 	return &RouteStats{
 		NumErrors:          0,
 		Duration:           make([]float64, 0, 100000),
-		DurationLastMinute: ratecounter.NewAvgRateCounter(time.Minute),
+		DurationLastMinute: ratecounter.NewRateCounter(time.Minute),
 	}
 }
 
