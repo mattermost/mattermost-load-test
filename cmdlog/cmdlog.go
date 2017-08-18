@@ -57,15 +57,15 @@ func SetConsoleLog() {
 }
 
 func Debug(a ...interface{}) {
-	log.Debug(a...)
+	log.Debug("", a...)
 }
 
 func Error(a ...interface{}) {
-	log.Error(a...)
+	log.Error("", a...)
 }
 
 func Info(a ...interface{}) {
-	log.Info(a...)
+	log.Info("", a...)
 }
 
 func Debugf(format string, a ...interface{}) {
@@ -81,7 +81,7 @@ func Infof(format string, a ...interface{}) {
 }
 
 func Println(a ...interface{}) {
-	log.Info(a...)
+	log.Info("", a...)
 }
 
 func AppError(err *model.AppError) {
