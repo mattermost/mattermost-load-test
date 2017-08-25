@@ -57,17 +57,23 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 
 	cmdlog.Info("Generating bulkload file.")
 	bulkloadResult := autocreation.GenerateBulkloadFile(&cfg.LoadtestEnviromentConfig)
-	cmdlog.Info("Sending loadtest file.")
-	if err := cmdrun.SendLoadtestFile(&bulkloadResult.File); err != nil {
-		return nil, err
-	}
 
 	if !cfg.ConnectionConfiguration.SkipBulkload {
-		cmdlog.Info("Running bulk import.")
-		if success, output := cmdrun.RunPlatformCommand("import bulk --workers 64 --apply loadtestusers.json"); !success {
-			return nil, fmt.Errorf("Failed to bulk import users: " + output)
-		} else {
-			cmdlog.Info(output)
+		cmdlog.Info("Aquiring bulkload lock")
+		if getBulkloadLock(adminClient) {
+			cmdlog.Info("Aquired bulkload lock")
+			cmdlog.Info("Sending loadtest file.")
+			if err := cmdrun.SendLoadtestFile(&bulkloadResult.File); err != nil {
+				return nil, err
+			}
+			cmdlog.Info("Running bulk import.")
+			if success, output := cmdrun.RunPlatformCommand("import bulk --workers 64 --apply loadtestusers.json"); !success {
+				return nil, fmt.Errorf("Failed to bulk import users: " + output)
+			} else {
+				cmdlog.Info(output)
+			}
+			cmdlog.Info("Releasing bulkload lock")
+			releaseBulkloadLock(adminClient)
 		}
 	}
 
@@ -173,4 +179,51 @@ func checkConfigForLoadtests(adminClient *model.Client4) error {
 	}
 
 	return nil
+}
+
+func getBulkloadLock(adminClient *model.Client4) bool {
+	if user, resp := adminClient.GetMe(""); resp.Error != nil {
+		cmdlog.Errorf("Unable to get admin user while trying to get lock 1: %v", resp.Error.Error())
+		return false
+	} else if user.Nickname == "" {
+		myId := model.NewId()
+		user.Nickname = myId
+		if _, resp := adminClient.UpdateUser(user); resp.Error != nil {
+			cmdlog.Errorf("Unable to update admin user while trying to get lock 1: %v", resp.Error.Error())
+			return false
+		}
+		time.Sleep(2 * time.Second)
+		if updatedUser, resp := adminClient.GetMe(""); resp.Error != nil {
+			cmdlog.Errorf("Unable to get admin user while trying to get lock 2: %v", resp.Error.Error())
+			return false
+		} else if updatedUser.Nickname == myId {
+			// We got the lock!
+			return true
+		}
+	}
+
+	// If we didn't get the lock, wait for it to clear
+	for {
+		time.Sleep(2 * time.Second)
+		if updatedUser, resp := adminClient.GetMe(""); resp.Error != nil {
+			cmdlog.Errorf("Unable to get admin user while trying to wait for lock 3: %v", resp.Error.Error())
+			return false
+		} else if updatedUser.Nickname == "" {
+			// We got the lock!
+			return false
+		}
+	}
+}
+
+func releaseBulkloadLock(adminClient *model.Client4) {
+	if user, resp := adminClient.GetMe(""); resp.Error != nil {
+		cmdlog.Errorf("Unable to get admin user while trying to release lock. Note that system will be in a bad state. You need to change the system admin user's nickname to blank to fix things. Error: %v", resp.Error.Error())
+	} else if user.Nickname == "" {
+		cmdlog.Errorf("Unable to get admin user while trying to get lock 1: %v", resp.Error.Error())
+	} else {
+		user.Nickname = ""
+		if _, resp := adminClient.UpdateUser(user); resp.Error != nil {
+			cmdlog.Errorf("Unable to update admin user while trying to release lock 1: %v", resp.Error.Error())
+		}
+	}
 }
