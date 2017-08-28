@@ -74,14 +74,13 @@ func getAdminClient(serverURL string, adminEmail string, adminPass string, cmdru
 		cmdlog.Info("Attempting to create admin user.")
 		if success, output := cmdrun.RunPlatformCommand(fmt.Sprintf("user create --email %v --password %v --system_admin --username ltadmin", adminEmail, adminPass)); !success {
 			cmdlog.Errorf("Failed to create admin user. Got: %v", output)
-			return nil
 		}
 		if success, output := cmdrun.RunPlatformCommand(fmt.Sprintf("user verify ltadmin")); !success {
 			cmdlog.Errorf("Failed to verify email of admin user. Got: %v", output)
-			return nil
 		}
+		time.Sleep(time.Second)
 		if user2, resp2 := client.Login(adminEmail, adminPass); user2 == nil {
-			cmdlog.Errorf("Failed to login to successfully created admin account. %v", resp2.Error.Error())
+			cmdlog.Errorf("Failed to login to admin account. %v", resp2.Error.Error())
 			cmdlog.AppError(resp2.Error)
 			return nil
 		} else {
