@@ -205,11 +205,13 @@ func getBulkloadLock(adminClient *model.Client4) bool {
 	// If we didn't get the lock, wait for it to clear
 	for {
 		time.Sleep(2 * time.Second)
+		cmdlog.Info("Polling for lock release: " + time.Now().Format(time.UnixDate))
 		if updatedUser, resp := adminClient.GetMe(""); resp.Error != nil {
 			cmdlog.Errorf("Unable to get admin user while trying to wait for lock 3: %v", resp.Error.Error())
 			return false
 		} else if updatedUser.Nickname == "" {
-			// We got the lock!
+			// Lock has been released
+			cmdlog.Info("Lock Released: " + time.Now().Format(time.UnixDate))
 			return false
 		}
 	}
