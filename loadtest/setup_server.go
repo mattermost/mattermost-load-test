@@ -20,11 +20,16 @@ type ServerSetupData struct {
 }
 
 func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
+	numSuccess := 0
 	if cfg.ConnectionConfiguration.WaitForServerStart {
 		waitClient := model.NewAPIv4Client(cfg.ConnectionConfiguration.ServerURL)
-		for success, resp := waitClient.GetPing(); resp.Error != nil || success != "OK"; success, resp = waitClient.GetPing() {
-			cmdlog.Info("Waiting for server to be up")
-			time.Sleep(5 * time.Second)
+		for numSuccess < 5 {
+			for success, resp := waitClient.GetPing(); resp.Error != nil || success != "OK"; success, resp = waitClient.GetPing() {
+				numSuccess = 0
+				cmdlog.Info("Waiting for server to be up")
+				time.Sleep(5 * time.Second)
+			}
+			numSuccess++
 		}
 	}
 
