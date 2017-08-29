@@ -29,6 +29,7 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 				cmdlog.Info("Waiting for server to be up")
 				time.Sleep(5 * time.Second)
 			}
+			cmdlog.Infof("Success %v", numSuccess)
 			numSuccess++
 		}
 	}
