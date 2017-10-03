@@ -10,12 +10,7 @@ DIST_PATH=$(DIST_ROOT)/$(DIST_FOLDER_NAME)
 
 all: install
 
-.installdeps:
-	glide cache-clear
-	glide update
-	touch .installdeps
-
-install: .installdeps
+install:
 	$(GO) install ./cmd/loadtest
 
 package: install
@@ -34,5 +29,4 @@ clean:
 	rm -f ./cmd/loadtest/loadtest
 	rm -f .installdeps
 	rm -f loadtest.log
-	rm -rf vendor
 	rm -rf $(DIST_ROOT)
