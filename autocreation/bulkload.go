@@ -10,7 +10,9 @@ import (
 	"math"
 	"math/rand"
 	"strconv"
+	"time"
 
+	"github.com/icrowley/fake"
 	"github.com/mattermost/mattermost-load-test/randutil"
 )
 
@@ -19,6 +21,7 @@ type LineImportData struct {
 	Team    *TeamImportData    `json:"team,omitempty"`
 	Channel *ChannelImportData `json:"channel,omitempty"`
 	User    *UserImportData    `json:"user,omitempty"`
+	Post    *PostImportData    `json:"post"`
 	Version int                `json:"version"`
 }
 
@@ -50,6 +53,8 @@ type LoadtestEnviromentConfig struct {
 	HighVolumeChannelSelectionWeight int
 	MidVolumeChannelSelectionWeight  int
 	LowVolumeChannelSelectionWeight  int
+
+	NumPosts int
 }
 
 type TeamImportData struct {
@@ -111,6 +116,17 @@ type VersionImportData struct {
 	Version string `json:"version"`
 }
 
+type PostImportData struct {
+	Team    *string `json:"team"`
+	Channel *string `json:"channel"`
+	User    *string `json:"user"`
+
+	Message  *string `json:"message"`
+	CreateAt *int64  `json:"create_at"`
+
+	FlaggedBy *[]string `json:"flagged_by"`
+}
+
 type GenerateBulkloadFileResult struct {
 	File     bytes.Buffer
 	Users    []UserImportData
@@ -146,6 +162,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 	teams := make([]TeamImportData, 0, config.NumTeams)
 	channels := make([]ChannelImportData, 0, config.NumChannelsPerTeam*config.NumTeams)
 	users := make([]UserImportData, 0, config.NumUsers)
+	posts := make([]PostImportData, 0, config.NumPosts)
 
 	channelsByTeam := make([][]int, 0, config.NumChannelsPerTeam*config.NumTeams)
 
@@ -189,6 +206,8 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 	numUsersInHighVolumeTeam := int(math.Floor(float64(config.NumUsers) * config.PercentUsersHighVolumeTeams))
 	numUsersInMidVolumeTeam := int(math.Floor(float64(config.NumUsers) * config.PercentUsersMidVolumeTeams))
 	numUsersInLowVolumeTeam := int(math.Floor(float64(config.NumUsers) * config.PercentUsersLowVolumeTeams))
+
+	numPostsPerChannel := int(math.Floor(float64(config.NumPosts) / float64(config.NumTeams*config.NumChannelsPerTeam)))
 
 	r := rand.New(rand.NewSource(29))
 
@@ -260,6 +279,17 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 				})
 			}
 
+			for i := 0; i < numPostsPerChannel; i++ {
+				message := "PL" + fake.Sentences()
+				now := int64(time.Now().Unix())
+				posts = append(posts, PostImportData{
+					Team:     &currentTeam.Name,
+					Channel:  &channel.Name,
+					User:     &users[i%len(users)].Username,
+					Message:  &message,
+					CreateAt: &now,
+				})
+			}
 		}
 	}
 
@@ -292,6 +322,14 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 		lineObjects = append(lineObjects, LineImportData{
 			Type:    "user",
 			User:    &users[i],
+			Version: 1,
+		})
+	}
+
+	for i := range posts {
+		lineObjects = append(lineObjects, LineImportData{
+			Type:    "post",
+			Post:    &posts[i],
 			Version: 1,
 		})
 	}
