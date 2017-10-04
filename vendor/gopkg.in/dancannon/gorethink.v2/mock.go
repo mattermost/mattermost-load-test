@@ -7,7 +7,8 @@ import (
 	"sync"
 	"time"
 
-	p "gopkg.in/dancannon/gorethink.v2/ql2"
+	"golang.org/x/net/context"
+	p "gopkg.in/gorethink/gorethink.v3/ql2"
 )
 
 // Mocking is based on the amazing package github.com/stretchr/testify
@@ -170,7 +171,7 @@ func (mq *MockQuery) On(t Term) *MockQuery {
 // passing this when running your queries instead of a session. For example:
 //
 //     mock := r.NewMock()
-//     mock.on(r.Table("test")).Return([]interface{}{data}, nil)
+//     mock.On(r.Table("test")).Return([]interface{}{data}, nil)
 //
 //     cursor, err := r.Table("test").Run(mock)
 //
@@ -290,7 +291,7 @@ func (m *Mock) IsConnected() bool {
 	return true
 }
 
-func (m *Mock) Query(q Query) (*Cursor, error) {
+func (m *Mock) Query(ctx context.Context, q Query) (*Cursor, error) {
 	found, query := m.findExpectedQuery(q)
 
 	if found < 0 {
@@ -328,7 +329,7 @@ func (m *Mock) Query(q Query) (*Cursor, error) {
 	}
 
 	// Build cursor and return
-	c := newCursor(nil, "", query.Query.Token, query.Query.Term, query.Query.Opts)
+	c := newCursor(ctx, nil, "", query.Query.Token, query.Query.Term, query.Query.Opts)
 	c.finished = true
 	c.fetching = false
 	c.isAtom = true
@@ -345,8 +346,8 @@ func (m *Mock) Query(q Query) (*Cursor, error) {
 	return c, nil
 }
 
-func (m *Mock) Exec(q Query) error {
-	_, err := m.Query(q)
+func (m *Mock) Exec(ctx context.Context, q Query) error {
+	_, err := m.Query(ctx, q)
 
 	return err
 }

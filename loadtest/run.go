@@ -20,7 +20,7 @@ import (
 
 	"github.com/gizak/termui"
 	"github.com/mattermost/mattermost-load-test/cmdlog"
-	"github.com/mattermost/platform/model"
+	"github.com/mattermost/mattermost-server/model"
 )
 
 func RunTest(test *TestRun) error {

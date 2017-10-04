@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/mattermost/mattermost-load-test/cmdlog"
-	"github.com/mattermost/platform/model"
+	"github.com/mattermost/mattermost-server/model"
 )
 
 func newV3ClientFromToken(token string, serverUrl string) *model.Client {

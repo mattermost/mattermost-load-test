@@ -6,7 +6,7 @@ import (
 
 	"reflect"
 
-	p "gopkg.in/dancannon/gorethink.v2/ql2"
+	p "gopkg.in/gorethink/gorethink.v3/ql2"
 )
 
 // Expr converts any value to an expression and is also used by many other terms
@@ -183,7 +183,7 @@ type HTTPOpts struct {
 	Reattempts   interface{} `gorethink:"reattempts,omitempty"`
 	Redirects    interface{} `gorethink:"redirect,omitempty"`
 	Verify       interface{} `gorethink:"verify,omitempty"`
-	ResultFormat interface{} `gorethink:"resul_format,omitempty"`
+	ResultFormat interface{} `gorethink:"result_format,omitempty"`
 
 	// Request Options
 	Method interface{} `gorethink:"method,omitempty"`

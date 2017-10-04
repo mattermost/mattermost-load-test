@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	p "gopkg.in/dancannon/gorethink.v2/ql2"
+	p "gopkg.in/gorethink/gorethink.v3/ql2"
 )
 
 var (
@@ -25,6 +25,8 @@ var (
 	// ErrConnectionClosed is returned when trying to send a query with a closed
 	// connection.
 	ErrConnectionClosed = errors.New("gorethink: the connection is closed")
+	// ErrQueryTimeout is returned when query context deadline exceeded.
+	ErrQueryTimeout = errors.New("gorethink: query timeout")
 )
 
 func printCarrots(t Term, frames []*p.Frame) string {

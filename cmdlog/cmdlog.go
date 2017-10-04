@@ -6,7 +6,7 @@ package cmdlog
 import (
 	"os"
 
-	"github.com/mattermost/platform/model"
+	"github.com/mattermost/mattermost-server/model"
 	logging "github.com/op/go-logging"
 )
 

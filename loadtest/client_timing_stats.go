@@ -14,7 +14,7 @@ import (
 	"bytes"
 
 	"github.com/mattermost/mattermost-load-test/cmdlog"
-	"github.com/mattermost/platform/model"
+	"github.com/mattermost/mattermost-server/model"
 	"github.com/montanaflynn/stats"
 	"github.com/paulbellamy/ratecounter"
 )

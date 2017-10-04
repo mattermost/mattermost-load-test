@@ -10,7 +10,7 @@ import (
 
 	"github.com/mattermost/mattermost-load-test/autocreation"
 	"github.com/mattermost/mattermost-load-test/cmdlog"
-	"github.com/mattermost/platform/model"
+	"github.com/mattermost/mattermost-server/model"
 )
 
 type ServerSetupData struct {
@@ -135,9 +135,9 @@ func checkConfigForLoadtests(adminClient *model.Client4) error {
 
 		cmdlog.Info("EnableOpenServer is true")
 
-		if serverConfig.TeamSettings.MaxUsersPerTeam < 50000 {
+		if *serverConfig.TeamSettings.MaxUsersPerTeam < 50000 {
 			cmdlog.Infof("MaxUsersPerTeam is %v, attempt to set to 50000 for the load test...", serverConfig.TeamSettings.MaxUsersPerTeam)
-			serverConfig.TeamSettings.MaxUsersPerTeam = 50000
+			*serverConfig.TeamSettings.MaxUsersPerTeam = 50000
 			if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
 				cmdlog.Error("Failed to set MaxUsersPerTeam")
 				cmdlog.AppError(resp.Error)

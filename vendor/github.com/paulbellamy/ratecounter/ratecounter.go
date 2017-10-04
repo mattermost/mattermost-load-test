@@ -27,6 +27,7 @@ func NewRateCounter(intrvl time.Duration) *RateCounter {
 	return ratecounter.WithResolution(20)
 }
 
+// WithResolution determines the minimum resolution of this counter, default is 20
 func (r *RateCounter) WithResolution(resolution int) *RateCounter {
 	if resolution < 1 {
 		panic("RateCounter resolution cannot be less than 1")
@@ -45,14 +46,18 @@ func (r *RateCounter) run() {
 	}
 
 	go func() {
-		for range time.Tick(time.Duration(float64(r.interval) / float64(r.resolution))) {
+		ticker := time.NewTicker(time.Duration(float64(r.interval) / float64(r.resolution)))
+
+		for range ticker.C {
 			current := atomic.LoadInt32(&r.current)
 			next := (int(current) + 1) % r.resolution
 			r.counter.Incr(-1 * r.partials[next].Value())
 			r.partials[next].Reset()
-			atomic.CompareAndSwapInt32(&r.current, int32(current), int32(next))
+			atomic.CompareAndSwapInt32(&r.current, current, int32(next))
 			if r.counter.Value() == 0 {
 				atomic.StoreInt32(&r.running, 0)
+				ticker.Stop()
+
 				return
 			}
 		}
