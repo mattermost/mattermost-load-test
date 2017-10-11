@@ -37,7 +37,9 @@ Install the `loadtest` command on the load test server using [these instructions
 
 ### 3) Configure
 
-Edit the configuration file on the load test machine. Make sure the fields under "ConnectionConfiguration" are set correctly.
+Edit the [configuration file](https://github.com/mattermost/mattermost-load-test/blob/master/loadtestconfig.json) on the load test machine. Make sure the fields under "ConnectionConfiguration" are set correctly.
+
+To produce useful results, set `NumUsers` to at least 5000, and `TestLengthMinutes` to at least 20.
 
 You can find explanations of the configuration fields in the [Configuration File Documentation](loadtestconfig.md)
 
@@ -47,19 +49,17 @@ Now you can run the tests from the load test machine by using the command `loadt
 
 A summary of activity will be output to the console so you can monitor the test. When the test is complete, a summary will be printed and saved to a file called results.txt
 
-
 ## Common issues
 
-# "Unable to set X. System Console is set to read-only when High Availability is enabled"
+### "Unable to set X. System Console is set to read-only when High Availability is enabled"
 
-If you see this error the loadtests are trying to set a configuration setting but can't because HA mode is enabled. You will need to manually update your configuration.
-The settings needed are:
-EnableOpenServer: true
-MaxUsersPerTeam: 50000 (or more)
-MaxChannelsPerTeam: 50000 (or more)
-EnableIncomingWebhooks: true
-EnableAdminOnlyIntegrations: false
+If you see this error the loadtests are trying to set a configuration setting but can't because HA mode is enabled. You will need to manually update your configuration. The required settings are:
 
+ - `EnableOpenServer`: true
+ - `MaxUsersPerTeam`: 50000 (or more)
+ - `MaxChannelsPerTeam`: 50000 (or more)
+ - `EnableIncomingWebhooks`: true
+ - `EnableAdminOnlyIntegrations`: false
 
 ## Compiling for non master branch Mattermost
 
@@ -84,7 +84,6 @@ Consider using the following:
 
    TRUNCATE mysql.slow_log;
 
-
 To process the logs use mysqldumpslow::
  - mysqldumpslow -s c -t 100 mysql-slowquery.log > top100-c.log
  - mysqldumpslow -s r -t 100 mysql-slowquery.log > top100-r.log
@@ -98,7 +97,6 @@ To process the logs use mysqldumpslow::
 Start the server with:
 
    ./bin/platform -httpprofiler
-
 
 Look at different profiles with:
 
