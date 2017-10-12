@@ -47,7 +47,23 @@ You can find explanations of the configuration fields in the [Configuration File
 
 Now you can run the tests from the load test machine by using the command `loadtest all`.
 
-A summary of activity will be output to the console so you can monitor the test. When the test is complete, a summary will be printed and saved to a file called results.txt
+A summary of activity will be output to the console so you can monitor the test. While the tests are running, it is a good idea to check the health of the server and the databases (e.g. reasonable CPU).
+
+### 5) Analyze test results
+
+Once the test is complete, a summary will be printed and saved to a file called results.txt. [You can see a sample output here](https://github.com/mattermost/mattermost-load-test/blob/master/docs/sample-results.txt).
+
+The text file will have two sections:
+
+a) Settings Report: Details on test length, [number of active entities](https://github.com/mattermost/mattermost-load-test/blob/master/loadtestconfig.md#numactiveentities), and the [action rate](https://github.com/mattermost/mattermost-load-test/blob/master/loadtestconfig.md#actionratemilliseconds).
+
+b) Timings Report: Includes number of hits, error rates and response times of the most common API calls. 
+
+You should expect low error rates (below 1%). If you see higher numbers, this may be an indication that the system was low performant during the load test. Check the file loadtest.log to find out potential issues. Note that the loadtest.log file will typically contain errors due to underlying race conditions, so focus on the most frequent errors for your investigation.
+
+The timings report also includes response times for the API calls. Check that the response times are reasonable for your system. Note that response times are not comparable across organizations due to different network and infrustructure.
+
+If you don't get any meaningful information from results.txt (for instance, all values are zeros), try increasing the number of users to 5000 and test length to 20 minutes. See the [configuration file](https://github.com/mattermost/mattermost-load-test/blob/master/loadtestconfig.json) for sample values.
 
 ## Common issues
 
