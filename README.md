@@ -49,6 +49,8 @@ Now you can run the tests from the load test machine by using the command `loadt
 
 A summary of activity will be output to the console so you can monitor the test. While the tests are running, it is a good idea to check the health of the server and the databases (e.g. reasonable CPU).
 
+If you're running a large test with more than 20,000 active users and want to use multiple load test servers, you can do so by feeding the load from those servers with identical configuration.
+
 ### 5) Analyze test results
 
 Once the test is complete, a summary will be printed and saved to a file called results.txt. [You can see a sample output here](https://github.com/mattermost/mattermost-load-test/blob/master/docs/sample-results.txt).
@@ -76,6 +78,10 @@ If you see this error the loadtests are trying to set a configuration setting bu
  - `MaxChannelsPerTeam`: 50000 (or more)
  - `EnableIncomingWebhooks`: true
  - `EnableAdminOnlyIntegrations`: false
+
+### Receive error `Run Test Failed: Unable to connect to server dial tcp: missing address`
+
+Check that your SSH fields are set correctly in the loadtest config and try again. [Find more detail on the config settings here](https://github.com/mattermost/mattermost-load-test/blob/master/loadtestconfig.md#connection-configuration).
 
 ## Compiling for non master branch Mattermost
 
