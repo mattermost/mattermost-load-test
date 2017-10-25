@@ -37,7 +37,9 @@ Install the `loadtest` command on the load test server using [these instructions
 
 ### 3) Configure
 
-Edit the configuration file on the load test machine. Make sure the fields under "ConnectionConfiguration" are set correctly.
+Edit the [configuration file](https://github.com/mattermost/mattermost-load-test/blob/master/loadtestconfig.json) on the load test machine. Make sure the fields under "ConnectionConfiguration" are set correctly.
+
+To produce useful results, set `NumUsers` to at least 5000, and `TestLengthMinutes` to at least 20.
 
 You can find explanations of the configuration fields in the [Configuration File Documentation](loadtestconfig.md)
 
@@ -45,21 +47,41 @@ You can find explanations of the configuration fields in the [Configuration File
 
 Now you can run the tests from the load test machine by using the command `loadtest all`.
 
-A summary of activity will be output to the console so you can monitor the test. When the test is complete, a summary will be printed and saved to a file called results.txt
+A summary of activity will be output to the console so you can monitor the test. While the tests are running, it is a good idea to check the health of the server and the databases (e.g. reasonable CPU).
 
+If you're running a large test with more than 20,000 active users and want to use multiple load test servers, you can do so by feeding the load from those servers with identical configuration.
+
+### 5) Analyze test results
+
+Once the test is complete, a summary will be printed and saved to a file called results.txt. [You can see a sample output here](https://github.com/mattermost/mattermost-load-test/blob/master/docs/sample-results.txt).
+
+The text file will have two sections:
+
+a) Settings Report: Details on test length, [number of active entities](https://github.com/mattermost/mattermost-load-test/blob/master/loadtestconfig.md#numactiveentities), and the [action rate](https://github.com/mattermost/mattermost-load-test/blob/master/loadtestconfig.md#actionratemilliseconds).
+
+b) Timings Report: Includes number of hits, error rates and response times of the most common API calls. 
+
+You should expect low error rates (below 1%). If you see higher numbers, this may be an indication that the system was low performant during the load test. Check the file loadtest.log to find out potential issues. Note that the loadtest.log file will typically contain errors due to underlying race conditions, so focus on the most frequent errors for your investigation.
+
+The timings report also includes response times for the API calls. Check that the response times are reasonable for your system. Note that response times are not comparable across organizations due to different network and infrustructure.
+
+If you don't get any meaningful information from results.txt (for instance, all values are zeros), try increasing the number of users to 5000 and test length to 20 minutes. See the [configuration file](https://github.com/mattermost/mattermost-load-test/blob/master/loadtestconfig.json) for sample values.
 
 ## Common issues
 
-# "Unable to set X. System Console is set to read-only when High Availability is enabled"
+### "Unable to set X. System Console is set to read-only when High Availability is enabled"
 
-If you see this error the loadtests are trying to set a configuration setting but can't because HA mode is enabled. You will need to manually update your configuration.
-The settings needed are:
-EnableOpenServer: true
-MaxUsersPerTeam: 50000 (or more)
-MaxChannelsPerTeam: 50000 (or more)
-EnableIncomingWebhooks: true
-EnableAdminOnlyIntegrations: false
+If you see this error the loadtests are trying to set a configuration setting but can't because HA mode is enabled. You will need to manually update your configuration. The required settings are:
 
+ - `EnableOpenServer`: true
+ - `MaxUsersPerTeam`: 50000 (or more)
+ - `MaxChannelsPerTeam`: 50000 (or more)
+ - `EnableIncomingWebhooks`: true
+ - `EnableAdminOnlyIntegrations`: false
+
+### Receive error `Run Test Failed: Unable to connect to server dial tcp: missing address`
+
+Check that your SSH fields are set correctly in the loadtest config and try again. [Find more detail on the config settings here](https://github.com/mattermost/mattermost-load-test/blob/master/loadtestconfig.md#connection-configuration).
 
 ## Compiling for non master branch Mattermost
 
@@ -84,7 +106,6 @@ Consider using the following:
 
    TRUNCATE mysql.slow_log;
 
-
 To process the logs use mysqldumpslow::
  - mysqldumpslow -s c -t 100 mysql-slowquery.log > top100-c.log
  - mysqldumpslow -s r -t 100 mysql-slowquery.log > top100-r.log
@@ -98,7 +119,6 @@ To process the logs use mysqldumpslow::
 Start the server with:
 
    ./bin/platform -httpprofiler
-
 
 Look at different profiles with:
 
