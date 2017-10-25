@@ -8,7 +8,6 @@ import (
 
 	"time"
 
-	"github.com/mattermost/mattermost-load-test/autocreation"
 	"github.com/mattermost/mattermost-load-test/cmdlog"
 	"github.com/mattermost/mattermost-server/model"
 )
@@ -16,7 +15,7 @@ import (
 type ServerSetupData struct {
 	TeamIdMap      map[string]string
 	ChannelIdMap   map[string]string
-	BulkloadResult autocreation.GenerateBulkloadFileResult
+	BulkloadResult GenerateBulkloadFileResult
 }
 
 func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
@@ -62,7 +61,7 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 	}
 
 	cmdlog.Info("Generating bulkload file.")
-	bulkloadResult := autocreation.GenerateBulkloadFile(&cfg.LoadtestEnviromentConfig)
+	bulkloadResult := GenerateBulkloadFile(&cfg.LoadtestEnviromentConfig)
 
 	if !cfg.ConnectionConfiguration.SkipBulkload {
 		cmdlog.Info("Aquiring bulkload lock")

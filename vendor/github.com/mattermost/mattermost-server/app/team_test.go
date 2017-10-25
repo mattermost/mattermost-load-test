@@ -12,6 +12,7 @@ import (
 
 func TestCreateTeam(t *testing.T) {
 	th := Setup().InitBasic()
+	defer th.TearDown()
 
 	id := model.NewId()
 	team := &model.Team{
@@ -33,6 +34,7 @@ func TestCreateTeam(t *testing.T) {
 
 func TestCreateTeamWithUser(t *testing.T) {
 	th := Setup().InitBasic()
+	defer th.TearDown()
 
 	id := model.NewId()
 	team := &model.Team{
@@ -76,6 +78,7 @@ func TestCreateTeamWithUser(t *testing.T) {
 
 func TestUpdateTeam(t *testing.T) {
 	th := Setup().InitBasic()
+	defer th.TearDown()
 
 	th.BasicTeam.DisplayName = "Testing 123"
 
@@ -91,6 +94,7 @@ func TestUpdateTeam(t *testing.T) {
 
 func TestAddUserToTeam(t *testing.T) {
 	th := Setup().InitBasic()
+	defer th.TearDown()
 
 	user := model.User{Email: strings.ToLower(model.NewId()) + "success+test@example.com", Nickname: "Darth Vader", Username: "vader" + model.NewId(), Password: "passwd1", AuthService: ""}
 	ruser, _ := th.App.CreateUser(&user)
@@ -103,6 +107,7 @@ func TestAddUserToTeam(t *testing.T) {
 
 func TestAddUserToTeamByTeamId(t *testing.T) {
 	th := Setup().InitBasic()
+	defer th.TearDown()
 
 	user := model.User{Email: strings.ToLower(model.NewId()) + "success+test@example.com", Nickname: "Darth Vader", Username: "vader" + model.NewId(), Password: "passwd1", AuthService: ""}
 	ruser, _ := th.App.CreateUser(&user)
@@ -115,6 +120,7 @@ func TestAddUserToTeamByTeamId(t *testing.T) {
 
 func TestPermanentDeleteTeam(t *testing.T) {
 	th := Setup().InitBasic()
+	defer th.TearDown()
 
 	team, err := th.App.CreateTeam(&model.Team{
 		DisplayName: "deletion-test",
@@ -172,4 +178,218 @@ func TestPermanentDeleteTeam(t *testing.T) {
 	if err := th.App.PermanentDeleteTeam(team); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestSanitizeTeam(t *testing.T) {
+	th := Setup()
+	defer th.TearDown()
+
+	team := &model.Team{
+		Id:             model.NewId(),
+		Email:          th.MakeEmail(),
+		AllowedDomains: "example.com",
+	}
+	copyTeam := func() *model.Team {
+		copy := &model.Team{}
+		*copy = *team
+		return copy
+	}
+
+	t.Run("not a user of the team", func(t *testing.T) {
+		userId := model.NewId()
+		session := model.Session{
+			Roles: model.ROLE_SYSTEM_USER.Id,
+			TeamMembers: []*model.TeamMember{
+				{
+					UserId: userId,
+					TeamId: model.NewId(),
+					Roles:  model.ROLE_TEAM_USER.Id,
+				},
+			},
+		}
+
+		sanitized := SanitizeTeam(session, copyTeam())
+		if sanitized.Email != "" && sanitized.AllowedDomains != "" {
+			t.Fatal("should've sanitized team")
+		}
+	})
+
+	t.Run("user of the team", func(t *testing.T) {
+		userId := model.NewId()
+		session := model.Session{
+			Roles: model.ROLE_SYSTEM_USER.Id,
+			TeamMembers: []*model.TeamMember{
+				{
+					UserId: userId,
+					TeamId: team.Id,
+					Roles:  model.ROLE_TEAM_USER.Id,
+				},
+			},
+		}
+
+		sanitized := SanitizeTeam(session, copyTeam())
+		if sanitized.Email != "" && sanitized.AllowedDomains != "" {
+			t.Fatal("should've sanitized team")
+		}
+	})
+
+	t.Run("team admin", func(t *testing.T) {
+		userId := model.NewId()
+		session := model.Session{
+			Roles: model.ROLE_SYSTEM_USER.Id,
+			TeamMembers: []*model.TeamMember{
+				{
+					UserId: userId,
+					TeamId: team.Id,
+					Roles:  model.ROLE_TEAM_USER.Id + " " + model.ROLE_TEAM_ADMIN.Id,
+				},
+			},
+		}
+
+		sanitized := SanitizeTeam(session, copyTeam())
+		if sanitized.Email == "" && sanitized.AllowedDomains == "" {
+			t.Fatal("shouldn't have sanitized team")
+		}
+	})
+
+	t.Run("team admin of another team", func(t *testing.T) {
+		userId := model.NewId()
+		session := model.Session{
+			Roles: model.ROLE_SYSTEM_USER.Id,
+			TeamMembers: []*model.TeamMember{
+				{
+					UserId: userId,
+					TeamId: model.NewId(),
+					Roles:  model.ROLE_TEAM_USER.Id + " " + model.ROLE_TEAM_ADMIN.Id,
+				},
+			},
+		}
+
+		sanitized := SanitizeTeam(session, copyTeam())
+		if sanitized.Email != "" && sanitized.AllowedDomains != "" {
+			t.Fatal("should've sanitized team")
+		}
+	})
+
+	t.Run("system admin, not a user of team", func(t *testing.T) {
+		userId := model.NewId()
+		session := model.Session{
+			Roles: model.ROLE_SYSTEM_USER.Id + " " + model.ROLE_SYSTEM_ADMIN.Id,
+			TeamMembers: []*model.TeamMember{
+				{
+					UserId: userId,
+					TeamId: model.NewId(),
+					Roles:  model.ROLE_TEAM_USER.Id,
+				},
+			},
+		}
+
+		sanitized := SanitizeTeam(session, copyTeam())
+		if sanitized.Email == "" && sanitized.AllowedDomains == "" {
+			t.Fatal("shouldn't have sanitized team")
+		}
+	})
+
+	t.Run("system admin, user of team", func(t *testing.T) {
+		userId := model.NewId()
+		session := model.Session{
+			Roles: model.ROLE_SYSTEM_USER.Id + " " + model.ROLE_SYSTEM_ADMIN.Id,
+			TeamMembers: []*model.TeamMember{
+				{
+					UserId: userId,
+					TeamId: team.Id,
+					Roles:  model.ROLE_TEAM_USER.Id,
+				},
+			},
+		}
+
+		sanitized := SanitizeTeam(session, copyTeam())
+		if sanitized.Email == "" && sanitized.AllowedDomains == "" {
+			t.Fatal("shouldn't have sanitized team")
+		}
+	})
+}
+
+func TestSanitizeTeams(t *testing.T) {
+	th := Setup()
+	defer th.TearDown()
+
+	t.Run("not a system admin", func(t *testing.T) {
+		teams := []*model.Team{
+			{
+				Id:             model.NewId(),
+				Email:          th.MakeEmail(),
+				AllowedDomains: "example.com",
+			},
+			{
+				Id:             model.NewId(),
+				Email:          th.MakeEmail(),
+				AllowedDomains: "example.com",
+			},
+		}
+
+		userId := model.NewId()
+		session := model.Session{
+			Roles: model.ROLE_SYSTEM_USER.Id,
+			TeamMembers: []*model.TeamMember{
+				{
+					UserId: userId,
+					TeamId: teams[0].Id,
+					Roles:  model.ROLE_TEAM_USER.Id,
+				},
+				{
+					UserId: userId,
+					TeamId: teams[1].Id,
+					Roles:  model.ROLE_TEAM_USER.Id + " " + model.ROLE_TEAM_ADMIN.Id,
+				},
+			},
+		}
+
+		sanitized := SanitizeTeams(session, teams)
+
+		if sanitized[0].Email != "" && sanitized[0].AllowedDomains != "" {
+			t.Fatal("should've sanitized first team")
+		}
+
+		if sanitized[1].Email == "" && sanitized[1].AllowedDomains == "" {
+			t.Fatal("shouldn't have sanitized second team")
+		}
+	})
+
+	t.Run("system admin", func(t *testing.T) {
+		teams := []*model.Team{
+			{
+				Id:             model.NewId(),
+				Email:          th.MakeEmail(),
+				AllowedDomains: "example.com",
+			},
+			{
+				Id:             model.NewId(),
+				Email:          th.MakeEmail(),
+				AllowedDomains: "example.com",
+			},
+		}
+
+		userId := model.NewId()
+		session := model.Session{
+			Roles: model.ROLE_SYSTEM_USER.Id + " " + model.ROLE_SYSTEM_ADMIN.Id,
+			TeamMembers: []*model.TeamMember{
+				{
+					UserId: userId,
+					TeamId: teams[0].Id,
+					Roles:  model.ROLE_TEAM_USER.Id,
+				},
+			},
+		}
+
+		sanitized := SanitizeTeams(session, teams)
+
+		if sanitized[0].Email == "" && sanitized[0].AllowedDomains == "" {
+			t.Fatal("shouldn't have sanitized first team")
+		}
+
+		if sanitized[1].Email == "" && sanitized[1].AllowedDomains == "" {
+			t.Fatal("shouldn't have sanitized second team")
+		}
+	})
 }

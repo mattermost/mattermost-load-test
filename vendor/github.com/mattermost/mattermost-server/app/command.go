@@ -41,13 +41,18 @@ func (a *App) CreateCommandPost(post *model.Post, teamId string, response *model
 	post.Message = parseSlackLinksToMarkdown(response.Text)
 	post.CreateAt = model.GetMillis()
 
+	if strings.HasPrefix(post.Type, model.POST_SYSTEM_MESSAGE_PREFIX) {
+		err := model.NewAppError("CreateCommandPost", "api.context.invalid_param.app_error", map[string]interface{}{"Name": "post.type"}, "", http.StatusBadRequest)
+		return nil, err
+	}
+
 	if response.Attachments != nil {
 		parseSlackAttachment(post, response.Attachments)
 	}
 
 	if response.ResponseType == model.COMMAND_RESPONSE_TYPE_IN_CHANNEL {
 		return a.CreatePostMissingChannel(post, true)
-	} else if response.ResponseType == "" || response.ResponseType == model.COMMAND_RESPONSE_TYPE_EPHEMERAL {
+	} else if (response.ResponseType == "" || response.ResponseType == model.COMMAND_RESPONSE_TYPE_EPHEMERAL) && (response.Text != "" || response.Attachments != nil) {
 		post.ParentId = ""
 		a.SendEphemeralPost(post.UserId, post)
 	}
@@ -334,6 +339,16 @@ func (a *App) UpdateCommand(oldCmd, updatedCmd *model.Command) (*model.Command, 
 	} else {
 		return result.Data.(*model.Command), nil
 	}
+}
+
+func (a *App) MoveCommand(team *model.Team, command *model.Command) *model.AppError {
+	command.TeamId = team.Id
+
+	if result := <-a.Srv.Store.Command().Update(command); result.Err != nil {
+		return result.Err
+	}
+
+	return nil
 }
 
 func (a *App) RegenCommandToken(cmd *model.Command) (*model.Command, *model.AppError) {

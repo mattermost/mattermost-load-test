@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/icrowley/fake"
+	"github.com/mattermost/mattermost-load-test/cmdlog"
 	"github.com/mattermost/mattermost-load-test/loadtest"
 	"github.com/spf13/cobra"
 )
@@ -50,6 +51,12 @@ func main() {
 		Run:   pingCmd,
 	}
 
+	cmdLoad := &cobra.Command{
+		Use:   "loadposts",
+		Short: "Load posts onto server",
+		Run:   loadCmd,
+	}
+
 	cmdPprof := &cobra.Command{
 		Use:   "pprof",
 		Short: "Run a pprof",
@@ -71,7 +78,7 @@ func main() {
 		})
 	}
 	rootCmd.AddCommand(commands...)
-	rootCmd.AddCommand(cmdPing, cmdPprof)
+	rootCmd.AddCommand(cmdPing, cmdPprof, cmdLoad)
 	rootCmd.Execute()
 }
 
@@ -86,4 +93,13 @@ func pprofCmd(cmd *cobra.Command, args []string) {
 		fmt.Println("Unable to find configuration file: " + err.Error())
 	}
 	loadtest.RunProfile(cfg.ConnectionConfiguration.PProfURL, cfg.ResultsConfiguration.PProfLength)
+}
+
+func loadCmd(cmd *cobra.Command, args []string) {
+	cmdlog.SetConsoleLog()
+	cfg, err := loadtest.GetConfig()
+	if err != nil {
+		fmt.Println("Unable to find configuration file: " + err.Error())
+	}
+	loadtest.LoadPosts(cfg, cfg.ConnectionConfiguration.DBEndpoint)
 }

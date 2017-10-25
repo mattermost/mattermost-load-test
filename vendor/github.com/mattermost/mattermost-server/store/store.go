@@ -7,6 +7,7 @@ import (
 	"time"
 
 	l4g "github.com/alecthomas/log4go"
+
 	"github.com/mattermost/mattermost-server/model"
 )
 
@@ -16,6 +17,17 @@ type StoreResult struct {
 }
 
 type StoreChannel chan StoreResult
+
+func Do(f func(result *StoreResult)) StoreChannel {
+	storeChannel := make(StoreChannel, 1)
+	go func() {
+		result := StoreResult{}
+		f(&result)
+		storeChannel <- result
+		close(storeChannel)
+	}()
+	return storeChannel
+}
 
 func Must(sc StoreChannel) interface{} {
 	r := <-sc
@@ -322,6 +334,7 @@ type CommandStore interface {
 	Save(webhook *model.Command) StoreChannel
 	Get(id string) StoreChannel
 	GetByTeam(teamId string) StoreChannel
+	GetByTrigger(teamId string, trigger string) StoreChannel
 	Delete(commandId string, time int64) StoreChannel
 	PermanentDeleteByTeam(teamId string) StoreChannel
 	PermanentDeleteByUser(userId string) StoreChannel

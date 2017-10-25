@@ -3597,7 +3597,7 @@
   },
   {
     "id": "cli.license.critical",
-    "translation": "此功能需要企业授权。请联系您的系统管理员关于升级您的企业许可证。"
+    "translation": "功能需要升级到企业版本并拥有许可证。请联系您的系统管理员。"
   },
   {
     "id": "ent.brand.save_brand_image.decode.app_error",
@@ -3688,6 +3688,10 @@
     "translation": "导出审核自'{{.FilePath}}'的'{{.JobName}}'任务开始"
   },
   {
+    "id": "ent.data_retention.generic.license.error",
+    "translation": "许可证不支持数据保留。"
+  },
+  {
     "id": "ent.elasticsearch.aggregator_worker.create_index_job.error",
     "translation": "Elasticsearch 聚合器工作者创建索引任务失败"
   },
@@ -3725,7 +3729,7 @@
   },
   {
     "id": "ent.elasticsearch.data_retention_delete_indexes.get_indexes.error",
-    "translation": "创建 ElasticSearch 索引失败"
+    "translation": "获取 ElasticSearch 索引失败"
   },
   {
     "id": "ent.elasticsearch.delete_post.error",
@@ -3841,11 +3845,11 @@
   },
   {
     "id": "ent.ldap.sync.index_job_failed.error",
-    "translation": "LDAP sync worker failed due to the sync job failing"
+    "translation": "LDAP 同步工作者失败因为同步任务失败"
   },
   {
     "id": "ent.ldap.sync_worker.create_index_job.error",
-    "translation": "LDAP sync worker failed to create the sync job"
+    "translation": "LDAP 同步工作者创建同步任务失败"
   },
   {
     "id": "ent.ldap.syncdone.info",
@@ -4369,15 +4373,15 @@
   },
   {
     "id": "model.config.is_valid.data_retention.deletion_job_start_time.app_error",
-    "translation": "DataRetention DeletionJobStartTime 时间设定格式必须为 \"hh:mm\""
+    "translation": "数据保留任务开始时间必须为 24 小时制并格式为 HH:MM。"
   },
   {
     "id": "model.config.is_valid.data_retention.file_retention_days_too_low.app_error",
-    "translation": "DataRetention FileRetentionDays 设定必须至少为 1"
+    "translation": "文件保留至少一天。"
   },
   {
     "id": "model.config.is_valid.data_retention.message_retention_days_too_low.app_error",
-    "translation": "DataRetention MessageRetentionDays 设定必须至少为 1"
+    "translation": "消息保留至少一天。"
   },
   {
     "id": "model.config.is_valid.elastic_search.aggregate_posts_after_days.app_error",
@@ -4522,6 +4526,10 @@
   {
     "id": "model.config.is_valid.listen_address.app_error",
     "translation": "无效的服务设置时监听地址，必须设置此项。"
+  },
+  {
+    "id": "model.config.is_valid.localization.available_locales.app_error",
+    "translation": "可选语言必须包含默认客户端语言"
   },
   {
     "id": "model.config.is_valid.login_attempts.app_error",
@@ -5285,15 +5293,15 @@
   },
   {
     "id": "store.sql_audit.permanent_delete_batch.app_error",
-    "translation": "We encountered an error permanently deleting the batch of audits"
+    "translation": "批量永久删除审计时遇到错误"
   },
   {
     "id": "store.sql_audit.permanent_delete_by_user.app_error",
-    "translation": "我们删除审核时遇到了一个错误"
+    "translation": "我们删除审计时遇到了一个错误"
   },
   {
     "id": "store.sql_audit.save.saving.app_error",
-    "translation": "我们保持审核时出错"
+    "translation": "我们保存审计时遇到错误"
   },
   {
     "id": "store.sql_channel.analytics_deleted_type_count.app_error",
@@ -5544,6 +5552,10 @@
     "translation": "我们无法计算指令数量"
   },
   {
+    "id": "store.sql_command.get_by_trigger.app_error",
+    "translation": "我们无法获取这个命令"
+  },
+  {
     "id": "store.sql_command.save.delete.app_error",
     "translation": "我们无法删除命令"
   },
@@ -5649,7 +5661,7 @@
   },
   {
     "id": "store.sql_file_info.permanent_delete_batch.app_error",
-    "translation": "We encountered an error permanently deleting the batch of file infos"
+    "translation": "批量永久删除文件信息时遇到错误"
   },
   {
     "id": "store.sql_file_info.save.app_error",
@@ -5670,6 +5682,14 @@
   {
     "id": "store.sql_job.get_all.app_error",
     "translation": "我们无法获取任务"
+  },
+  {
+    "id": "store.sql_job.get_count_by_status_and_type.app_erro",
+    "translation": "我们无法以状态和类型获取任务数"
+  },
+  {
+    "id": "store.sql_job.get_newest_job_by_status_and_type.app_error",
+    "translation": "我们无法以状态和类型获取最新任务"
   },
   {
     "id": "store.sql_job.save.app_error",
@@ -5861,11 +5881,11 @@
   },
   {
     "id": "store.sql_post.permanent_delete_batch.app_error",
-    "translation": "We encountered an error permanently deleting the batch of posts"
+    "translation": "批量永久删除消息时遇到错误"
   },
   {
     "id": "store.sql_post.permanent_delete_batch.app_error",
-    "translation": "We encountered an error permanently deleting the batch of posts"
+    "translation": "批量永久删除消息时遇到错误"
   },
   {
     "id": "store.sql_post.permanent_delete_by_channel.app_error",
@@ -5901,7 +5921,7 @@
   },
   {
     "id": "store.sql_preference.cleanup_flags_batch.app_error",
-    "translation": "We encountered an error cleaning up the batch of flags"
+    "translation": "清理批量标记时遇到错误"
   },
   {
     "id": "store.sql_preference.delete.app_error",
@@ -5993,7 +6013,7 @@
   },
   {
     "id": "store.sql_reaction.permanent_delete_batch.app_error",
-    "translation": "We encountered an error permanently deleting the batch of reactions"
+    "translation": "批量永久删除反应时遇到错误"
   },
   {
     "id": "store.sql_reaction.save.begin.app_error",
@@ -6573,15 +6593,15 @@
   },
   {
     "id": "utils.file.list_directory.configured.app_error",
-    "translation": "File storage not configured properly. Please configure for either S3 or local server file storage."
+    "translation": "文件存储没有正确配置。请配置 S3 或本地文件存储服务。"
   },
   {
     "id": "utils.file.list_directory.local.app_error",
-    "translation": "Encountered an error listing directory from local server file storage."
+    "translation": "从本地存储列出目录时遇到错误。"
   },
   {
     "id": "utils.file.list_directory.s3.app_error",
-    "translation": "Encountered an error listing directory from S3."
+    "translation": "从 S3 列出目录时遇到错误。"
   },
   {
     "id": "utils.file.remove_directory.configured.app_error",

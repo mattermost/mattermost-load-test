@@ -9,14 +9,13 @@ import (
 	"html/template"
 	"reflect"
 
-	"github.com/mattermost/mattermost-load-test/autocreation"
 	"github.com/mattermost/mattermost-load-test/cmdlog"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
 type LoadTestConfig struct {
-	LoadtestEnviromentConfig  autocreation.LoadtestEnviromentConfig
+	LoadtestEnviromentConfig  LoadtestEnviromentConfig
 	ConnectionConfiguration   ConnectionConfiguration
 	UserEntitiesConfiguration UserEntitiesConfiguration
 	DisplayConfiguration      DisplayConfiguration
@@ -39,6 +38,7 @@ type ConnectionConfiguration struct {
 	ServerURL            string
 	WebsocketURL         string
 	PProfURL             string
+	DBEndpoint           string
 	LocalCommands        bool
 	SSHHostnamePort      string
 	SSHUsername          string

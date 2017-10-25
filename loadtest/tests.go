@@ -166,19 +166,19 @@ func actionGetChannel(c *EntityConfig) {
 	}
 
 	if _, resp := c.Client.GetChannelMember(channelId, "me", ""); resp.Error != nil {
-		cmdlog.Errorf("Unable to get channel member. Channel: %v, User: %v", channelId, c.UserData.Username)
+		cmdlog.Errorf("Unable to get channel member. Channel: %v, User: %v, Error: %v", channelId, c.UserData.Username, resp.Error.Error())
 	}
 
 	if _, resp := c.Client.GetChannelMembers(channelId, 0, 60, ""); resp.Error != nil {
-		cmdlog.Errorf("Unable to get channel member. Channel: %v, User: %v", channelId, c.UserData.Username)
+		cmdlog.Errorf("Unable to get channel member. Channel: %v, User: %v, Error: %v", channelId, c.UserData.Username, resp.Error.Error())
 	}
 
 	if _, resp := c.Client.GetChannelStats(channelId, ""); resp.Error != nil {
-		cmdlog.Errorf("Unable to get channel stats. Channel: %v, User: %v", channelId, c.UserData.Username)
+		cmdlog.Errorf("Unable to get channel stats. Channel: %v, User: %v, Error: %v", channelId, c.UserData.Username, resp.Error.Error())
 	}
 
 	if posts, resp := c.Client.GetPostsForChannel(channelId, 0, 60, ""); resp.Error != nil {
-		cmdlog.Errorf("Unable to get posts for channel Channel: %v, User: %v", channelId, c.UserData.Username)
+		cmdlog.Errorf("Unable to get posts for channel Channel: %v, User: %v, Error: %v", channelId, c.UserData.Username, resp.Error.Error())
 	} else {
 		for _, post := range posts.Posts {
 			if post.HasReactions {
@@ -332,10 +332,10 @@ var standardUserEntity UserEntity = UserEntity{
 			Item:   actionPost,
 			Weight: 4,
 		},
-		{
+		/*{
 			Item:   actionPerformSearch,
 			Weight: 1,
-		},
+		},*/
 		{
 			Item:   actionGetChannel,
 			Weight: 28,
