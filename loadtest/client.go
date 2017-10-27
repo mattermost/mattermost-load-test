@@ -53,7 +53,7 @@ func loginAsUsers(cfg *LoadTestConfig) []string {
 	return tokens
 }
 
-func getAdminClient(serverURL string, adminEmail string, adminPass string, cmdrun ServerCommandRunner) *model.Client4 {
+func getAdminClient(serverURL string, adminEmail string, adminPass string, cmdrun ServerCLICommandRunner) *model.Client4 {
 	client := model.NewAPIv4Client(serverURL)
 
 	if success, resp := client.GetPing(); resp.Error != nil || success != "OK" {
@@ -71,6 +71,11 @@ func getAdminClient(serverURL string, adminEmail string, adminPass string, cmdru
 	var adminUser *model.User
 	if user, _ := client.Login(adminEmail, adminPass); user == nil {
 		cmdlog.Info("Failed to login as admin user.")
+		if cmdrun == nil {
+			cmdlog.Error("Unable to create admin user because was not able to connect to app server. Please create the admin user manually or fill in SSH information.")
+			cmdlog.Errorf("Command to create admin user: ./bin/platform user create --email %v --password %v --system_admin --username ltadmin", adminEmail, adminPass)
+			return nil
+		}
 		cmdlog.Info("Attempting to create admin user.")
 		if success, output := cmdrun.RunPlatformCommand(fmt.Sprintf("user create --email %v --password %v --system_admin --username ltadmin", adminEmail, adminPass)); !success {
 			cmdlog.Errorf("Failed to create admin user. Got: %v", output)

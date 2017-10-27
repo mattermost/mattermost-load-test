@@ -4,6 +4,7 @@
 package cmdlog
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/mattermost/mattermost-server/model"
@@ -57,15 +58,15 @@ func SetConsoleLog() {
 }
 
 func Debug(a ...interface{}) {
-	log.Debug("", a...)
+	log.Debug(fmt.Sprint(a...))
 }
 
 func Error(a ...interface{}) {
-	log.Error("", a...)
+	log.Error(fmt.Sprint(a...))
 }
 
 func Info(a ...interface{}) {
-	log.Info("", a...)
+	log.Info(fmt.Sprint(a...))
 }
 
 func Debugf(format string, a ...interface{}) {

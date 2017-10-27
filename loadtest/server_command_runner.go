@@ -5,7 +5,7 @@ package loadtest
 
 import "bytes"
 
-type ServerCommandRunner interface {
+type ServerCLICommandRunner interface {
 	RunCommand(string) (bool, string)
 	RunPlatformCommand(string) (bool, string)
 	SendLoadtestFile(buf *bytes.Buffer) error

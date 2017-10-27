@@ -19,51 +19,52 @@ type ServerSetupData struct {
 }
 
 func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
-	numSuccess := 0
 	if cfg.ConnectionConfiguration.WaitForServerStart {
-		waitClient := model.NewAPIv4Client(cfg.ConnectionConfiguration.ServerURL)
-		for numSuccess < 5 {
-			for success, resp := waitClient.GetPing(); resp.Error != nil || success != "OK"; success, resp = waitClient.GetPing() {
-				numSuccess = 0
-				cmdlog.Info("Waiting for server to be up")
-				time.Sleep(5 * time.Second)
-			}
-			cmdlog.Infof("Success %v", numSuccess)
-			numSuccess++
-		}
+		WaitForServer(cfg.ConnectionConfiguration.ServerURL)
 	}
 
-	cmdlog.Info("Connecting to load server.")
-	var cmdrun ServerCommandRunner
+	var cmdrun ServerCLICommandRunner
 	var cmderr error
 	if cfg.ConnectionConfiguration.LocalCommands {
+		cmdlog.Info("Connecting to local app server")
 		cmdrun, cmderr = NewLocalConnection(cfg.ConnectionConfiguration.MattermostInstallDir)
 	} else {
+		cmdlog.Info("Connecting to app server over SSH")
 		cmdrun, cmderr = ConnectSSH(cfg.ConnectionConfiguration.SSHHostnamePort, cfg.ConnectionConfiguration.SSHKey, cfg.ConnectionConfiguration.SSHUsername, cfg.ConnectionConfiguration.SSHPassword, cfg.ConnectionConfiguration.MattermostInstallDir, cfg.ConnectionConfiguration.ConfigFileLoc)
 	}
 	if cmderr != nil {
-		return nil, cmderr
+		cmdlog.Error("Unable to connect issue platform commands. Continuing anyway... Got error: " + cmderr.Error())
+		cmdrun = nil
+	} else {
+		cmdlog.Info("Testing ability to run commands.")
+		if success, output := cmdrun.RunPlatformCommand("version"); !success {
+			cmdlog.Error("Unable to connect issue platform commands. Continuing anyway... Got Output: " + output)
+			cmdrun.Close()
+			cmdrun = nil
+		}
 	}
-	defer cmdrun.Close()
 
-	cmdlog.Info("Testing ability to run commands.")
-	if success, output := cmdrun.RunPlatformCommand("version"); !success {
-		return nil, fmt.Errorf("Unable to issue platform commands. Got: " + output)
+	if cmdrun != nil {
+		defer cmdrun.Close()
 	}
 
-	cmdlog.Info("Checking configuration parameters.")
 	adminClient := getAdminClient(cfg.ConnectionConfiguration.ServerURL, cfg.ConnectionConfiguration.AdminEmail, cfg.ConnectionConfiguration.AdminPassword, cmdrun)
 	if adminClient == nil {
 		return nil, fmt.Errorf("Unable create admin client.")
 	}
+
+	cmdlog.Info("Checking configuration parameters.")
 	if err := checkConfigForLoadtests(adminClient); err != nil {
 		return nil, err
 	}
 
-	cmdlog.Info("Generating bulkload file.")
+	cmdlog.Info("Generating users for loadtest.")
 	bulkloadResult := GenerateBulkloadFile(&cfg.LoadtestEnviromentConfig)
 
 	if !cfg.ConnectionConfiguration.SkipBulkload {
+		if cmdrun == nil {
+			return nil, fmt.Errorf("Failed to bulk import users because was unable to connect to app server to issue platform CLI commands. Please fill in SSH info and see errors above. You can also use `loadtest genbulkload` to load the users manually without having to provide SSH info.")
+		}
 		cmdlog.Info("Aquiring bulkload lock")
 		if getBulkloadLock(adminClient) {
 			cmdlog.Info("Aquired bulkload lock")
@@ -184,6 +185,20 @@ func checkConfigForLoadtests(adminClient *model.Client4) error {
 	}
 
 	return nil
+}
+
+func WaitForServer(serverURL string) {
+	numSuccess := 0
+	waitClient := model.NewAPIv4Client(serverURL)
+	for numSuccess < 5 {
+		for success, resp := waitClient.GetPing(); resp.Error != nil || success != "OK"; success, resp = waitClient.GetPing() {
+			numSuccess = 0
+			cmdlog.Info("Waiting for server to be up")
+			time.Sleep(5 * time.Second)
+		}
+		cmdlog.Infof("Success %v", numSuccess)
+		numSuccess++
+	}
 }
 
 func getBulkloadLock(adminClient *model.Client4) bool {
