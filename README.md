@@ -83,6 +83,16 @@ If you see this error the loadtests are trying to set a configuration setting bu
 
 Check that your SSH fields are set correctly in the loadtest config and try again. [Find more detail on the config settings here](https://github.com/mattermost/mattermost-load-test/blob/master/loadtestconfig.md#connection-configuration).
 
+## I can't setup the load tests to use SSH
+
+You can manually generate and load the test users into the Mattermost server manually.
+
+1. Run `loadtest genbulkload`. A file called `loadtestbulkload.json` should be created.
+2. Upload this file to the Mattermost app server.
+3. On the Mattermost app server run `./bin/platform import bulk --workers 64 --apply loadtestbulkload.json`
+4. Make sure you set the configuration setting "SkipBulkLoad" to true.
+
+
 ## Compiling for non master branch Mattermost
 
 Note that the load tests only support master and possibly 1 version back (although you may need to use a branch)

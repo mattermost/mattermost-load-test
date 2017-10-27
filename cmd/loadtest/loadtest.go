@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 
 	"github.com/icrowley/fake"
 	"github.com/mattermost/mattermost-load-test/cmdlog"
@@ -57,6 +58,12 @@ func main() {
 		Run:   loadCmd,
 	}
 
+	cmdGenerate := &cobra.Command{
+		Use:   "genbulkload",
+		Short: "Generate a bulkload file to be manually loaded onto a Mattermost server.",
+		Run:   genBulkLoadCmd,
+	}
+
 	cmdPprof := &cobra.Command{
 		Use:   "pprof",
 		Short: "Run a pprof",
@@ -78,7 +85,7 @@ func main() {
 		})
 	}
 	rootCmd.AddCommand(commands...)
-	rootCmd.AddCommand(cmdPing, cmdPprof, cmdLoad)
+	rootCmd.AddCommand(cmdPing, cmdPprof, cmdLoad, cmdGenerate)
 	rootCmd.Execute()
 }
 
@@ -102,4 +109,13 @@ func loadCmd(cmd *cobra.Command, args []string) {
 		fmt.Println("Unable to find configuration file: " + err.Error())
 	}
 	loadtest.LoadPosts(cfg, cfg.ConnectionConfiguration.DBEndpoint)
+}
+
+func genBulkLoadCmd(cmd *cobra.Command, args []string) {
+	cfg, err := loadtest.GetConfig()
+	if err != nil {
+		fmt.Println("Unable to find configuration file: " + err.Error())
+	}
+	results := loadtest.GenerateBulkloadFile(&cfg.LoadtestEnviromentConfig)
+	ioutil.WriteFile("loadtestbulkload.json", results.File.Bytes(), 0644)
 }
