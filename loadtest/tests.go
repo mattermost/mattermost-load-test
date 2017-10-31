@@ -332,10 +332,10 @@ var standardUserEntity UserEntity = UserEntity{
 			Item:   actionPost,
 			Weight: 4,
 		},
-		/*{
+		{
 			Item:   actionPerformSearch,
 			Weight: 1,
-		},*/
+		},
 		{
 			Item:   actionGetChannel,
 			Weight: 28,

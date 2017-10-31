@@ -52,8 +52,9 @@ type LoadtestEnviromentConfig struct {
 	MidVolumeChannelSelectionWeight  int
 	LowVolumeChannelSelectionWeight  int
 
-	NumPosts    int
-	ReplyChance float64
+	NumPosts      int
+	PostTimeRange int64
+	ReplyChance   float64
 }
 
 type LineImportData struct {
@@ -451,7 +452,7 @@ func LoadPosts(cfg *LoadTestConfig, dbendpoint string) {
 
 				for j := 0; j < 100; j++ {
 					message := "PL" + fake.SentencesN(1)
-					now := int64(time.Now().Unix())
+					now := int64(time.Now().Unix()) - rand.Int63n(cfg.LoadtestEnviromentConfig.PostTimeRange)
 					id := model.NewId()
 					zero := 0
 					emptyobject := "{}"
