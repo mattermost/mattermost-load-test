@@ -49,7 +49,7 @@
         "EnableRequestTiming": true,
         "UploadImageChance": 0.01,
         "DoStatusPolling": true,
-        "RandomizeEntitySelection": true
+        "RandomizeEntitySelection": false
     },
     "DisplayConfiguration": {
         "ShowUI": false,
