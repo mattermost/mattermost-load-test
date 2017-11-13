@@ -156,6 +156,7 @@ func actionJoinLeaveChannel(c *EntityConfig) {
 	var userId string
 	if user, resp := c.Client.GetUserByEmail(c.UserData.Email, ""); resp.Error != nil {
 		cmdlog.Errorf("Unable to get user by email. User: %v, Error: %v", c.UserData.Username, resp.Error.Error())
+		return
 	} else {
 		userId = user.Id
 	}
@@ -181,7 +182,7 @@ func actionJoinLeaveChannel(c *EntityConfig) {
 	}
 
 	// get channels the user is already a member of on that team
-	var channelId *string
+	var channelId string
 	if channelMembers, resp := c.Client.GetChannelMembersForUser(userId, teamId, ""); resp.Error != nil {
 		cmdlog.Errorf("Unable to get channel members for user. User: %v, User: %v, Error: %v", userId, c.UserData.Username, resp.Error.Error())
 		return
@@ -196,24 +197,25 @@ func actionJoinLeaveChannel(c *EntityConfig) {
 				}
 			}
 			if !userIsAlreadyInChannel {
-				channelId = new(string)
-				*channelId = potentialChannelId
+				channelId = potentialChannelId
 				break
 			}
 		}
 	}
 
-	if channelId == nil {
+	if channelId == "" {
 		cmdlog.Errorf("Unable to pick an open channel to join. Team id: %v, User: %v", teamId, c.UserData.Username)
 		return
+	} else {
+		cmdlog.Infof("User %v is joining/leaving channel %v", userId, channelId)
 	}
 
 	// join and then immediately leave the channel - this exercises the ChannelMemberHistory table
-	if _, resp := c.Client.AddChannelMember(*channelId, userId); resp.Error != nil {
-		cmdlog.Errorf("Unable to join channel. Channel: %v, User: %v, Error: %v", *channelId, c.UserData.Username, resp.Error.Error())
+	if _, resp := c.Client.AddChannelMember(channelId, userId); resp.Error != nil {
+		cmdlog.Errorf("Unable to join channel. Channel: %v, User: %v, Error: %v", channelId, c.UserData.Username, resp.Error.Error())
 	}
-	if _, resp := c.Client.RemoveUserFromChannel(*channelId, userId); resp.Error != nil {
-		cmdlog.Errorf("Unable to leave channel. Channel: %v, User: %v, Error: %v", *channelId, c.UserData.Username, resp.Error.Error())
+	if _, resp := c.Client.RemoveUserFromChannel(channelId, userId); resp.Error != nil {
+		cmdlog.Errorf("Unable to leave channel. Channel: %v, User: %v, Error: %v", channelId, c.UserData.Username, resp.Error.Error())
 	}
 }
 
