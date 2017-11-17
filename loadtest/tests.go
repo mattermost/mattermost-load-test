@@ -260,8 +260,10 @@ func actionPostWebhook(c *EntityConfig) {
 	var buf bytes.Buffer
 	buf.WriteString(string(b))
 
-	if _, err := http.Post(c.LoadTestConfig.ConnectionConfiguration.ServerURL+"/hooks/"+hookId, "application/json", &buf); err != nil {
+	if resp, err := http.Post(c.LoadTestConfig.ConnectionConfiguration.ServerURL+"/hooks/"+hookId, "application/json", &buf); err != nil {
 		cmdlog.Error("Failed to post by webhook. Error: " + err.Error())
+	} else if resp != nil {
+		resp.Body.Close()
 	}
 }
 
