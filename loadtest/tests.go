@@ -204,10 +204,8 @@ func actionJoinLeaveChannel(c *EntityConfig) {
 	}
 
 	if channelId == "" {
-		cmdlog.Errorf("Unable to pick an open channel to join. Team id: %v, User: %v", teamId, c.UserData.Username)
+		// don't log this, it happens relatively frequently, and is noisy
 		return
-	} else {
-		cmdlog.Infof("User %v is joining/leaving channel %v", userId, channelId)
 	}
 
 	// join and then immediately leave the channel - this exercises the ChannelMemberHistory table
