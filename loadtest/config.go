@@ -29,6 +29,7 @@ type UserEntitiesConfiguration struct {
 	ActionRateMilliseconds            int
 	ActionRateMaxVarianceMilliseconds int
 	EnableRequestTiming               bool
+	ChannelLinkChance                 float64
 	UploadImageChance                 float64
 	DoStatusPolling                   bool
 	RandomizeEntitySelection          bool

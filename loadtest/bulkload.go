@@ -115,6 +115,20 @@ type UserTeamImportData struct {
 	ChannelChoice []randutil.Choice       `json:"-"`
 }
 
+func (team *UserTeamImportData) PickChannel() *UserChannelImportData {
+	if len(team.ChannelChoice) == 0 {
+		return nil
+	}
+	item2, err2 := randutil.WeightedChoice(team.ChannelChoice)
+	if err2 != nil {
+		panic(err2)
+	}
+	channelIndex := item2.Item.(int)
+	channel := &team.Channels[channelIndex]
+
+	return channel
+}
+
 type UserChannelImportData struct {
 	Name  string `json:"name"`
 	Roles string `json:"roles"`
@@ -154,17 +168,7 @@ func (s *UserImportData) PickTeamChannel() (*UserTeamImportData, *UserChannelImp
 	teamIndex := item.Item.(int)
 	team := &s.Teams[teamIndex]
 
-	if len(team.ChannelChoice) == 0 {
-		return nil, nil
-	}
-	item2, err2 := randutil.WeightedChoice(team.ChannelChoice)
-	if err2 != nil {
-		panic(err2)
-	}
-	channelIndex := item2.Item.(int)
-	channel := &team.Channels[channelIndex]
-
-	return team, channel
+	return team, team.PickChannel()
 }
 
 func generateTeams(numTeams int) []TeamImportData {
