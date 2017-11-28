@@ -47,6 +47,7 @@
         "ActionRateMilliseconds": 60000,
         "ActionRateMaxVarianceMilliseconds": 1500,
         "EnableRequestTiming": true,
+        "ChannelLinkChance": 0.02,
         "UploadImageChance": 0.01,
         "DoStatusPolling": true,
         "RandomizeEntitySelection": false
