@@ -3,7 +3,7 @@ Install Load Test
 ===========================
 
 
-The *loadtest* is installed on a separate machine and works with an existing Mattermost installation. If you do not have Mattermost installed along with its ancillary componets then the installations in  must be completed.
+The *loadtest* is installed on a separate machine and works with an existing Mattermost E20 installation. If you do not have Mattermost installed along with its ancillary componets then that installation must be completed before the loadtest is installed.  
 
 
 Prerequisites to Load Test
