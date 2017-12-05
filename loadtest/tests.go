@@ -127,6 +127,12 @@ func actionPost(c *EntityConfig) {
 		Message:   fake.Sentences(),
 	}
 
+	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.ChannelLinkChance {
+		if channel := team.PickChannel(); channel != nil {
+			post.Message = post.Message + " ~" + channel.Name
+		}
+	}
+
 	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.UploadImageChance {
 		numFiles := rand.Intn(3) + 1
 		fileIds := make([]string, numFiles, numFiles)
