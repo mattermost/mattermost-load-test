@@ -22,7 +22,7 @@ type TestItem struct {
 //
 // ADD YOUR NEW TEST HERE!
 //
-var tests []TestItem = []TestItem{
+var tests = []TestItem{
 	{
 		Name:      "basic",
 		ShortDesc: "Basic test of posting",

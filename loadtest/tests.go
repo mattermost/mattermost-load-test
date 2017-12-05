@@ -157,6 +157,72 @@ func actionPost(c *EntityConfig) {
 	}
 }
 
+func actionJoinLeaveChannel(c *EntityConfig) {
+	// figure out my user id
+	var userId string
+	if user, resp := c.Client.GetUserByEmail(c.UserData.Email, ""); resp.Error != nil {
+		cmdlog.Errorf("Unable to get user by email. User: %v, Error: %v", c.UserData.Username, resp.Error.Error())
+		return
+	} else {
+		userId = user.Id
+	}
+
+	// pick a random team to join a channel from
+	team, _ := c.UserData.PickTeamChannel()
+	if team == nil {
+		cmdlog.Errorf("Unable to pick random team. User: %v", c.UserData.Username)
+		return
+	}
+	teamId := c.TeamMap[team.Name]
+
+	// get all the public channels on that team
+	var channelIdsInTeam []string
+	if channels, resp := c.Client.GetPublicChannelsForTeam(teamId, 0, 1000, ""); resp.Error != nil {
+		cmdlog.Errorf("Unable to get public channels for team. Team id: %v, User: %v, Error: %v", teamId, c.UserData.Username, resp.Error.Error())
+		return
+	} else {
+		channelIdsInTeam = make([]string, 0)
+		for _, channel := range channels {
+			channelIdsInTeam = append(channelIdsInTeam, channel.Id)
+		}
+	}
+
+	// get channels the user is already a member of on that team
+	var channelId string
+	if channelMembers, resp := c.Client.GetChannelMembersForUser(userId, teamId, ""); resp.Error != nil {
+		cmdlog.Errorf("Unable to get channel members for user. User: %v, User: %v, Error: %v", userId, c.UserData.Username, resp.Error.Error())
+		return
+	} else {
+		// find the first channel on the team that the user isn't already a member of, and use it for the test
+		userIsAlreadyInChannel := false
+		for _, potentialChannelId := range channelIdsInTeam {
+			for _, channelMember := range *channelMembers {
+				if channelMember.ChannelId == potentialChannelId {
+					userIsAlreadyInChannel = true
+					break
+				}
+			}
+			if !userIsAlreadyInChannel {
+				channelId = potentialChannelId
+				break
+			}
+		}
+	}
+
+	if channelId == "" {
+		// don't log this, it happens relatively frequently, and is noisy
+		return
+	}
+
+	// join and then immediately leave the channel - this exercises the ChannelMemberHistory table
+	if _, resp := c.Client.AddChannelMember(channelId, userId); resp.Error != nil {
+		cmdlog.Errorf("Unable to join channel. Channel: %v, User: %v, Error: %v", channelId, c.UserData.Username, resp.Error.Error())
+	}
+	if _, resp := c.Client.RemoveUserFromChannel(channelId, userId); resp.Error != nil {
+		cmdlog.Errorf("Unable to leave channel. Channel: %v, User: %v, Error: %v", channelId, c.UserData.Username, resp.Error.Error())
+	}
+}
+
 func actionGetChannel(c *EntityConfig) {
 	team, channel := c.UserData.PickTeamChannel()
 	if team == nil || channel == nil {
@@ -273,7 +339,7 @@ func actionPostWebhook(c *EntityConfig) {
 	}
 }
 
-var posterEntity UserEntity = UserEntity{
+var posterEntity = UserEntity{
 	Name: "Poster",
 	Actions: []randutil.Choice{
 		{
@@ -283,7 +349,7 @@ var posterEntity UserEntity = UserEntity{
 	},
 }
 
-var TestBasicPosting TestRun = TestRun{
+var TestBasicPosting = TestRun{
 	UserEntities: []UserEntityFrequency{
 		{
 			Freq:           100.0,
@@ -293,7 +359,7 @@ var TestBasicPosting TestRun = TestRun{
 	},
 }
 
-var getChannelEntity UserEntity = UserEntity{
+var getChannelEntity = UserEntity{
 	Name: "Get Channel",
 	Actions: []randutil.Choice{
 		{
@@ -303,7 +369,7 @@ var getChannelEntity UserEntity = UserEntity{
 	},
 }
 
-var TestGetChannel TestRun = TestRun{
+var TestGetChannel = TestRun{
 	UserEntities: []UserEntityFrequency{
 		{
 			Freq:           100.0,
@@ -313,7 +379,7 @@ var TestGetChannel TestRun = TestRun{
 	},
 }
 
-var searchEntity UserEntity = UserEntity{
+var searchEntity = UserEntity{
 	Name: "Search",
 	Actions: []randutil.Choice{
 		{
@@ -323,7 +389,7 @@ var searchEntity UserEntity = UserEntity{
 	},
 }
 
-var TestSearch TestRun = TestRun{
+var TestSearch = TestRun{
 	UserEntities: []UserEntityFrequency{
 		{
 			Freq:           100.0,
@@ -333,7 +399,7 @@ var TestSearch TestRun = TestRun{
 	},
 }
 
-var standardUserEntity UserEntity = UserEntity{
+var standardUserEntity = UserEntity{
 	Name: "Standard",
 	Actions: []randutil.Choice{
 		{
@@ -352,10 +418,14 @@ var standardUserEntity UserEntity = UserEntity{
 			Item:   actionDisconnectWebsocket,
 			Weight: 2,
 		},
+		{
+			Item:   actionJoinLeaveChannel,
+			Weight: 5,
+		},
 	},
 }
 
-var webhookUserEntity UserEntity = UserEntity{
+var webhookUserEntity = UserEntity{
 	Name: "Webhook",
 	Actions: []randutil.Choice{
 		{
@@ -365,7 +435,7 @@ var webhookUserEntity UserEntity = UserEntity{
 	},
 }
 
-var TestAll TestRun = TestRun{
+var TestAll = TestRun{
 	UserEntities: []UserEntityFrequency{
 		{
 			Freq:           90.0,

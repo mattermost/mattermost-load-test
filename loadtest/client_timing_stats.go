@@ -87,17 +87,23 @@ func (ts *ClientTimingStats) AddRouteSample(route string, duration int64, status
 	}
 }
 
-var teamPathRegex *regexp.Regexp = regexp.MustCompile("/teams/[a-z0-9]{26}/")
-var channelPathRegex *regexp.Regexp = regexp.MustCompile("/channels/[a-z0-9]{26}/")
-var postPathRegex *regexp.Regexp = regexp.MustCompile("/posts/[a-z0-9]{26}/")
-var filePathRegex *regexp.Regexp = regexp.MustCompile("/files/[a-z0-9]{26}/")
+var getChannelMembersForUserPathRegex = regexp.MustCompile("/users/[a-z0-9]{26}/teams/[a-z0-9]{26}/channels/members")
+var teamPathRegex = regexp.MustCompile("/teams/[a-z0-9]{26}/")
+var removeChannelMemberPathRegex = regexp.MustCompile("/channels/[a-z0-9]{26}/members/[a-z0-9]{26}")
+var channelPathRegex = regexp.MustCompile("/channels/[a-z0-9]{26}/")
+var postPathRegex = regexp.MustCompile("/posts/[a-z0-9]{26}/")
+var filePathRegex = regexp.MustCompile("/files/[a-z0-9]{26}/")
+var getUserByEmailPathRegex = regexp.MustCompile("/users/email/.*@.*")
 
 func processCommonPaths(path string) string {
 	result := strings.TrimPrefix(path, model.API_URL_SUFFIX)
+	result = getChannelMembersForUserPathRegex.ReplaceAllString(result, "/users/UID/teams/TID/channels/members/")
 	result = teamPathRegex.ReplaceAllString(result, "/teams/TID/")
+	result = removeChannelMemberPathRegex.ReplaceAllString(result, "/channels/CID/members/UID/")
 	result = channelPathRegex.ReplaceAllString(result, "/channels/CID/")
 	result = postPathRegex.ReplaceAllString(result, "/posts/PID/")
 	result = filePathRegex.ReplaceAllString(result, "/files/PID/")
+	result = getUserByEmailPathRegex.ReplaceAllString(result, "/users/email/EMAIL")
 	return result
 }
 
