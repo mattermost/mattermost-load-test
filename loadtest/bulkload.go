@@ -129,6 +129,16 @@ func (team *UserTeamImportData) PickChannel() *UserChannelImportData {
 	return channel
 }
 
+func (team *UserTeamImportData) GetTownSquare() *UserChannelImportData {
+	for _, channel := range team.Channels {
+		if channel.Name == "town-square" {
+			return &channel
+		}
+	}
+
+	return nil
+}
+
 type UserChannelImportData struct {
 	Name  string `json:"name"`
 	Roles string `json:"roles"`
@@ -157,9 +167,9 @@ type GenerateBulkloadFileResult struct {
 	Channels []ChannelImportData
 }
 
-func (s *UserImportData) PickTeamChannel() (*UserTeamImportData, *UserChannelImportData) {
+func (s *UserImportData) PickTeam() *UserTeamImportData {
 	if len(s.TeamChoice) == 0 {
-		return nil, nil
+		return nil
 	}
 	item, err := randutil.WeightedChoice(s.TeamChoice)
 	if err != nil {
@@ -167,6 +177,15 @@ func (s *UserImportData) PickTeamChannel() (*UserTeamImportData, *UserChannelImp
 	}
 	teamIndex := item.Item.(int)
 	team := &s.Teams[teamIndex]
+
+	return team
+}
+
+func (s *UserImportData) PickTeamChannel() (*UserTeamImportData, *UserChannelImportData) {
+	team := s.PickTeam()
+	if team == nil {
+		return nil, nil
+	}
 
 	return team, team.PickChannel()
 }
@@ -257,6 +276,14 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 				Weight: selectWeight,
 			})
 			usersInTeam = append(usersInTeam, userPermutation[userNum])
+
+			userTownSquareImportData := &UserChannelImportData{
+				Name:  "town-square",
+				Roles: "channel_user",
+			}
+
+			permutation := userPermutation[userNum]
+			users[permutation].Teams[len(users[permutation].Teams)-1].Channels = append(users[permutation].Teams[len(users[permutation].Teams)-1].Channels, *userTownSquareImportData)
 		}
 
 		numHighVolumeChannels := int(math.Floor(float64(len(channelsInTeam)) * config.PercentHighVolumeChannels))

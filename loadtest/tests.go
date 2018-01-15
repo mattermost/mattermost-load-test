@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"bytes"
 
@@ -93,6 +94,7 @@ func actionGetStatuses(c *EntityConfig) {
 		members, resp := c.Client.GetChannelMembers(channelId, 0, 60, "")
 		if resp.Error != nil {
 			cmdlog.Errorf("Unable to get members for channel %v to seed action get status. Error: %v", channelId, resp.Error.Error())
+			return
 		}
 
 		ids = make([]string, len(*members), len(*members))
@@ -110,6 +112,65 @@ func actionGetStatuses(c *EntityConfig) {
 	}
 }
 
+func actionLeaveJoinTeam(c *EntityConfig) {
+	importTeam := c.UserData.PickTeam()
+	if importTeam == nil {
+		return
+	}
+
+	teamId := c.TeamMap[importTeam.Name]
+	if teamId == "" {
+		cmdlog.Error("Unable to get team from map")
+		return
+	}
+
+	userId := ""
+	if user, resp := c.Client.GetMe(""); resp.Error != nil {
+		cmdlog.Errorf("Failed to get me, err=%v", resp.Error.Error())
+		return
+	} else {
+		userId = user.Id
+	}
+
+	inviteId := ""
+	if team, resp := c.Client.GetTeam(teamId, ""); resp.Error != nil {
+		cmdlog.Errorf("Failed to get team, err=%v", resp.Error.Error())
+		return
+	} else {
+		inviteId = team.InviteId
+	}
+
+	if _, resp := c.Client.RemoveTeamMember(teamId, userId); resp.Error != nil {
+		cmdlog.Errorf("Failed to leave team %v, err=%v", teamId, resp.Error.Error())
+		return
+	}
+
+	time.Sleep(time.Second * 1)
+
+	if _, resp := c.Client.AddTeamMemberFromInvite("", "", inviteId); resp.Error != nil {
+		cmdlog.Errorf("Failed to join team %v with invite_id %v, err=%v", teamId, inviteId, resp.Error.Error())
+		return
+	}
+}
+
+func actionPostToTownSquare(c *EntityConfig) {
+	team := c.UserData.PickTeam()
+	if team == nil {
+		cmdlog.Error("Unable to get team for town-square")
+		return
+	}
+
+	channelId := c.TownSquareMap[team.Name]
+
+	if channelId == "" {
+		cmdlog.Error("Unable to get town-square from map")
+		return
+	}
+
+	cmdlog.Info("Posted to town-square")
+	createPost(c, team, channelId)
+}
+
 func actionPost(c *EntityConfig) {
 	team, channel := c.UserData.PickTeamChannel()
 	if team == nil || channel == nil {
@@ -122,6 +183,10 @@ func actionPost(c *EntityConfig) {
 		return
 	}
 
+	createPost(c, team, channelId)
+}
+
+func createPost(c *EntityConfig, team *UserTeamImportData, channelId string) {
 	post := &model.Post{
 		ChannelId: channelId,
 		Message:   fake.Sentences(),
@@ -153,7 +218,7 @@ func actionPost(c *EntityConfig) {
 
 	_, resp := c.Client.CreatePost(post)
 	if resp.Error != nil {
-		cmdlog.Infof("Failed to post to team %v on channel %v as user %v with token %v. Error: %v", team.Name, channel.Name, c.UserData.Username, c.Client.AuthToken, resp.Error.Error())
+		cmdlog.Infof("Failed to post to team %v on channel %v as user %v with token %v. Error: %v", team.Name, channelId, c.UserData.Username, c.Client.AuthToken, resp.Error.Error())
 	}
 }
 
@@ -376,6 +441,56 @@ var TestAll TestRun = TestRun{
 			Freq:           10.0,
 			RateMultiplier: 1.5,
 			Entity:         webhookUserEntity,
+		},
+	},
+}
+
+var townSquareSpammerUserEntity UserEntity = UserEntity{
+	Name: "TownSquareSpammer",
+	Actions: []randutil.Choice{
+		{
+			Item:   actionPostToTownSquare,
+			Weight: 1,
+		},
+	},
+}
+
+var TestTownSquareSpam TestRun = TestRun{
+	UserEntities: []UserEntityFrequency{
+		{
+			Freq:           90.0,
+			RateMultiplier: 1.0,
+			Entity:         standardUserEntity,
+		},
+		{
+			Freq:           10.0,
+			RateMultiplier: 1.0,
+			Entity:         townSquareSpammerUserEntity,
+		},
+	},
+}
+
+var teamLeaverJoinerUserEntity UserEntity = UserEntity{
+	Name: "TeamLeaverJoiner",
+	Actions: []randutil.Choice{
+		{
+			Item:   actionLeaveJoinTeam,
+			Weight: 1,
+		},
+	},
+}
+
+var TestLeaveJoinTeam TestRun = TestRun{
+	UserEntities: []UserEntityFrequency{
+		{
+			Freq:           90.0,
+			RateMultiplier: 1.0,
+			Entity:         standardUserEntity,
+		},
+		{
+			Freq:           10.0,
+			RateMultiplier: 1.0,
+			Entity:         teamLeaverJoinerUserEntity,
 		},
 	},
 }
