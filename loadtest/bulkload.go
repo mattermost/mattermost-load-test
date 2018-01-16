@@ -129,16 +129,6 @@ func (team *UserTeamImportData) PickChannel() *UserChannelImportData {
 	return channel
 }
 
-func (team *UserTeamImportData) GetTownSquare() *UserChannelImportData {
-	for _, channel := range team.Channels {
-		if channel.Name == "town-square" {
-			return &channel
-		}
-	}
-
-	return nil
-}
-
 type UserChannelImportData struct {
 	Name  string `json:"name"`
 	Roles string `json:"roles"`
