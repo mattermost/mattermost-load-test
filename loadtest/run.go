@@ -119,6 +119,7 @@ func RunTest(test *TestRun) error {
 				UserData:            serverData.BulkloadResult.Users[entityNum],
 				ChannelMap:          serverData.ChannelIdMap,
 				TeamMap:             serverData.TeamIdMap,
+				TownSquareMap:       serverData.TownSquareIdMap,
 				Client:              userClient,
 				WebSocketClient:     userWebsocketClient,
 				ActionRate:          actionRate,

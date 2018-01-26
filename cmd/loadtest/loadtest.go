@@ -43,6 +43,16 @@ var tests []TestItem = []TestItem{
 		ShortDesc: "Test Everything",
 		Test:      &loadtest.TestAll,
 	},
+	{
+		Name:      "townsquare-spam",
+		ShortDesc: "Test town-square getting spammed",
+		Test:      &loadtest.TestTownSquareSpam,
+	},
+	{
+		Name:      "team-leave-join",
+		ShortDesc: "Test leaving and joining a team while under load",
+		Test:      &loadtest.TestLeaveJoinTeam,
+	},
 }
 
 func main() {

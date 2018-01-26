@@ -13,9 +13,10 @@ import (
 )
 
 type ServerSetupData struct {
-	TeamIdMap      map[string]string
-	ChannelIdMap   map[string]string
-	BulkloadResult GenerateBulkloadFileResult
+	TeamIdMap       map[string]string
+	ChannelIdMap    map[string]string
+	TownSquareIdMap map[string]string
+	BulkloadResult  GenerateBulkloadFileResult
 }
 
 func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
@@ -90,6 +91,7 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 
 	teamIdMap := make(map[string]string)
 	channelIdMap := make(map[string]string)
+	townSquareIdMap := make(map[string]string)
 	if teams, resp := adminClient.GetAllTeams("", 0, cfg.LoadtestEnviromentConfig.NumTeams+200); resp.Error != nil {
 		return nil, resp.Error
 	} else {
@@ -104,6 +106,10 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 					numRecieved = len(channels)
 					for _, channel := range channels {
 						channelIdMap[team.Name+channel.Name] = channel.Id
+						if channel.Name == "town-square" {
+							cmdlog.Infof("Found town-square for %v", team.Name)
+							townSquareIdMap[team.Name] = channel.Id
+						}
 					}
 				}
 			}
@@ -111,9 +117,10 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 	}
 
 	return &ServerSetupData{
-		TeamIdMap:      teamIdMap,
-		ChannelIdMap:   channelIdMap,
-		BulkloadResult: bulkloadResult,
+		TeamIdMap:       teamIdMap,
+		ChannelIdMap:    channelIdMap,
+		TownSquareIdMap: townSquareIdMap,
+		BulkloadResult:  bulkloadResult,
 	}, nil
 }
 
