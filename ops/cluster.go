@@ -27,7 +27,7 @@ func ClusterInfoDirectory() (string, error) {
 		return "", fmt.Errorf("no home directory to place cluster info in")
 	}
 
-	dir := filepath.Join(u.HomeDir, ".mattermost-loadtest-ops", "cluster-info")
+	dir := filepath.Join(u.HomeDir, ".mattermost-load-test-ops", "cluster-info")
 	if err := os.MkdirAll(dir, 0700); err != nil && !os.IsExist(err) {
 		return "", errors.Wrap(err, "unable to create cluster info directory")
 	}

@@ -3,7 +3,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/mattermost/mattermost-loadtest-ops/ops"
+	"github.com/mattermost/mattermost-load-test-ops/ops"
 )
 
 var deleteCluster = &cobra.Command{

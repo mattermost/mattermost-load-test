@@ -3,12 +3,12 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/mattermost/mattermost-loadtest-ops/ops"
+	"github.com/mattermost/mattermost-load-test-ops/ops"
 )
 
 var createCluster = &cobra.Command{
 	Use:   "create-cluster",
-	Short: "Creates a cluster to run Mattermost on for loadtesting",
+	Short: "Creates a cluster to run Mattermost on for load testing",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var config ops.ClusterConfiguration
 		config.Name, _ = cmd.Flags().GetString("name")

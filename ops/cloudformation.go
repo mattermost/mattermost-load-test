@@ -70,7 +70,7 @@ func monitorCloudFormationStack(cf cloudformationiface.CloudFormationAPI, stackI
 }
 
 const clusterCloudFormationTemplate = `
-Description: Manages a Mattermost loadtest cluster
+Description: Manages a Mattermost load test cluster
 Mappings:
   Regions:
     us-east-1:
@@ -142,7 +142,36 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: app instance security group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
       VpcId: !Ref VPC
+  AppInstanceGossipTCPIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref AppInstanceSecurityGroup
+      IpProtocol: tcp
+      FromPort: '8074'
+      ToPort: '8074'
+      SourceSecurityGroupId: !Ref AppInstanceSecurityGroup
+  AppInstanceGossipUDPIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref AppInstanceSecurityGroup
+      IpProtocol: udp
+      FromPort: '8074'
+      ToPort: '8074'
+      SourceSecurityGroupId: !Ref AppInstanceSecurityGroup
+  AppInstanceStreamingTCPIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref AppInstanceSecurityGroup
+      IpProtocol: tcp
+      FromPort: '8075'
+      ToPort: '8075'
+      SourceSecurityGroupId: !Ref AppInstanceSecurityGroup
   AppLaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
@@ -182,6 +211,11 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: database security group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: 0.0.0.0/0
       VpcId: !Ref VPC
   DatabaseSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup

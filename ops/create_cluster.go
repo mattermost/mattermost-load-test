@@ -55,7 +55,7 @@ func CreateCluster(cluster *ClusterConfiguration) error {
 	if err != nil {
 		return errors.Wrap(err, "unable to generate request UUID")
 	}
-	requestToken := "mattermost-loadtest-ops-" + requestUUID.String()
+	requestToken := "mattermost-load-test-ops-" + requestUUID.String()
 
 	dbPasswordBytes := make([]byte, 15)
 	if _, err = rand.Read(dbPasswordBytes); err != nil {

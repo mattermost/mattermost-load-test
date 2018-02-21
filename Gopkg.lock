@@ -17,12 +17,14 @@
     "internal/awsutil",
     "internal/sdk",
     "private/protocol",
+    "private/protocol/ec2query",
     "private/protocol/query",
     "private/protocol/query/queryutil",
     "private/protocol/rest",
     "private/protocol/xml/xmlutil",
     "service/cloudformation",
     "service/cloudformation/cloudformationiface",
+    "service/ec2",
     "service/sts"
   ]
   revision = "b8e7febd4b80c6517240e473410b54d4e63fed1d"
@@ -101,6 +103,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cc2feb58747e05a05287e10e99a3f3bc7e15efe8c4c42fe00a3be29ad3e643ae"
+  inputs-digest = "e2bbd9235889de90b12fecf4943ecf7945fb1b79729e5719919c5bf4acd5ceac"
   solver-name = "gps-cdcl"
   solver-version = 1

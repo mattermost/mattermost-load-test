@@ -25,7 +25,7 @@ func DeleteCluster(name string) error {
 	if err != nil {
 		return errors.Wrap(err, "unable to generate request UUID")
 	}
-	requestToken := "mattermost-loadtest-ops-" + requestUUID.String()
+	requestToken := "mattermost-load-test-ops-" + requestUUID.String()
 
 	cf := cloudformation.New(cfg)
 	req := cf.DeleteStackRequest(&cloudformation.DeleteStackInput{
