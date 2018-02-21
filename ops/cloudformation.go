@@ -74,35 +74,15 @@ Description: Manages a Mattermost load test cluster
 Mappings:
   Regions:
     us-east-1:
-      AppImage: ami-97785bed
+      AppImage: ami-428aa838
     us-east-2:
-      AppImage: ami-f63b1193
-    us-west-2:
-      AppImage: ami-f2d3638a
+      AppImage: ami-710e2414
     us-west-1:
-      AppImage: ami-824c4ee2
+      AppImage: ami-4a787a2a
+    us-west-2:
+      AppImage: ami-7f43f307
     ca-central-1:
-      AppImage: ami-a954d1cd
-    eu-west-1:
-      AppImage: ami-d834aba1
-    eu-west-2:
-      AppImage: ami-403e2524
-    eu-west-3:
-      AppImage: ami-8ee056f3
-    eu-central-1:
-      AppImage: ami-5652ce39
-    ap-southeast-1:
-      AppImage: ami-68097514
-    ap-northeast-2:
-      AppImage: ami-863090e8
-    ap-northeast-1:
-      AppImage: ami-ceafcba8
-    ap-southeast-2:
-      AppImage: ami-942dd1f6
-    ap-south-1:
-      AppImage: ami-531a4c3c
-    sa-east-1:
-      AppImage: ami-84175ae8
+      AppImage: ami-7549cc11
 Parameters:
   AppInstanceCount:
     Type: Number
@@ -133,6 +113,8 @@ Resources:
       DesiredCapacity: !Ref AppInstanceCount
       HealthCheckType: EC2
       LaunchConfigurationName: !Ref AppLaunchConfiguration
+      LoadBalancerNames:
+        - !Ref LoadBalancer
       MaxSize: !Ref AppInstanceCount
       MinSize: !Ref AppInstanceCount
       VPCZoneIdentifier:
@@ -147,6 +129,14 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
       VpcId: !Ref VPC
   AppInstanceGossipTCPIngress:
     Type: AWS::EC2::SecurityGroupIngress
@@ -230,6 +220,28 @@ Resources:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
       InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancing::LoadBalancer
+    Properties:
+      Listeners:
+        - LoadBalancerPort: '80'
+          InstancePort: '80'
+          Protocol: TCP
+          InstanceProtocol: TCP
+        - LoadBalancerPort: '443'
+          InstancePort: '443'
+          Protocol: TCP
+          InstanceProtocol: TCP
+      SecurityGroups:
+        - !Ref LoadBalancerSecurityGroup
+      Subnets:
+        - !Ref Subnet1
+        - !Ref Subnet2
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: load balancer security group
       VpcId: !Ref VPC
   RouteTable:
     Type: AWS::EC2::RouteTable

@@ -3,7 +3,6 @@ package ops
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -23,12 +22,7 @@ func Deploy(distributionPath, clusterName string) error {
 		return errors.Wrap(err, "unable to load cluster info")
 	}
 
-	sshSigner, err := ssh.ParsePrivateKey(clusterInfo.SSHKey)
-	if err != nil {
-		return errors.Wrap(err, "unable to parse ssh private key")
-	}
-
-	instances, err := clusterAppInstances(clusterInfo)
+	instances, err := ClusterAppInstances(clusterInfo)
 	if err != nil {
 		return errors.Wrap(err, "unable to query cluster instances")
 	}
@@ -42,7 +36,7 @@ func Deploy(distributionPath, clusterName string) error {
 		instance := instance
 		go func() {
 			logrus.Infof("deploying to %v...", aws.StringValue(instance.InstanceId))
-			if err := deployToAppInstance(distributionPath, instance, sshSigner); err != nil {
+			if err := deployToAppInstance(distributionPath, clusterInfo, instance, logrus.WithField("instance-id", aws.StringValue(instance.InstanceId))); err != nil {
 				wrapped := errors.Wrap(err, "unable to deploy to "+aws.StringValue(instance.InstanceId))
 				logrus.Error(wrapped)
 				atomic.AddInt32(failed, 1)
@@ -63,23 +57,39 @@ func Deploy(distributionPath, clusterName string) error {
 	return nil
 }
 
-func deployToAppInstance(distributionPath string, instance *ec2.Instance, sshSigner ssh.Signer) error {
-	client, err := ssh.Dial("tcp", aws.StringValue(instance.PublicIpAddress)+":22", &ssh.ClientConfig{
-		User: "ec2-user",
-		Auth: []ssh.AuthMethod{
-			ssh.PublicKeys(sshSigner),
-		},
-		// TODO: get and save host key from console output after instance creation
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	})
+func deployToAppInstance(distributionPath string, clusterInfo *ClusterInfo, instance *ec2.Instance, logger logrus.FieldLogger) error {
+	client, err := sshClient(clusterInfo, instance)
 	if err != nil {
 		return errors.Wrap(err, "unable to connect to server via ssh")
 	}
 	defer client.Close()
 
-	remoteDistributionPath := "/tmp/mattermost-load-test-ops-" + filepath.Base(distributionPath)
+	logger.Debug("uploading distribution...")
+	remoteDistributionPath := "/tmp/mattermost.tar.gz"
 	if err := uploadFile(client, distributionPath, remoteDistributionPath); err != nil {
 		return errors.Wrap(err, "unable to upload distribution")
+	}
+
+	if err := uploadSystemdFile(client); err != nil {
+		return errors.Wrap(err, "unable to upload systemd file")
+	}
+
+	for _, cmd := range []string{
+		"sudo rm -rf mattermost /opt/mattermost",
+		"tar -xvzf /tmp/mattermost.tar.gz",
+		"sudo mv mattermost /opt",
+		"mkdir -p /opt/mattermost/data",
+		"id mattermost || sudo useradd --system --user-group mattermost",
+		"sudo chown -R mattermost:mattermost /opt/mattermost",
+		"sudo chmod -R g+w /opt/mattermost",
+		"sudo systemctl daemon-reload",
+		"sudo systemctl restart mattermost.service",
+		"sudo systemctl enable mattermost.service",
+	} {
+		logger.Debug("+ " + cmd)
+		if err := remoteCommand(client, cmd); err != nil {
+			return errors.Wrap(err, "error running command: "+cmd)
+		}
 	}
 
 	return nil
@@ -91,6 +101,20 @@ func shellQuote(s string) string {
 		panic("shell quoting not actually implemented. don't use weird paths")
 	}
 	return "'" + s + "'"
+}
+
+func remoteCommand(client *ssh.Client, cmd string) error {
+	session, err := client.NewSession()
+	if err != nil {
+		return errors.Wrap(err, "unable to create ssh session")
+	}
+	defer session.Close()
+
+	if err := session.Run(cmd); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func uploadFile(client *ssh.Client, source, destination string) error {
@@ -107,14 +131,48 @@ func uploadFile(client *ssh.Client, source, destination string) error {
 	defer session.Close()
 
 	session.Stdin = f
-	if err := session.Run(fmt.Sprintf("cat > %v", shellQuote(destination))); err != nil {
+	if err := session.Run("cat > " + shellQuote(destination)); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func clusterAppInstances(clusterInfo *ClusterInfo) ([]*ec2.Instance, error) {
+func uploadSystemdFile(client *ssh.Client) error {
+	session, err := client.NewSession()
+	if err != nil {
+		return errors.Wrap(err, "unable to create ssh session")
+	}
+	defer session.Close()
+
+	service := `
+[Unit]
+Description=Mattermost
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/opt/mattermost/bin/platform
+Restart=always
+RestartSec=10
+WorkingDirectory=/opt/mattermost
+User=mattermost
+Group=mattermost
+LimitNOFILE=49152
+
+[Install]
+WantedBy=multi-user.target
+`
+
+	session.Stdin = strings.NewReader(strings.TrimSpace(service))
+	if err := session.Run("cat | sudo tee /lib/systemd/system/mattermost.service"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ClusterAppInstances(clusterInfo *ClusterInfo) ([]*ec2.Instance, error) {
 	cfg, err := external.LoadDefaultAWSConfig()
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to load AWS config")
@@ -123,6 +181,10 @@ func clusterAppInstances(clusterInfo *ClusterInfo) ([]*ec2.Instance, error) {
 	ec2svc := ec2.New(cfg)
 	req := ec2svc.DescribeInstancesRequest(&ec2.DescribeInstancesInput{
 		Filters: []ec2.Filter{
+			{
+				Name:   aws.String("instance-state-name"),
+				Values: []string{"running"},
+			},
 			{
 				Name:   aws.String("tag:aws:cloudformation:stack-id"),
 				Values: []string{clusterInfo.CloudFormationStackId},
