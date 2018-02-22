@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/cloudformationiface"
 )
 
-func monitorCloudFormationStack(cf cloudformationiface.CloudFormationAPI, stackId, requestToken string) (cloudformation.StackStatus, error) {
+func monitorCloudFormationStack(cf cloudformationiface.CloudFormationAPI, stackId, requestToken string) (*cloudformation.Stack, error) {
 	seenEventIds := make(map[string]bool)
 
 	waitDuration := time.Second
@@ -25,11 +25,11 @@ func monitorCloudFormationStack(cf cloudformationiface.CloudFormationAPI, stackI
 
 		descStacksResp, err := descStackReq.Send()
 		if err != nil {
-			return "", errors.Wrap(err, "unable to query stack status")
+			return nil, errors.Wrap(err, "unable to query stack status")
 		}
 
 		if len(descStacksResp.Stacks) != 1 {
-			return "", fmt.Errorf("expected single stack in describe response")
+			return nil, fmt.Errorf("expected single stack in describe response")
 		}
 
 		status := descStacksResp.Stacks[0].StackStatus
@@ -40,7 +40,7 @@ func monitorCloudFormationStack(cf cloudformationiface.CloudFormationAPI, stackI
 
 		descEventsResp, err := descEventsReq.Send()
 		if err != nil {
-			return "", errors.Wrap(err, "unable to query stack events")
+			return nil, errors.Wrap(err, "unable to query stack events")
 		}
 
 		for i := len(descEventsResp.StackEvents) - 1; i >= 0; i-- {
@@ -58,7 +58,7 @@ func monitorCloudFormationStack(cf cloudformationiface.CloudFormationAPI, stackI
 		}
 
 		if !strings.HasSuffix(string(status), "_IN_PROGRESS") {
-			return status, nil
+			return &descStacksResp.Stacks[0], nil
 		}
 
 		time.Sleep(waitDuration)
@@ -83,6 +83,11 @@ Mappings:
       AppImage: ami-7f43f307
     ca-central-1:
       AppImage: ami-7549cc11
+Outputs:
+  DBEndpointAddress:
+    Value: !GetAtt Database.Endpoint.Address
+  LoadBalancerDNSName:
+    Value: !GetAtt LoadBalancer.DNSName
 Parameters:
   AppInstanceCount:
     Type: Number
@@ -132,10 +137,6 @@ Resources:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
-        - IpProtocol: tcp
-          FromPort: 443
-          ToPort: 443
           SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
       VpcId: !Ref VPC
   AppInstanceGossipTCPIngress:
@@ -229,10 +230,6 @@ Resources:
           InstancePort: '80'
           Protocol: TCP
           InstanceProtocol: TCP
-        - LoadBalancerPort: '443'
-          InstancePort: '443'
-          Protocol: TCP
-          InstanceProtocol: TCP
       SecurityGroups:
         - !Ref LoadBalancerSecurityGroup
       Subnets:
@@ -242,6 +239,11 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: load balancer security group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
       VpcId: !Ref VPC
   RouteTable:
     Type: AWS::EC2::RouteTable

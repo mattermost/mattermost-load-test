@@ -12,9 +12,10 @@ import (
 )
 
 type ClusterInfo struct {
-	CloudFormationStackId string
-	DatabasePassword      string
-	SSHKey                []byte
+	CloudFormationStackId      string
+	CloudFormationStackOutputs map[string]string
+	DatabasePassword           string
+	SSHKey                     []byte
 }
 
 func ClusterInfoDirectory() (string, error) {
@@ -72,4 +73,14 @@ func LoadClusterInfo(name string) (*ClusterInfo, error) {
 	}
 
 	return info, nil
+}
+
+func DeleteClusterInfo(name string) error {
+	dir, err := ClusterInfoDirectory()
+	if err != nil {
+		return err
+	}
+
+	path := filepath.Join(dir, name)
+	return os.RemoveAll(path)
 }

@@ -1,6 +1,7 @@
 package ops
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -16,7 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 )
 
-func Deploy(distributionPath, clusterName string) error {
+func Deploy(distributionPath, clusterName, licenseFile string) error {
 	clusterInfo, err := LoadClusterInfo(clusterName)
 	if err != nil {
 		return errors.Wrap(err, "unable to load cluster info")
@@ -36,7 +37,7 @@ func Deploy(distributionPath, clusterName string) error {
 		instance := instance
 		go func() {
 			logrus.Infof("deploying to %v...", aws.StringValue(instance.InstanceId))
-			if err := deployToAppInstance(distributionPath, clusterInfo, instance, logrus.WithField("instance-id", aws.StringValue(instance.InstanceId))); err != nil {
+			if err := deployToAppInstance(distributionPath, licenseFile, clusterInfo, instance, logrus.WithField("instance-id", aws.StringValue(instance.InstanceId))); err != nil {
 				wrapped := errors.Wrap(err, "unable to deploy to "+aws.StringValue(instance.InstanceId))
 				logrus.Error(wrapped)
 				atomic.AddInt32(failed, 1)
@@ -57,7 +58,7 @@ func Deploy(distributionPath, clusterName string) error {
 	return nil
 }
 
-func deployToAppInstance(distributionPath string, clusterInfo *ClusterInfo, instance *ec2.Instance, logger logrus.FieldLogger) error {
+func deployToAppInstance(distributionPath, licenseFile string, clusterInfo *ClusterInfo, instance *ec2.Instance, logger logrus.FieldLogger) error {
 	client, err := sshClient(clusterInfo, instance)
 	if err != nil {
 		return errors.Wrap(err, "unable to connect to server via ssh")
@@ -79,9 +80,45 @@ func deployToAppInstance(distributionPath string, clusterInfo *ClusterInfo, inst
 		"tar -xvzf /tmp/mattermost.tar.gz",
 		"sudo mv mattermost /opt",
 		"mkdir -p /opt/mattermost/data",
+		"sudo yum install -y jq",
+	} {
+		logger.Debug("+ " + cmd)
+		if err := remoteCommand(client, cmd); err != nil {
+			return errors.Wrap(err, "error running command: "+cmd)
+		}
+	}
+
+	logger.Debug("uploading license file...")
+	remoteLicenseFilePath := "/opt/mattermost/config/mattermost.mattermost-license"
+	if err := uploadFile(client, licenseFile, remoteLicenseFilePath); err != nil {
+		return errors.Wrap(err, "unable to upload license file")
+	}
+
+	for k, v := range map[string]interface{}{
+		".ServiceSettings.ListenAddress":       ":80",
+		".ServiceSettings.LicenseFileLocation": remoteLicenseFilePath,
+		".ServiceSettings.SiteURL":             "http://" + clusterInfo.CloudFormationStackOutputs["LoadBalancerDNSName"],
+		".SqlSettings.DriverName":              "mysql",
+		".SqlSettings.DataSource":              "loadtest:" + clusterInfo.DatabasePassword + "@tcp(" + clusterInfo.CloudFormationStackOutputs["DBEndpointAddress"] + ":3306)/loadtest?charset=utf8mb4,utf8&readTimeout=20s&writeTimeout=20s&timeout=20s",
+		".ClusterSettings.Enable":              true,
+		".ClusterSettings.ClusterName":         "load-test",
+		".ClusterSettings.ReadOnlyConfig":      false, // workaround for MM-9688
+	} {
+		logger.Debug("updating config: " + k)
+		jsonValue, err := json.Marshal(v)
+		if err != nil {
+			return errors.Wrap(err, "invalid config value for key: "+k)
+		}
+		if err := remoteCommand(client, fmt.Sprintf(`jq '%s = %s' /opt/mattermost/config/config.json > /tmp/mmcfg.json && mv /tmp/mmcfg.json /opt/mattermost/config/config.json`, k, string(jsonValue))); err != nil {
+			return errors.Wrap(err, "error updating config: "+k)
+		}
+	}
+
+	for _, cmd := range []string{
 		"id mattermost || sudo useradd --system --user-group mattermost",
 		"sudo chown -R mattermost:mattermost /opt/mattermost",
 		"sudo chmod -R g+w /opt/mattermost",
+		"sudo setcap cap_net_bind_service=+ep /opt/mattermost/bin/platform",
 		"sudo systemctl daemon-reload",
 		"sudo systemctl restart mattermost.service",
 		"sudo systemctl enable mattermost.service",

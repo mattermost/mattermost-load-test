@@ -12,13 +12,17 @@ var deploy = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clusterName, _ := cmd.Flags().GetString("cluster-name")
-		return ops.Deploy(args[0], clusterName)
+		licenseFile, _ := cmd.Flags().GetString("license-file")
+		return ops.Deploy(args[0], clusterName, licenseFile)
 	},
 }
 
 func init() {
 	deploy.Flags().String("cluster-name", "", "the name of the cluster to deploy to (required)")
 	deploy.MarkFlagRequired("cluster-name")
+
+	deploy.Flags().String("license-file", "", "the license file to use (required)")
+	deploy.MarkFlagRequired("license-file")
 
 	rootCmd.AddCommand(deploy)
 }

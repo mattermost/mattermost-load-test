@@ -104,16 +104,23 @@ func CreateCluster(cluster *ClusterConfiguration) error {
 
 	logrus.Info("creating cluster...")
 
-	if err := SaveClusterInfo(cluster.Name, &ClusterInfo{
-		CloudFormationStackId: *resp.StackId,
-		DatabasePassword:      dbPassword,
-		SSHKey:                sshPrivateKeyPEM,
-	}); err != nil {
-		return errors.Wrap(err, "unable to save cluster info. please delete the CloudFormation stack manually")
+	stack, err := monitorCloudFormationStack(cf, *resp.StackId, requestToken)
+	if err != nil || stack.StackStatus != cloudformation.StackStatusCreateComplete {
+		return errors.Wrap(err, "stack creation failed. you may need to delete the CloudFormation stack manually and try again")
 	}
 
-	if status, err := monitorCloudFormationStack(cf, *resp.StackId, requestToken); err != nil || status != cloudformation.StackStatusCreateComplete {
-		return errors.Wrap(err, "stack creation failed. you may need to delete the CloudFormation stack manually and try again")
+	outputs := make(map[string]string)
+	for _, output := range stack.Outputs {
+		outputs[aws.StringValue(output.OutputKey)] = aws.StringValue(output.OutputValue)
+	}
+
+	if err := SaveClusterInfo(cluster.Name, &ClusterInfo{
+		CloudFormationStackId:      *resp.StackId,
+		CloudFormationStackOutputs: outputs,
+		DatabasePassword:           dbPassword,
+		SSHKey:                     sshPrivateKeyPEM,
+	}); err != nil {
+		return errors.Wrap(err, "unable to save cluster info. please delete the CloudFormation stack manually")
 	}
 
 	return nil

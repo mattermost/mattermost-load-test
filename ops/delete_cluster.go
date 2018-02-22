@@ -40,9 +40,9 @@ func DeleteCluster(name string) error {
 
 	logrus.Info("deleting cluster...")
 
-	if status, err := monitorCloudFormationStack(cf, clusterInfo.CloudFormationStackId, requestToken); err != nil || status != cloudformation.StackStatusDeleteComplete {
+	if stack, err := monitorCloudFormationStack(cf, clusterInfo.CloudFormationStackId, requestToken); err != nil || stack.StackStatus != cloudformation.StackStatusDeleteComplete {
 		return errors.Wrap(err, "stack deletion failed")
 	}
 
-	return nil
+	return DeleteClusterInfo(name)
 }
