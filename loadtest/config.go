@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"html/template"
 	"reflect"
+	"strings"
 
 	"github.com/mattermost/mattermost-load-test/cmdlog"
 	"github.com/spf13/pflag"
@@ -73,6 +74,10 @@ func GetConfig() (*LoadTestConfig, error) {
 	viper.SetConfigName("loadtestconfig")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("./config/")
+	viper.SetEnvPrefix("mmloadtest")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.AutomaticEnv()
+
 	err := viper.ReadInConfig()
 	if err != nil {
 		return nil, err

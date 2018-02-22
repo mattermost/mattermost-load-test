@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/icrowley/fake"
 	"github.com/mattermost/mattermost-load-test/cmdlog"
 	"github.com/mattermost/mattermost-load-test/loadtest"
 	"github.com/spf13/cobra"
@@ -56,12 +55,6 @@ var tests []TestItem = []TestItem{
 }
 
 func main() {
-	cmdPing := &cobra.Command{
-		Use:   "ping",
-		Short: "Check that our connection information to the server is correct.",
-		Run:   pingCmd,
-	}
-
 	cmdLoad := &cobra.Command{
 		Use:   "loadposts",
 		Short: "Load posts onto server",
@@ -95,13 +88,8 @@ func main() {
 		})
 	}
 	rootCmd.AddCommand(commands...)
-	rootCmd.AddCommand(cmdPing, cmdPprof, cmdLoad, cmdGenerate)
+	rootCmd.AddCommand(cmdPprof, cmdLoad, cmdGenerate)
 	rootCmd.Execute()
-}
-
-func pingCmd(cmd *cobra.Command, args []string) {
-	// Print a paragraph
-	fmt.Println(fake.Paragraph())
 }
 
 func pprofCmd(cmd *cobra.Command, args []string) {
