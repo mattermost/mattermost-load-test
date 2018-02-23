@@ -1,4 +1,4 @@
-# Mattermost load test
+# Mattermost load test [![Docker Build Status](https://img.shields.io/docker/build/mattermost/mattermost-load-test.svg)](https://hub.docker.com/r/mattermost/mattermost-load-test/)
 
 The Mattermost load test provides infrastructure for simulating real-world usage of the Mattermost Enterprise Edition E20 at scale.
 
@@ -37,7 +37,7 @@ Install the `loadtest` command on the load test server using [these instructions
 
 ### 3) Configure
 
-Edit the [configuration file](https://github.com/mattermost/mattermost-load-test/blob/master/loadtestconfig.json) on the load test machine. Make sure the fields under "ConnectionConfiguration" are set correctly.
+Edit the [configuration file](https://github.com/mattermost/mattermost-load-test/blob/master/loadtestconfig.json) on the load test machine. Alternatively, you can use environment variables such as `MMLOADTEST_CONNECTIONCONFIGURATION_SERVERURL` to set configuration values. Make sure the fields under "ConnectionConfiguration" are set correctly.
 
 To produce useful results, set `NumUsers` to at least 5000, and `TestLengthMinutes` to at least 20.
 
