@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -16,6 +17,14 @@ type ClusterInfo struct {
 	CloudFormationStackOutputs map[string]string
 	DatabasePassword           string
 	SSHKey                     []byte
+}
+
+func (ci *ClusterInfo) CloudFormationStackName() string {
+	return strings.Split(ci.CloudFormationStackId, "/")[1]
+}
+
+func (ci *ClusterInfo) DatabaseConnectionString() string {
+	return "loadtest:" + ci.DatabasePassword + "@tcp(" + ci.CloudFormationStackOutputs["DBEndpointAddress"] + ":3306)/loadtest?charset=utf8mb4,utf8&readTimeout=20s&writeTimeout=20s&timeout=20s"
 }
 
 func ClusterInfoDirectory() (string, error) {

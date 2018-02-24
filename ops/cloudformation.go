@@ -69,7 +69,8 @@ func monitorCloudFormationStack(cf cloudformationiface.CloudFormationAPI, stackI
 	}
 }
 
-const clusterCloudFormationTemplate = `
+func clusterCloudFormationTemplate(appInstanceCount int) string {
+	template := `
 Description: Manages a Mattermost load test cluster
 Mappings:
   Regions:
@@ -88,9 +89,19 @@ Outputs:
     Value: !GetAtt Database.Endpoint.Address
   LoadBalancerDNSName:
     Value: !GetAtt LoadBalancer.DNSName
+  LoadTestCluster:
+    Value: !Ref LoadTestCluster
+  LoadTestLogGroup:
+    Value: !Ref LoadTestLogGroup
+  LoadTestSecurityGroup:
+    Value: !Ref LoadTestSecurityGroup
+  LoadTestTaskDefinition:
+    Value: !Ref LoadTestTaskDefinition
+  Subnet1:
+    Value: !Ref Subnet1
+  Subnet2:
+    Value: !Ref Subnet2
 Parameters:
-  AppInstanceCount:
-    Type: Number
   AppInstanceType:
     Type: String
   DBInstanceType:
@@ -101,30 +112,57 @@ Parameters:
   SSHAuthorizedKey:
     Type: String
 Resources:
-  AppAutoScalingGroup:
-    Type: AWS::AutoScaling::AutoScalingGroup
+  AppHost:
+    Type: AWS::EC2::Host
+    Properties:
+      AutoPlacement: 'off'
+      AvailabilityZone: !Select 
+        - 0
+        - Fn::GetAZs: !Ref AWS::Region
+      InstanceType: !Ref AppInstanceType
+`
+
+	for i := 0; i < appInstanceCount; i++ {
+		template += fmt.Sprintf(`
+  AppInstance%d:
+    Type: AWS::EC2::Instance
     DependsOn:
       - InternetGatewayAttachment
       - Subnet1RouteTableAssociation
-      - Subnet2RouteTableAssociation
     CreationPolicy:
       ResourceSignal:
-        Count: !Ref AppInstanceCount
         Timeout: PT10M
-    UpdatePolicy:
-      AutoScalingReplacingUpdate:
-        WillReplace: true
     Properties:
-      DesiredCapacity: !Ref AppInstanceCount
-      HealthCheckType: EC2
-      LaunchConfigurationName: !Ref AppLaunchConfiguration
-      LoadBalancerNames:
-        - !Ref LoadBalancer
-      MaxSize: !Ref AppInstanceCount
-      MinSize: !Ref AppInstanceCount
-      VPCZoneIdentifier:
-        - !Ref Subnet1
-        - !Ref Subnet2
+      Affinity: host
+      AvailabilityZone: !Select 
+        - 0
+        - Fn::GetAZs: !Ref AWS::Region
+      EbsOptimized: true
+      HostId: !Ref AppHost
+      ImageId: !FindInMap [Regions, !Ref 'AWS::Region', AppImage]
+      InstanceType: !Ref AppInstanceType
+      Monitoring: true
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: true
+          DeviceIndex: '0'
+          GroupSet: 
+            - !Ref AppInstanceSecurityGroup
+          SubnetId: !Ref Subnet1
+      Tags:
+        - Key: mattermost-load-test-app-instance
+          Value: 'true'
+      Tenancy: host
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          yum install -y aws-cfn-bootstrap
+          mkdir -p /home/ec2-user/.ssh
+          echo '${SSHAuthorizedKey}' > /home/ec2-user/.ssh/authorized_keys
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource AppInstance%d --region ${AWS::Region}
+`, i, i)
+	}
+
+	template += `
   AppInstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -138,6 +176,10 @@ Resources:
           FromPort: 80
           ToPort: 80
           SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 8067
+          ToPort: 8067
+          CidrIp: 0.0.0.0/0
       VpcId: !Ref VPC
   AppInstanceGossipTCPIngress:
     Type: AWS::EC2::SecurityGroupIngress
@@ -163,21 +205,6 @@ Resources:
       FromPort: '8075'
       ToPort: '8075'
       SourceSecurityGroupId: !Ref AppInstanceSecurityGroup
-  AppLaunchConfiguration:
-    Type: AWS::AutoScaling::LaunchConfiguration
-    Properties:
-      AssociatePublicIpAddress: true
-      ImageId: !FindInMap [Regions, !Ref 'AWS::Region', AppImage]
-      InstanceType: !Ref AppInstanceType
-      SecurityGroups:
-        - !Ref AppInstanceSecurityGroup
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash -xe
-          yum install -y aws-cfn-bootstrap
-          mkdir -p /home/ec2-user/.ssh
-          echo '${SSHAuthorizedKey}' > /home/ec2-user/.ssh/authorized_keys
-          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource AppAutoScalingGroup --region ${AWS::Region}
   Database:
     Type: AWS::RDS::DBInstance
     Properties:
@@ -225,26 +252,98 @@ Resources:
   LoadBalancer:
     Type: AWS::ElasticLoadBalancing::LoadBalancer
     Properties:
+      ConnectionSettings:
+        IdleTimeout: 4000
+      HealthCheck:
+        HealthyThreshold: 2
+        Interval: 15
+        Target: 'TCP:80'
+        Timeout: 2
+        UnhealthyThreshold: 2
+      Instances:
+`
+
+	for i := 0; i < appInstanceCount; i++ {
+		template += fmt.Sprintf("        - !Ref AppInstance%d\n", i)
+	}
+
+	template += `
       Listeners:
+        - LoadBalancerPort: '22'
+          InstancePort: '22'
+          Protocol: TCP
+          InstanceProtocol: TCP
         - LoadBalancerPort: '80'
           InstancePort: '80'
+          Protocol: TCP
+          InstanceProtocol: TCP
+        - LoadBalancerPort: '8067'
+          InstancePort: '8067'
           Protocol: TCP
           InstanceProtocol: TCP
       SecurityGroups:
         - !Ref LoadBalancerSecurityGroup
       Subnets:
         - !Ref Subnet1
-        - !Ref Subnet2
   LoadBalancerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: load balancer security group
       SecurityGroupIngress:
         - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8067
+          ToPort: 8067
+          CidrIp: 0.0.0.0/0
       VpcId: !Ref VPC
+  LoadTestCluster:
+    Type: AWS::ECS::Cluster
+  LoadTestLogGroup:
+    Type: AWS::Logs::LogGroup
+  LoadTestSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: load test security group
+      VpcId: !Ref VPC
+  LoadTestTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ContainerDefinitions:
+        - Image: mattermost/mattermost-load-test
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LoadTestLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: !Ref AWS::StackName
+          MemoryReservation: 10000
+          Name: loadtest
+      Cpu: 4096
+      ExecutionRoleArn: !Ref LoadTestTaskRole
+      Family: !Ref AWS::StackName
+      Memory: 16GB
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+  LoadTestTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
   RouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -286,8 +385,10 @@ Resources:
     Properties:
       CidrBlock: 10.0.0.0/16
       EnableDnsHostnames: true
-      InstanceTenancy: dedicated
       Tags:
         - Key: Name
           Value: !Ref AWS::StackName
 `
+
+	return template
+}

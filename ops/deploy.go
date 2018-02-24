@@ -99,10 +99,12 @@ func deployToAppInstance(distributionPath, licenseFile string, clusterInfo *Clus
 		".ServiceSettings.LicenseFileLocation": remoteLicenseFilePath,
 		".ServiceSettings.SiteURL":             "http://" + clusterInfo.CloudFormationStackOutputs["LoadBalancerDNSName"],
 		".SqlSettings.DriverName":              "mysql",
-		".SqlSettings.DataSource":              "loadtest:" + clusterInfo.DatabasePassword + "@tcp(" + clusterInfo.CloudFormationStackOutputs["DBEndpointAddress"] + ":3306)/loadtest?charset=utf8mb4,utf8&readTimeout=20s&writeTimeout=20s&timeout=20s",
+		".SqlSettings.DataSource":              clusterInfo.DatabaseConnectionString(),
 		".ClusterSettings.Enable":              true,
 		".ClusterSettings.ClusterName":         "load-test",
-		".ClusterSettings.ReadOnlyConfig":      false, // workaround for MM-9688
+		".ClusterSettings.ReadOnlyConfig":      false,
+		".MetricsSettings.Enable":              true,
+		".MetricsSettings.BlockProfileRate":    1,
 	} {
 		logger.Debug("updating config: " + k)
 		jsonValue, err := json.Marshal(v)
@@ -115,9 +117,6 @@ func deployToAppInstance(distributionPath, licenseFile string, clusterInfo *Clus
 	}
 
 	for _, cmd := range []string{
-		"id mattermost || sudo useradd --system --user-group mattermost",
-		"sudo chown -R mattermost:mattermost /opt/mattermost",
-		"sudo chmod -R g+w /opt/mattermost",
 		"sudo setcap cap_net_bind_service=+ep /opt/mattermost/bin/platform",
 		"sudo systemctl daemon-reload",
 		"sudo systemctl restart mattermost.service",
@@ -193,7 +192,7 @@ ExecStart=/opt/mattermost/bin/platform
 Restart=always
 RestartSec=10
 WorkingDirectory=/opt/mattermost
-User=mattermost
+User=ec2-user
 Group=mattermost
 LimitNOFILE=49152
 
@@ -227,8 +226,8 @@ func ClusterAppInstances(clusterInfo *ClusterInfo) ([]*ec2.Instance, error) {
 				Values: []string{clusterInfo.CloudFormationStackId},
 			},
 			{
-				Name:   aws.String("tag:aws:cloudformation:logical-id"),
-				Values: []string{"AppAutoScalingGroup"},
+				Name:   aws.String("tag:mattermost-load-test-app-instance"),
+				Values: []string{"true"},
 			},
 		},
 	})

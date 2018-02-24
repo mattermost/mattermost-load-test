@@ -18,13 +18,19 @@
     "internal/sdk",
     "private/protocol",
     "private/protocol/ec2query",
+    "private/protocol/json/jsonutil",
+    "private/protocol/jsonrpc",
     "private/protocol/query",
     "private/protocol/query/queryutil",
     "private/protocol/rest",
     "private/protocol/xml/xmlutil",
     "service/cloudformation",
     "service/cloudformation/cloudformationiface",
+    "service/cloudwatchlogs",
+    "service/cloudwatchlogs/cloudwatchlogsiface",
     "service/ec2",
+    "service/ecs",
+    "service/ecs/ecsiface",
     "service/sts"
   ]
   revision = "b8e7febd4b80c6517240e473410b54d4e63fed1d"
@@ -103,6 +109,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e2bbd9235889de90b12fecf4943ecf7945fb1b79729e5719919c5bf4acd5ceac"
+  inputs-digest = "3f5c27adad8a4f2932b761f45cf3b677e0e3ec1a7ce606cbe53299093cb8d9b4"
   solver-name = "gps-cdcl"
   solver-version = 1

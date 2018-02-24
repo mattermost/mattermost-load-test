@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
-	"fmt"
 
 	"github.com/nu7hatch/gouuid"
 	"github.com/pkg/errors"
@@ -70,14 +69,11 @@ func CreateCluster(cluster *ClusterConfiguration) error {
 
 	cf := cloudformation.New(cfg)
 	req := cf.CreateStackRequest(&cloudformation.CreateStackInput{
+		Capabilities:       []cloudformation.Capability{cloudformation.CapabilityCapabilityIam},
 		ClientRequestToken: aws.String(requestToken),
 		StackName:          aws.String(cluster.Name),
-		TemplateBody:       aws.String(clusterCloudFormationTemplate),
+		TemplateBody:       aws.String(clusterCloudFormationTemplate(cluster.AppInstanceCount)),
 		Parameters: []cloudformation.Parameter{
-			{
-				ParameterKey:   aws.String("AppInstanceCount"),
-				ParameterValue: aws.String(fmt.Sprintf("%d", cluster.AppInstanceCount)),
-			},
 			{
 				ParameterKey:   aws.String("AppInstanceType"),
 				ParameterValue: aws.String(cluster.AppInstanceType),
