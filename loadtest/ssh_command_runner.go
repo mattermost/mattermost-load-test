@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/mattermost/mattermost-load-test/cmdlog"
@@ -24,14 +25,19 @@ type MattermostSSHConnection struct {
 func ConnectSSH(sshHostnamePort, sshKey, sshUsername, sshPassword, mattermostInstallDir string, configFileLoc string) (*MattermostSSHConnection, error) {
 	var config *ssh.ClientConfig
 	if sshKey != "" {
-		key, err := ioutil.ReadFile(sshKey)
-		if err != nil {
-			return nil, fmt.Errorf("Unable to read SSH key provided: %v : %v", sshKey, err.Error())
+		key := []byte(sshKey)
+
+		if !strings.Contains(sshKey, "\n") {
+			var err error
+			key, err = ioutil.ReadFile(sshKey)
+			if err != nil {
+				return nil, fmt.Errorf("Unable to read SSH key provided: %v", err.Error())
+			}
 		}
 
 		signer, err := ssh.ParsePrivateKey(key)
 		if err != nil {
-			return nil, fmt.Errorf("Unable to parse SSH key provided: %v : %v", sshKey, err.Error())
+			return nil, fmt.Errorf("Unable to parse SSH key provided: %v", err.Error())
 		}
 
 		config = &ssh.ClientConfig{
