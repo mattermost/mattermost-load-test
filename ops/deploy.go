@@ -98,6 +98,7 @@ func deployToAppInstance(distributionPath, licenseFile string, clusterInfo *Clus
 		".ServiceSettings.ListenAddress":       ":80",
 		".ServiceSettings.LicenseFileLocation": remoteLicenseFilePath,
 		".ServiceSettings.SiteURL":             "http://" + clusterInfo.CloudFormationStackOutputs["LoadBalancerDNSName"],
+		".ServiceSettings.EnableAPIv3":         true,
 		".SqlSettings.DriverName":              "mysql",
 		".SqlSettings.DataSource":              clusterInfo.DatabaseConnectionString(),
 		".ClusterSettings.Enable":              true,
@@ -193,7 +194,7 @@ Restart=always
 RestartSec=10
 WorkingDirectory=/opt/mattermost
 User=ec2-user
-Group=mattermost
+Group=ec2-user
 LimitNOFILE=49152
 
 [Install]

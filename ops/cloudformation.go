@@ -256,7 +256,7 @@ Resources:
         IdleTimeout: 4000
       HealthCheck:
         HealthyThreshold: 2
-        Interval: 15
+        Interval: 5
         Target: 'TCP:80'
         Timeout: 2
         UnhealthyThreshold: 2

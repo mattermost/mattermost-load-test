@@ -1,7 +1,11 @@
 package ops
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+	"os/signal"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,7 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ecs/ecsiface"
 )
 
-func Loadtest(clusterName string, args []string) error {
+func LoadTest(clusterName, configFile string, args []string) error {
 	clusterInfo, err := LoadClusterInfo(clusterName)
 	if err != nil {
 		return errors.Wrap(err, "unable to load cluster info")
@@ -31,6 +35,55 @@ func Loadtest(clusterName string, args []string) error {
 	logrus.Info("launching load test...")
 
 	ecsSvc := ecs.New(cfg)
+
+	env := make(map[string]string)
+
+	if configFile != "" {
+		var config map[string]interface{}
+
+		f, err := os.Open(configFile)
+		if err != nil {
+			return errors.Wrap(err, "unable to open config file")
+		}
+		defer f.Close()
+
+		if err := json.NewDecoder(f).Decode(&config); err != nil {
+			return errors.Wrap(err, "unable to parse config file")
+		}
+
+		var inspect func(string, interface{})
+		inspect = func(prefix string, v interface{}) {
+			switch v := v.(type) {
+			case map[string]interface{}:
+				for k, v := range v {
+					inspect(prefix+"_"+strings.ToUpper(k), v)
+				}
+			case float64:
+				env[prefix] = strconv.FormatFloat(v, 'f', -1, 64)
+			default:
+				env[prefix] = fmt.Sprint(v)
+			}
+		}
+		inspect("MMLOADTEST", config)
+	}
+
+	env["MMLOADTEST_CONNECTIONCONFIGURATION_SERVERURL"] = "http://" + clusterInfo.CloudFormationStackOutputs["LoadBalancerDNSName"]
+	env["MMLOADTEST_CONNECTIONCONFIGURATION_WEBSOCKETURL"] = "ws://" + clusterInfo.CloudFormationStackOutputs["LoadBalancerDNSName"]
+	env["MMLOADTEST_CONNECTIONCONFIGURATION_PPROFURL"] = "http://" + clusterInfo.CloudFormationStackOutputs["LoadBalancerDNSName"] + ":8067/debug/pprof"
+	env["MMLOADTEST_CONNECTIONCONFIGURATION_DBENDPOINT"] = clusterInfo.DatabaseConnectionString()
+	env["MMLOADTEST_CONNECTIONCONFIGURATION_LOCALCOMMANDS"] = "false"
+	env["MMLOADTEST_CONNECTIONCONFIGURATION_SSHHOSTNAMEPORT"] = clusterInfo.CloudFormationStackOutputs["LoadBalancerDNSName"] + ":22"
+	env["MMLOADTEST_CONNECTIONCONFIGURATION_SSHUSERNAME"] = "ec2-user"
+	env["MMLOADTEST_CONNECTIONCONFIGURATION_SSHKEY"] = string(clusterInfo.SSHKey)
+	env["MMLOADTEST_CONNECTIONCONFIGURATION_MATTERMOSTINSTALLDIR"] = "/opt/mattermost"
+
+	var envPairs []ecs.KeyValuePair
+	for k, v := range env {
+		envPairs = append(envPairs, ecs.KeyValuePair{
+			Name:  aws.String(k),
+			Value: aws.String(v),
+		})
+	}
 
 	req := ecsSvc.RunTaskRequest(&ecs.RunTaskInput{
 		Cluster:    aws.String(clusterInfo.CloudFormationStackOutputs["LoadTestCluster"]),
@@ -49,46 +102,9 @@ func Loadtest(clusterName string, args []string) error {
 		Overrides: &ecs.TaskOverride{
 			ContainerOverrides: []ecs.ContainerOverride{
 				{
-					Command: args,
-					Environment: []ecs.KeyValuePair{
-						{
-							Name:  aws.String("MMLOADTEST_CONNECTIONCONFIGURATION_SERVERURL"),
-							Value: aws.String("http://" + clusterInfo.CloudFormationStackOutputs["LoadBalancerDNSName"]),
-						},
-						{
-							Name:  aws.String("MMLOADTEST_CONNECTIONCONFIGURATION_WEBSOCKETURL"),
-							Value: aws.String("ws://" + clusterInfo.CloudFormationStackOutputs["LoadBalancerDNSName"]),
-						},
-						{
-							Name:  aws.String("MMLOADTEST_CONNECTIONCONFIGURATION_PPROFURL"),
-							Value: aws.String("http://" + clusterInfo.CloudFormationStackOutputs["LoadBalancerDNSName"] + ":8067/debug/pprof"),
-						},
-						{
-							Name:  aws.String("MMLOADTEST_CONNECTIONCONFIGURATION_DBENDPOINT"),
-							Value: aws.String(clusterInfo.DatabaseConnectionString()),
-						},
-						{
-							Name:  aws.String("MMLOADTEST_CONNECTIONCONFIGURATION_LOCALCOMMANDS"),
-							Value: aws.String("false"),
-						},
-						{
-							Name:  aws.String("MMLOADTEST_CONNECTIONCONFIGURATION_SSHHOSTNAMEPORT"),
-							Value: aws.String(clusterInfo.CloudFormationStackOutputs["LoadBalancerDNSName"] + ":22"),
-						},
-						{
-							Name:  aws.String("MMLOADTEST_CONNECTIONCONFIGURATION_SSHUSERNAME"),
-							Value: aws.String("ec2-user"),
-						},
-						{
-							Name:  aws.String("MMLOADTEST_CONNECTIONCONFIGURATION_SSHKEY"),
-							Value: aws.String(string(clusterInfo.SSHKey)),
-						},
-						{
-							Name:  aws.String("MMLOADTEST_CONNECTIONCONFIGURATION_MATTERMOSTINSTALLDIR"),
-							Value: aws.String("/opt/mattermost"),
-						},
-					},
-					Name: aws.String("loadtest"),
+					Command:     args,
+					Environment: envPairs,
+					Name:        aws.String("loadtest"),
 				},
 			},
 		},
@@ -110,7 +126,25 @@ func Loadtest(clusterName string, args []string) error {
 	return nil
 }
 
-func followECSTask(ecsSvc ecsiface.ECSAPI, cwlSvc cloudwatchlogsiface.CloudWatchLogsAPI, clusterInfo *ClusterInfo, taskARN string) (*ecs.Task, error) {
+func followECSTask(ecsSvc ecsiface.ECSAPI, cwlSvc cloudwatchlogsiface.CloudWatchLogsAPI, clusterInfo *ClusterInfo, taskARN string) (taskOut *ecs.Task, errOut error) {
+	c := make(chan os.Signal, 1)
+	defer close(c)
+	signal.Notify(c, os.Interrupt)
+	defer signal.Stop(c)
+
+	go func() {
+		for {
+			if _, ok := <-c; ok {
+				ecsSvc.StopTaskRequest(&ecs.StopTaskInput{
+					Cluster: aws.String(clusterInfo.CloudFormationStackOutputs["LoadTestCluster"]),
+					Task:    aws.String(taskARN),
+				}).Send()
+			} else {
+				break
+			}
+		}
+	}()
+
 	var nextToken *string
 
 	waitDuration := time.Millisecond * 500
