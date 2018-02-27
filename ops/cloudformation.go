@@ -325,6 +325,10 @@ Resources:
               awslogs-stream-prefix: !Ref AWS::StackName
           MemoryReservation: 10000
           Name: loadtest
+          Ulimits:
+            - HardLimit: 4096
+              Name: nofile
+              SoftLimit: 4096
       Cpu: 4096
       ExecutionRoleArn: !Ref LoadTestTaskRole
       Family: !Ref AWS::StackName

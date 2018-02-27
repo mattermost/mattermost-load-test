@@ -76,6 +76,7 @@ func LoadTest(clusterName, configFile string, args []string) error {
 	env["MMLOADTEST_CONNECTIONCONFIGURATION_SSHUSERNAME"] = "ec2-user"
 	env["MMLOADTEST_CONNECTIONCONFIGURATION_SSHKEY"] = string(clusterInfo.SSHKey)
 	env["MMLOADTEST_CONNECTIONCONFIGURATION_MATTERMOSTINSTALLDIR"] = "/opt/mattermost"
+	env["MMLOADTEST_RESULTSCONFIGURATION_PPROFDELAYMINUTES"] = "0"
 
 	var envPairs []ecs.KeyValuePair
 	for k, v := range env {
