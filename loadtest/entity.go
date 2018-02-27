@@ -44,7 +44,16 @@ func runEntity(ec *EntityConfig) {
 
 	actionRateMaxVarianceMilliseconds := ec.LoadTestConfig.UserEntitiesConfiguration.ActionRateMaxVarianceMilliseconds
 
-	timer := time.NewTimer(0)
+	// Ensure that the entities act at uniformly distributed times.
+	now := time.Now()
+	intervalStart := time.Unix(0, now.UnixNano()-now.UnixNano()%int64(ec.ActionRate/time.Nanosecond))
+	start := intervalStart.Add(time.Duration(rand.Int63n(int64(ec.ActionRate))))
+	if start.Before(now) {
+		start = start.Add(ec.ActionRate)
+	}
+	delay := start.Sub(now)
+
+	timer := time.NewTimer(delay)
 	for {
 		select {
 		case <-ec.StopChannel:
