@@ -22,6 +22,7 @@
         "NumUsers": 1000,
         "NumPosts": 20000000,
         "PostTimeRange": 2600000,
+        "ReplyChance": 0.3,
         "PercentHighVolumeTeams": 0.2,
         "PercentMidVolumeTeams": 0.5,
         "PercentLowVolumeTeams": 0.3,
