@@ -423,6 +423,16 @@ func LoadPosts(cfg *LoadTestConfig, dbendpoint string) {
 		cmdlog.Error(err)
 	}
 
+	// Generate a random time before now, either within the configured post time range or after the given time.
+	randomTime := func(after *time.Time) time.Time {
+		now := time.Now()
+		if after == nil {
+			return now.Add(-1 * time.Duration(rand.Int63n(cfg.LoadtestEnviromentConfig.PostTimeRange)) * time.Second)
+		} else {
+			return after.Add(time.Duration(rand.Int63n(int64(now.Sub(*after)))))
+		}
+	}
+
 	cmdlog.Info("Done pre-setup")
 	for _, team := range teams {
 		if !strings.HasPrefix(team.Name, "loadtestteam") {
@@ -467,13 +477,17 @@ func LoadPosts(cfg *LoadTestConfig, dbendpoint string) {
 		ThreadSplit(len(channels), 16, PrintCounter, func(channelNum int) {
 			cmdlog.Infof("Thread %d.", channelNum)
 			// Only recognizes multiples of 100
-			rootPosts := make([]string, 0)
+			type rootPost struct {
+				id      string
+				created time.Time
+			}
+			rootPosts := make([]rootPost, 0)
 			for i := 0; i < numPostsPerChannel; i += 100 {
 				vals := []interface{}{}
 
 				for j := 0; j < 100; j++ {
 					message := "PL" + fake.SentencesN(1)
-					now := int64(time.Now().Unix()) - rand.Int63n(cfg.LoadtestEnviromentConfig.PostTimeRange)
+					now := randomTime(nil)
 					id := model.NewId()
 					zero := 0
 					emptyobject := "{}"
@@ -481,14 +495,16 @@ func LoadPosts(cfg *LoadTestConfig, dbendpoint string) {
 
 					parentRoot := ""
 					if j == 0 {
-						rootPosts = append(rootPosts, id)
+						rootPosts = append(rootPosts, rootPost{id, now})
 					} else {
 						if rand.Float64() < cfg.LoadtestEnviromentConfig.ReplyChance {
-							parentRoot = rootPosts[rand.Intn(len(rootPosts))]
+							rootPost := rootPosts[rand.Intn(len(rootPosts))]
+							parentRoot = rootPost.id
+							now = randomTime(&rootPost.created)
 						}
 					}
 
-					vals = append(vals, id, now, now, zero, zero, zero, users[(j+i+channelNum)%len(users)].Id, channels[channelNum].Id, parentRoot, parentRoot, "", message, "", emptyobject, "", emptyarray, emptyarray, zero)
+					vals = append(vals, id, now.Unix()*1000, now.Unix()*1000, zero, zero, zero, users[(j+i+channelNum)%len(users)].Id, channels[channelNum].Id, parentRoot, parentRoot, "", message, "", emptyobject, "", emptyarray, emptyarray, zero)
 				}
 
 				_, err := statement.Exec(vals...)
