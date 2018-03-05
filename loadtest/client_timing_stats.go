@@ -91,6 +91,7 @@ var teamPathRegex *regexp.Regexp = regexp.MustCompile("/teams/[a-z0-9]{26}/")
 var channelPathRegex *regexp.Regexp = regexp.MustCompile("/channels/[a-z0-9]{26}/")
 var postPathRegex *regexp.Regexp = regexp.MustCompile("/posts/[a-z0-9]{26}/")
 var filePathRegex *regexp.Regexp = regexp.MustCompile("/files/[a-z0-9]{26}/")
+var userPathRegex *regexp.Regexp = regexp.MustCompile("/users/[a-z0-9]{26}/")
 var teamMembersForUserPathRegex *regexp.Regexp = regexp.MustCompile("/teams/[a-z0-9]{26}/members/[a-z0-9]{26}")
 
 func processCommonPaths(path string) string {
@@ -99,7 +100,8 @@ func processCommonPaths(path string) string {
 	result = teamPathRegex.ReplaceAllString(result, "/teams/TID/")
 	result = channelPathRegex.ReplaceAllString(result, "/channels/CID/")
 	result = postPathRegex.ReplaceAllString(result, "/posts/PID/")
-	result = filePathRegex.ReplaceAllString(result, "/files/PID/")
+	result = filePathRegex.ReplaceAllString(result, "/files/FID/")
+	result = userPathRegex.ReplaceAllString(result, "/users/UID/")
 	return result
 }
 
