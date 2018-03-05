@@ -82,6 +82,10 @@ func RunTest(test *TestRun) error {
 		return fmt.Errorf("Could not get admin client")
 	}
 
+	if cfg.UserEntitiesConfiguration.EnableRequestTiming {
+		adminClient.HttpClient.Transport = NewTimedRoundTripper(clientTimingChannel)
+	}
+
 	numEntities := len(tokens)
 	entityNum := 0
 	entitiesToSkip := cfg.UserEntitiesConfiguration.EntityStartNum
