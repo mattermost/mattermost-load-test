@@ -162,6 +162,7 @@ func actionDeactivateActivateUser(c *EntityConfig) {
 		userId = user.Id
 	}
 
+	cmdlog.Info("Deactivating user")
 	if _, resp := c.SysAdminClient.UpdateUserActive(userId, false); resp.Error != nil {
 		cmdlog.Errorf("Failed to deactivate user %v, err=%v", userId, resp.Error.Error())
 		return
@@ -171,6 +172,11 @@ func actionDeactivateActivateUser(c *EntityConfig) {
 
 	if _, resp := c.SysAdminClient.UpdateUserActive(userId, true); resp.Error != nil {
 		cmdlog.Errorf("Failed to reactivate user %v, err=%v", userId, resp.Error.Error())
+		return
+	}
+
+	if _, resp := c.Client.Login(c.UserData.Email, "Loadtestpassword1"); resp.Error != nil {
+		cmdlog.Errorf("Failed to login after reactivation, err=%v", resp.Error.Error())
 		return
 	}
 }
