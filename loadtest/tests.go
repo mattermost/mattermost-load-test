@@ -537,7 +537,12 @@ var deactivateEntity UserEntity = UserEntity{
 var TestDeactivateUser TestRun = TestRun{
 	UserEntities: []UserEntityFrequency{
 		{
-			Freq:           100.0,
+			Freq:           95.0,
+			RateMultiplier: 1.0,
+			Entity:         standardUserEntity,
+		},
+		{
+			Freq:           5.0,
 			RateMultiplier: 1.0,
 			Entity:         deactivateEntity,
 		},
