@@ -77,6 +77,11 @@ func RunTest(test *TestRun) error {
 	waitMonitors.Add(1)
 	go ProcessClientRoundTripReports(clientTimingStats, clientTimingChannel3, clientTimingChannel, stopMonitors, &waitMonitors)
 
+	adminClient := getAdminClient(cfg.ConnectionConfiguration.ServerURL, cfg.ConnectionConfiguration.AdminEmail, cfg.ConnectionConfiguration.AdminPassword, nil)
+	if adminClient == nil {
+		return fmt.Errorf("Could not get admin client")
+	}
+
 	numEntities := len(tokens)
 	entityNum := 0
 	entitiesToSkip := cfg.UserEntitiesConfiguration.EntityStartNum
@@ -122,6 +127,7 @@ func RunTest(test *TestRun) error {
 				TownSquareMap:       serverData.TownSquareIdMap,
 				Client:              userClient,
 				WebSocketClient:     userWebsocketClient,
+				SysAdminClient:      adminClient,
 				ActionRate:          actionRate,
 				LoadTestConfig:      cfg,
 				StatusReportChannel: statusChannel,

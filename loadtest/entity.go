@@ -24,6 +24,7 @@ type EntityConfig struct {
 	TownSquareMap       map[string]string
 	Client              *model.Client4
 	WebSocketClient     *model.WebSocketClient
+	SysAdminClient      *model.Client4
 	ActionRate          time.Duration
 	LoadTestConfig      *LoadTestConfig
 	StatusReportChannel chan<- UserEntityStatusReport

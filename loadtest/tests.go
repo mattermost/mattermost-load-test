@@ -153,6 +153,28 @@ func actionLeaveJoinTeam(c *EntityConfig) {
 	}
 }
 
+func actionDeactivateActivateUser(c *EntityConfig) {
+	userId := ""
+	if user, resp := c.Client.GetMe(""); resp.Error != nil {
+		cmdlog.Errorf("Failed to get me, err=%v", resp.Error.Error())
+		return
+	} else {
+		userId = user.Id
+	}
+
+	if _, resp := c.SysAdminClient.UpdateUserActive(userId, false); resp.Error != nil {
+		cmdlog.Errorf("Failed to deactivate user %v, err=%v", userId, resp.Error.Error())
+		return
+	}
+
+	time.Sleep(time.Second * 1)
+
+	if _, resp := c.SysAdminClient.UpdateUserActive(userId, true); resp.Error != nil {
+		cmdlog.Errorf("Failed to reactivate user %v, err=%v", userId, resp.Error.Error())
+		return
+	}
+}
+
 func actionPostToTownSquare(c *EntityConfig) {
 	team := c.UserData.PickTeam()
 	if team == nil {
@@ -491,6 +513,31 @@ var TestLeaveJoinTeam TestRun = TestRun{
 			Freq:           10.0,
 			RateMultiplier: 1.0,
 			Entity:         teamLeaverJoinerUserEntity,
+		},
+	},
+}
+
+var deactivateEntity UserEntity = UserEntity{
+	Name: "Deactivate",
+	Actions: []randutil.Choice{
+		{
+			Item:   actionDeactivateActivateUser,
+			Weight: 1,
+		},
+	},
+}
+
+var TestDeactivateUser TestRun = TestRun{
+	UserEntities: []UserEntityFrequency{
+		{
+			Freq:           95.0,
+			RateMultiplier: 1.0,
+			Entity:         standardUserEntity,
+		},
+		{
+			Freq:           5.0,
+			RateMultiplier: 1.0,
+			Entity:         deactivateEntity,
 		},
 	},
 }
