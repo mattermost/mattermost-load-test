@@ -14,13 +14,6 @@ import (
 	"github.com/mattermost/mattermost-server/model"
 )
 
-func newV3ClientFromToken(token string, serverUrl string) *model.Client {
-	client := model.NewClient(serverUrl)
-	client.AuthToken = token
-	client.AuthType = model.HEADER_BEARER
-	return client
-}
-
 func newClientFromToken(token string, serverUrl string) *model.Client4 {
 	client := model.NewAPIv4Client(serverUrl)
 	client.AuthToken = token
@@ -36,21 +29,29 @@ func loginAsUsers(cfg *LoadTestConfig) []string {
 	ThreadSplit(cfg.UserEntitiesConfiguration.NumActiveEntities, runtime.GOMAXPROCS(0)*2, PrintCounter, func(entityNum int) {
 		// Add the usernum to start from
 		userNum := entityNum + cfg.UserEntitiesConfiguration.EntityStartNum
-		client := model.NewClient(cfg.ConnectionConfiguration.ServerURL)
+		client := model.NewAPIv4Client(cfg.ConnectionConfiguration.ServerURL)
 
 		// Random selection if picked
 		if cfg.UserEntitiesConfiguration.RandomizeEntitySelection {
 			userNum = order[entityNum]
 		}
 
-		if _, err := client.Login("success+user"+strconv.Itoa(userNum)+"@simulator.amazonses.com", "Loadtestpassword1"); err != nil {
-			cmdlog.Errorf("Unable to login as user %v", userNum)
+		if _, response := client.Login("success+user"+strconv.Itoa(userNum)+"@simulator.amazonses.com", "Loadtestpassword1"); response != nil && response.Error != nil {
+			cmdlog.Errorf("Entity %v failed to login as user %v: %s", entityNum, userNum, response.Error)
+		} else {
+			cmdlog.Infof("Entity %v has logged in as user %v", entityNum, userNum)
+			tokens[entityNum] = client.AuthToken
 		}
-		cmdlog.Infof("Entity %v has logged in as user %v.", entityNum, userNum)
-		tokens[entityNum] = client.AuthToken
 	})
 
-	return tokens
+	activeTokens := make([]string, 0, cfg.UserEntitiesConfiguration.NumActiveEntities)
+	for _, token := range tokens {
+		if token != "" {
+			activeTokens = append(activeTokens, token)
+		}
+	}
+
+	return activeTokens
 }
 
 func getAdminClient(serverURL string, adminEmail string, adminPass string, cmdrun ServerCLICommandRunner) *model.Client4 {
