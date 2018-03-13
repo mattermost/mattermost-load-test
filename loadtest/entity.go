@@ -14,6 +14,10 @@ import (
 	"github.com/mattermost/mattermost-server/model"
 )
 
+type Etags struct {
+	GetPostsForChannel string
+}
+
 type EntityConfig struct {
 	EntityNumber        int
 	EntityName          string
@@ -24,6 +28,7 @@ type EntityConfig struct {
 	TownSquareMap       map[string]string
 	Client              *model.Client4
 	WebSocketClient     *model.WebSocketClient
+	Etags               *Etags
 	ActionRate          time.Duration
 	LoadTestConfig      *LoadTestConfig
 	StatusReportChannel chan<- UserEntityStatusReport
