@@ -16,6 +16,7 @@ import (
 
 type Etags struct {
 	GetPostsForChannel string
+	PostsForChannel    *model.PostList
 }
 
 type EntityConfig struct {
