@@ -6,7 +6,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 )
 
@@ -16,7 +15,7 @@ func DeleteCluster(name string) error {
 		return errors.Wrap(err, "unable to load cluster info")
 	}
 
-	cfg, err := external.LoadDefaultAWSConfig()
+	cfg, err := LoadAWSConfig()
 	if err != nil {
 		return errors.Wrap(err, "unable to load AWS config")
 	}

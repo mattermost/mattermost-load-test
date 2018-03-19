@@ -13,7 +13,6 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 )
 
@@ -45,7 +44,7 @@ func generateSSHKey() (privateKeyPEM, authorizedKey []byte, err error) {
 }
 
 func CreateCluster(cluster *ClusterConfiguration) error {
-	cfg, err := external.LoadDefaultAWSConfig()
+	cfg, err := LoadAWSConfig()
 	if err != nil {
 		return errors.Wrap(err, "unable to load AWS config")
 	}

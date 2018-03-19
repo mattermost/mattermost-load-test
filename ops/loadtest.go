@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"strconv"
 	"strings"
@@ -14,28 +15,13 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/awserr"
-	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/cloudwatchlogsiface"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/aws/aws-sdk-go-v2/service/ecs/ecsiface"
 )
 
-func LoadTest(clusterName, configFile string, args []string) error {
-	clusterInfo, err := LoadClusterInfo(clusterName)
-	if err != nil {
-		return errors.Wrap(err, "unable to load cluster info")
-	}
-
-	cfg, err := external.LoadDefaultAWSConfig()
-	if err != nil {
-		return errors.Wrap(err, "unable to load AWS config")
-	}
-
-	logrus.Info("launching load test...")
-
-	ecsSvc := ecs.New(cfg)
-
+func loadTestEnvironmentVariables(clusterInfo *ClusterInfo, configFile string) (map[string]string, error) {
 	env := make(map[string]string)
 
 	if configFile != "" {
@@ -43,12 +29,12 @@ func LoadTest(clusterName, configFile string, args []string) error {
 
 		f, err := os.Open(configFile)
 		if err != nil {
-			return errors.Wrap(err, "unable to open config file")
+			return nil, errors.Wrap(err, "unable to open config file")
 		}
 		defer f.Close()
 
 		if err := json.NewDecoder(f).Decode(&config); err != nil {
-			return errors.Wrap(err, "unable to parse config file")
+			return nil, errors.Wrap(err, "unable to parse config file")
 		}
 
 		var inspect func(string, interface{})
@@ -77,6 +63,29 @@ func LoadTest(clusterName, configFile string, args []string) error {
 	env["MMLOADTEST_CONNECTIONCONFIGURATION_SSHKEY"] = string(clusterInfo.SSHKey)
 	env["MMLOADTEST_CONNECTIONCONFIGURATION_MATTERMOSTINSTALLDIR"] = "/opt/mattermost"
 	env["MMLOADTEST_RESULTSCONFIGURATION_PPROFDELAYMINUTES"] = "0"
+
+	return env, nil
+}
+
+func LoadTest(clusterName, configFile string, args []string) error {
+	clusterInfo, err := LoadClusterInfo(clusterName)
+	if err != nil {
+		return errors.Wrap(err, "unable to load cluster info")
+	}
+
+	cfg, err := LoadAWSConfig()
+	if err != nil {
+		return errors.Wrap(err, "unable to load AWS config")
+	}
+
+	logrus.Info("launching load test...")
+
+	ecsSvc := ecs.New(cfg)
+
+	env, err := loadTestEnvironmentVariables(clusterInfo, configFile)
+	if err != nil {
+		return errors.Wrap(err, "unable to prepare environment variables")
+	}
 
 	var envPairs []ecs.KeyValuePair
 	for k, v := range env {
@@ -201,4 +210,31 @@ func followECSTask(ecsSvc ecsiface.ECSAPI, cwlSvc cloudwatchlogsiface.CloudWatch
 			waitDuration += time.Second
 		}
 	}
+}
+
+func LocalLoadTest(clusterName, configFile string, args []string) error {
+	clusterInfo, err := LoadClusterInfo(clusterName)
+	if err != nil {
+		return errors.Wrap(err, "unable to load cluster info")
+	}
+
+	env, err := loadTestEnvironmentVariables(clusterInfo, configFile)
+	if err != nil {
+		return errors.Wrap(err, "unable to prepare environment variables")
+	}
+
+	dockerArgs := []string{"run", "--rm", "-it"}
+
+	for k, v := range env {
+		dockerArgs = append(dockerArgs, "--env", k+"="+v)
+	}
+
+	dockerArgs = append(dockerArgs, "mattermost/mattermost-load-test")
+
+	dockerArgs = append(dockerArgs, args...)
+
+	cmd := exec.Command("docker", dockerArgs...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	return cmd.Run()
 }

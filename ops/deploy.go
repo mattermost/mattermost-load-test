@@ -13,7 +13,6 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 )
 
@@ -210,7 +209,7 @@ WantedBy=multi-user.target
 }
 
 func ClusterAppInstances(clusterInfo *ClusterInfo) ([]*ec2.Instance, error) {
-	cfg, err := external.LoadDefaultAWSConfig()
+	cfg, err := LoadAWSConfig()
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to load AWS config")
 	}
