@@ -211,30 +211,3 @@ func followECSTask(ecsSvc ecsiface.ECSAPI, cwlSvc cloudwatchlogsiface.CloudWatch
 		}
 	}
 }
-
-func LocalLoadTest(clusterName, configFile string, args []string) error {
-	clusterInfo, err := LoadClusterInfo(clusterName)
-	if err != nil {
-		return errors.Wrap(err, "unable to load cluster info")
-	}
-
-	env, err := loadTestEnvironmentVariables(clusterInfo, configFile)
-	if err != nil {
-		return errors.Wrap(err, "unable to prepare environment variables")
-	}
-
-	dockerArgs := []string{"run", "--rm", "-it"}
-
-	for k, v := range env {
-		dockerArgs = append(dockerArgs, "--env", k+"="+v)
-	}
-
-	dockerArgs = append(dockerArgs, "mattermost/mattermost-load-test")
-
-	dockerArgs = append(dockerArgs, args...)
-
-	cmd := exec.Command("docker", dockerArgs...)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	return cmd.Run()
-}
