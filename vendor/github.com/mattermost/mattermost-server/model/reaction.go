@@ -18,11 +18,8 @@ type Reaction struct {
 }
 
 func (o *Reaction) ToJson() string {
-	if b, err := json.Marshal(o); err != nil {
-		return ""
-	} else {
-		return string(b)
-	}
+	b, _ := json.Marshal(o)
+	return string(b)
 }
 
 func ReactionFromJson(data io.Reader) *Reaction {
@@ -36,11 +33,8 @@ func ReactionFromJson(data io.Reader) *Reaction {
 }
 
 func ReactionsToJson(o []*Reaction) string {
-	if b, err := json.Marshal(o); err != nil {
-		return ""
-	} else {
-		return string(b)
-	}
+	b, _ := json.Marshal(o)
+	return string(b)
 }
 
 func ReactionsFromJson(data io.Reader) []*Reaction {
@@ -64,7 +58,7 @@ func (o *Reaction) IsValid() *AppError {
 
 	validName := regexp.MustCompile(`^[a-zA-Z0-9\-\+_]+$`)
 
-	if len(o.EmojiName) == 0 || len(o.EmojiName) > 64 || !validName.MatchString(o.EmojiName) {
+	if len(o.EmojiName) == 0 || len(o.EmojiName) > EMOJI_NAME_MAX_LENGTH || !validName.MatchString(o.EmojiName) {
 		return NewAppError("Reaction.IsValid", "model.reaction.is_valid.emoji_name.app_error", nil, "emoji_name="+o.EmojiName, http.StatusBadRequest)
 	}
 

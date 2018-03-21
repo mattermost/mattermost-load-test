@@ -12,6 +12,7 @@ import (
 
 const (
 	JOB_TYPE_DATA_RETENTION                 = "data_retention"
+	JOB_TYPE_MESSAGE_EXPORT                 = "message_export"
 	JOB_TYPE_ELASTICSEARCH_POST_INDEXING    = "elasticsearch_post_indexing"
 	JOB_TYPE_ELASTICSEARCH_POST_AGGREGATION = "elasticsearch_post_aggregation"
 	JOB_TYPE_LDAP_SYNC                      = "ldap_sync"
@@ -50,6 +51,7 @@ func (j *Job) IsValid() *AppError {
 	case JOB_TYPE_ELASTICSEARCH_POST_INDEXING:
 	case JOB_TYPE_ELASTICSEARCH_POST_AGGREGATION:
 	case JOB_TYPE_LDAP_SYNC:
+	case JOB_TYPE_MESSAGE_EXPORT:
 	default:
 		return NewAppError("Job.IsValid", "model.job.is_valid.type.app_error", nil, "id="+j.Id, http.StatusBadRequest)
 	}
@@ -69,11 +71,8 @@ func (j *Job) IsValid() *AppError {
 }
 
 func (js *Job) ToJson() string {
-	if b, err := json.Marshal(js); err != nil {
-		return ""
-	} else {
-		return string(b)
-	}
+	b, _ := json.Marshal(js)
+	return string(b)
 }
 
 func JobFromJson(data io.Reader) *Job {
@@ -86,11 +85,8 @@ func JobFromJson(data io.Reader) *Job {
 }
 
 func JobsToJson(jobs []*Job) string {
-	if b, err := json.Marshal(jobs); err != nil {
-		return ""
-	} else {
-		return string(b)
-	}
+	b, _ := json.Marshal(jobs)
+	return string(b)
 }
 
 func JobsFromJson(data io.Reader) []*Job {
@@ -103,11 +99,8 @@ func JobsFromJson(data io.Reader) []*Job {
 }
 
 func (js *Job) DataToJson() string {
-	if b, err := json.Marshal(js.Data); err != nil {
-		return ""
-	} else {
-		return string(b)
-	}
+	b, _ := json.Marshal(js.Data)
+	return string(b)
 }
 
 type Worker interface {

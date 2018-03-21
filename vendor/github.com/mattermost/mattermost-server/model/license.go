@@ -55,6 +55,7 @@ type Features struct {
 	ThemeManagement           *bool `json:"theme_management"`
 	EmailNotificationContents *bool `json:"email_notification_contents"`
 	DataRetention             *bool `json:"data_retention"`
+	MessageExport             *bool `json:"message_export"`
 
 	// after we enabled more features for webrtc we'll need to control them with this
 	FutureFeatures *bool `json:"future_features"`
@@ -76,136 +77,125 @@ func (f *Features) ToMap() map[string]interface{} {
 		"elastic_search":              *f.Elasticsearch,
 		"email_notification_contents": *f.EmailNotificationContents,
 		"data_retention":              *f.DataRetention,
+		"message_export":              *f.MessageExport,
 		"future":                      *f.FutureFeatures,
 	}
 }
 
 func (f *Features) SetDefaults() {
 	if f.FutureFeatures == nil {
-		f.FutureFeatures = new(bool)
-		*f.FutureFeatures = true
+		f.FutureFeatures = NewBool(true)
 	}
 
 	if f.Users == nil {
-		f.Users = new(int)
-		*f.Users = 0
+		f.Users = NewInt(0)
 	}
 
 	if f.LDAP == nil {
-		f.LDAP = new(bool)
-		*f.LDAP = *f.FutureFeatures
+		f.LDAP = NewBool(*f.FutureFeatures)
 	}
 
 	if f.MFA == nil {
-		f.MFA = new(bool)
-		*f.MFA = *f.FutureFeatures
+		f.MFA = NewBool(*f.FutureFeatures)
 	}
 
 	if f.GoogleOAuth == nil {
-		f.GoogleOAuth = new(bool)
-		*f.GoogleOAuth = *f.FutureFeatures
+		f.GoogleOAuth = NewBool(*f.FutureFeatures)
 	}
 
 	if f.Office365OAuth == nil {
-		f.Office365OAuth = new(bool)
-		*f.Office365OAuth = *f.FutureFeatures
+		f.Office365OAuth = NewBool(*f.FutureFeatures)
 	}
 
 	if f.Compliance == nil {
-		f.Compliance = new(bool)
-		*f.Compliance = *f.FutureFeatures
+		f.Compliance = NewBool(*f.FutureFeatures)
 	}
 
 	if f.Cluster == nil {
-		f.Cluster = new(bool)
-		*f.Cluster = *f.FutureFeatures
+		f.Cluster = NewBool(*f.FutureFeatures)
 	}
 
 	if f.Metrics == nil {
-		f.Metrics = new(bool)
-		*f.Metrics = *f.FutureFeatures
+		f.Metrics = NewBool(*f.FutureFeatures)
 	}
 
 	if f.CustomBrand == nil {
-		f.CustomBrand = new(bool)
-		*f.CustomBrand = *f.FutureFeatures
+		f.CustomBrand = NewBool(*f.FutureFeatures)
 	}
 
 	if f.MHPNS == nil {
-		f.MHPNS = new(bool)
-		*f.MHPNS = *f.FutureFeatures
+		f.MHPNS = NewBool(*f.FutureFeatures)
 	}
 
 	if f.SAML == nil {
-		f.SAML = new(bool)
-		*f.SAML = *f.FutureFeatures
+		f.SAML = NewBool(*f.FutureFeatures)
 	}
 
 	if f.PasswordRequirements == nil {
-		f.PasswordRequirements = new(bool)
-		*f.PasswordRequirements = *f.FutureFeatures
+		f.PasswordRequirements = NewBool(*f.FutureFeatures)
 	}
 
 	if f.Elasticsearch == nil {
-		f.Elasticsearch = new(bool)
-		*f.Elasticsearch = *f.FutureFeatures
+		f.Elasticsearch = NewBool(*f.FutureFeatures)
 	}
 
 	if f.Announcement == nil {
-		f.Announcement = new(bool)
-		*f.Announcement = true
+		f.Announcement = NewBool(true)
 	}
 
 	if f.ThemeManagement == nil {
-		f.ThemeManagement = new(bool)
-		*f.ThemeManagement = true
+		f.ThemeManagement = NewBool(true)
 	}
 
 	if f.EmailNotificationContents == nil {
-		f.EmailNotificationContents = new(bool)
-		*f.EmailNotificationContents = *f.FutureFeatures
+		f.EmailNotificationContents = NewBool(*f.FutureFeatures)
 	}
 
 	if f.DataRetention == nil {
-		f.DataRetention = new(bool)
-		*f.DataRetention = *f.FutureFeatures
+		f.DataRetention = NewBool(*f.FutureFeatures)
+	}
+
+	if f.MessageExport == nil {
+		f.MessageExport = NewBool(*f.FutureFeatures)
 	}
 }
 
 func (l *License) IsExpired() bool {
-	now := GetMillis()
-	if l.ExpiresAt < now {
-		return true
-	}
-	return false
+	return l.ExpiresAt < GetMillis()
 }
 
 func (l *License) IsStarted() bool {
-	now := GetMillis()
-	if l.StartsAt < now {
-		return true
-	}
-	return false
+	return l.StartsAt < GetMillis()
 }
 
 func (l *License) ToJson() string {
-	b, err := json.Marshal(l)
-	if err != nil {
-		return ""
-	} else {
-		return string(b)
+	b, _ := json.Marshal(l)
+	return string(b)
+}
+
+// NewTestLicense returns a license that expires in the future and has the given features.
+func NewTestLicense(features ...string) *License {
+	ret := &License{
+		ExpiresAt: GetMillis() + 90*24*60*60*1000,
+		Customer:  &Customer{},
+		Features:  &Features{},
 	}
+	ret.Features.SetDefaults()
+
+	featureMap := map[string]bool{}
+	for _, feature := range features {
+		featureMap[feature] = true
+	}
+	featureJson, _ := json.Marshal(featureMap)
+	json.Unmarshal(featureJson, &ret.Features)
+
+	return ret
 }
 
 func LicenseFromJson(data io.Reader) *License {
-	decoder := json.NewDecoder(data)
-	var o License
-	err := decoder.Decode(&o)
-	if err == nil {
-		return &o
-	} else {
-		return nil
-	}
+	var o *License
+	json.NewDecoder(data).Decode(&o)
+	return o
 }
 
 func (lr *LicenseRecord) IsValid() *AppError {

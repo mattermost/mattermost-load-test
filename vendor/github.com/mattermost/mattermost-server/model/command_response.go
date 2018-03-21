@@ -27,12 +27,8 @@ type CommandResponse struct {
 }
 
 func (o *CommandResponse) ToJson() string {
-	b, err := json.Marshal(o)
-	if err != nil {
-		return ""
-	} else {
-		return string(b)
-	}
+	b, _ := json.Marshal(o)
+	return string(b)
 }
 
 func CommandResponseFromHTTPBody(contentType string, body io.Reader) *CommandResponse {
@@ -59,8 +55,7 @@ func CommandResponseFromJson(data io.Reader) *CommandResponse {
 		return nil
 	}
 
-	o.Text = ExpandAnnouncement(o.Text)
-	o.Attachments = ProcessSlackAttachments(o.Attachments)
+	o.Attachments = StringifySlackFieldValue(o.Attachments)
 
 	return &o
 }

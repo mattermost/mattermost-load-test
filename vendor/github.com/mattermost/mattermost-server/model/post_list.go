@@ -6,6 +6,7 @@ package model
 import (
 	"encoding/json"
 	"io"
+	"sort"
 )
 
 type PostList struct {
@@ -18,6 +19,15 @@ func NewPostList() *PostList {
 		Order: make([]string, 0),
 		Posts: make(map[string]*Post),
 	}
+}
+
+func (o *PostList) WithRewrittenImageURLs(f func(string) string) *PostList {
+	copy := *o
+	copy.Posts = make(map[string]*Post)
+	for id, post := range o.Posts {
+		copy.Posts[id] = post.WithRewrittenImageURLs(f)
+	}
+	return &copy
 }
 
 func (o *PostList) StripActionIntegrations() {
@@ -82,6 +92,12 @@ func (o *PostList) Extend(other *PostList) {
 	}
 }
 
+func (o *PostList) SortByCreateAt() {
+	sort.Slice(o.Order, func(i, j int) bool {
+		return o.Posts[o.Order[i]].CreateAt > o.Posts[o.Order[j]].CreateAt
+	})
+}
+
 func (o *PostList) Etag() string {
 
 	id := "0"
@@ -116,12 +132,7 @@ func (o *PostList) IsChannelId(channelId string) bool {
 }
 
 func PostListFromJson(data io.Reader) *PostList {
-	decoder := json.NewDecoder(data)
-	var o PostList
-	err := decoder.Decode(&o)
-	if err == nil {
-		return &o
-	} else {
-		return nil
-	}
+	var o *PostList
+	json.NewDecoder(data).Decode(&o)
+	return o
 }
