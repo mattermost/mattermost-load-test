@@ -58,6 +58,11 @@ func RunTest(test *TestRun) error {
 
 	cmdlog.Info("Logging in as users.")
 	tokens := loginAsUsers(cfg)
+	if len(tokens) == 0 {
+		return fmt.Errorf("Failed to login as any users")
+	} else if len(tokens) != cfg.UserEntitiesConfiguration.NumActiveEntities {
+		cmdlog.Info("Started only %d of %d entities", len(tokens), cfg.UserEntitiesConfiguration.NumActiveEntities)
+	}
 
 	// Stop channels and wait groups, to stop and wait verious things
 	// For entity monitoring routines
@@ -104,7 +109,7 @@ func RunTest(test *TestRun) error {
 
 			// Websocket client
 			websocketURL := cfg.ConnectionConfiguration.WebsocketURL
-			userWebsocketClient, err := model.NewWebSocketClient(websocketURL, entityToken)
+			userWebsocketClient, err := model.NewWebSocketClient4(websocketURL, entityToken)
 			if err != nil {
 				cmdlog.Error("Unable to connect websocket: " + err.Error())
 			}
