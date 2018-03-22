@@ -33,6 +33,7 @@ func (c *MattermostLocalConnection) RunCommand(command string) (bool, string) {
 	cmd := exec.Command(split[0], split[1:]...)
 	var b bytes.Buffer
 	cmd.Stdout = &b
+	cmd.Stderr = cmd.Stdout
 
 	if err := cmd.Run(); err != nil {
 		return false, err.Error() + " : " + b.String()

@@ -79,6 +79,7 @@ func (c *MattermostSSHConnection) RunCommand(command string) (bool, string) {
 
 	var b bytes.Buffer
 	session.Stdout = &b
+	session.Stderr = session.Stdout
 	if err := session.Run(command); err != nil {
 		return false, "Unable to run command in session. Error: " + err.Error() + ". Output: " + b.String()
 	}
