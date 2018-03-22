@@ -66,20 +66,20 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 		if cmdrun == nil {
 			return nil, fmt.Errorf("Failed to bulk import users because was unable to connect to app server to issue platform CLI commands. Please fill in SSH info and see errors above. You can also use `loadtest genbulkload` to load the users manually without having to provide SSH info.")
 		}
-		cmdlog.Info("Aquiring bulkload lock")
+		cmdlog.Info("Acquiring bulkload lock")
 		if getBulkloadLock(adminClient) {
-			cmdlog.Info("Aquired bulkload lock")
 			cmdlog.Info("Sending loadtest file.")
 			if err := cmdrun.SendLoadtestFile(&bulkloadResult.File); err != nil {
+				releaseBulkloadLock(adminClient)
 				return nil, err
 			}
 			cmdlog.Info("Running bulk import.")
 			if success, output := cmdrun.RunPlatformCommand("import bulk --workers 64 --apply loadtestusers.json"); !success {
+				releaseBulkloadLock(adminClient)
 				return nil, fmt.Errorf("Failed to bulk import users: " + output)
 			} else {
 				cmdlog.Info(output)
 			}
-			cmdlog.Info("Releasing bulkload lock")
 			releaseBulkloadLock(adminClient)
 		}
 	}
@@ -225,6 +225,7 @@ func getBulkloadLock(adminClient *model.Client4) bool {
 			return false
 		} else if updatedUser.Nickname == myId {
 			// We got the lock!
+			cmdlog.Info("Acquired bulkload lock")
 			return true
 		}
 	}
@@ -245,6 +246,7 @@ func getBulkloadLock(adminClient *model.Client4) bool {
 }
 
 func releaseBulkloadLock(adminClient *model.Client4) {
+	cmdlog.Info("Releasing bulkload lock")
 	if user, resp := adminClient.GetMe(""); resp.Error != nil {
 		cmdlog.Errorf("Unable to get admin user while trying to release lock. Note that system will be in a bad state. You need to change the system admin user's nickname to blank to fix things. Error: %v", resp.Error.Error())
 	} else if user.Nickname == "" {
