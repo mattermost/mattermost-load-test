@@ -40,7 +40,9 @@ type ConnectionConfiguration struct {
 	ServerURL            string
 	WebsocketURL         string
 	PProfURL             string
-	DBEndpoint           string
+	DriverName           string
+	DataSource           string
+	DBEndpoint           string // deprecated
 	LocalCommands        bool
 	SSHHostnamePort      string
 	SSHUsername          string

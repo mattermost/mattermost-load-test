@@ -16,6 +16,7 @@ import (
 	dbsql "database/sql"
 
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
 
 	"github.com/icrowley/fake"
 	"github.com/mattermost/mattermost-load-test/cmdlog"
@@ -377,8 +378,8 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 	}
 }
 
-func ConnectToDB(dataSource string) *dbsql.DB {
-	db, err := dbsql.Open("mysql", dataSource)
+func ConnectToDB(driverName, dataSource string) *dbsql.DB {
+	db, err := dbsql.Open(driverName, dataSource)
 	if err != nil {
 		fmt.Println("Unable to open database: " + err.Error())
 		return nil
@@ -391,9 +392,9 @@ func ConnectToDB(dataSource string) *dbsql.DB {
 	return db
 }
 
-func LoadPosts(cfg *LoadTestConfig, dbendpoint string) {
+func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 	cmdlog.Info("Loading posts")
-	db := ConnectToDB(dbendpoint)
+	db := ConnectToDB(driverName, dataSource)
 	if db == nil {
 		return
 	}
@@ -412,8 +413,19 @@ func LoadPosts(cfg *LoadTestConfig, dbendpoint string) {
 	numPostsPerChannel := int(math.Floor(float64(cfg.LoadtestEnviromentConfig.NumPosts) / float64(cfg.LoadtestEnviromentConfig.NumTeams*cfg.LoadtestEnviromentConfig.NumChannelsPerTeam)))
 
 	statementStr := "INSERT INTO Posts (Id, CreateAt, UpdateAt, EditAt, DeleteAt, IsPinned, UserId, ChannelId, RootId, ParentId, OriginalId, Message, Type, Props, Hashtags, Filenames, FileIds, HasReactions) VALUES "
-	for i := 0; i < 100; i++ {
-		statementStr += "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?),"
+	if driverName == "mysql" {
+		for i := 0; i < 100; i++ {
+			statementStr += "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?),"
+		}
+	} else if driverName == "postgres" {
+		for i := 0; i < 100; i++ {
+			statementStr += fmt.Sprintf(
+				"($%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d),",
+				i*18+1, i*18+2, i*18+3, i*18+4, i*18+5, i*18+6, i*18+7, i*18+8, i*18+9,
+				i*18+10, i*18+11, i*18+12, i*18+13, i*18+14, i*18+15, i*18+16, i*18+17, i*18+18,
+			)
+		}
+
 	}
 	statementStr = statementStr[0 : len(statementStr)-1]
 	statement, err := db.Prepare(statementStr)

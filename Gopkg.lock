@@ -97,6 +97,15 @@
   version = "v1.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/lib/pq"
+  packages = [
+    ".",
+    "oid"
+  ]
+  revision = "b2004221932bd6b13167ef654c81cffac36f7537"
+
+[[projects]]
   name = "github.com/magiconair/properties"
   packages = ["."]
   revision = "c3beff4c2358b44d0493c7dda585e7db7ff28ae6"
@@ -347,6 +356,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "15673902a2d0207e3582bed616318bbcea749797f1ba65f66d3a3bd7fc4d3360"
+  inputs-digest = "0137ec7e1feb3fac4e49c55d517836cc77f3990de3dbf992e9b7f80deaf7b534"
   solver-name = "gps-cdcl"
   solver-version = 1
