@@ -433,6 +433,7 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 		cmdlog.Error("Unable to prepare statment")
 		cmdlog.Error(statementStr)
 		cmdlog.Error(err)
+		return
 	}
 
 	// Generate a random time before now, either within the configured post time range or after the given time.
@@ -451,32 +452,31 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 			continue
 		}
 
-		cmdlog.Info("Grabbing channels for: " + team.Name)
+		cmdlog.Infof("Grabbing channels for: %s", team.Name)
 		channels := make([]*model.Channel, 0)
-		numRecieved := 200
-		for page := 0; numRecieved == 200; page++ {
+		numReceived := 200
+		for page := 0; numReceived == 200; page++ {
 			if newchannels, resp2 := adminClient.GetPublicChannelsForTeam(team.Id, page, 200, ""); resp2.Error != nil {
 				cmdlog.Errorf("Could not get public channels for team %v. Error: %v", team.Id, resp2.Error.Error())
 				return
 			} else {
-				numRecieved = len(newchannels)
+				numReceived = len(newchannels)
 				channels = append(channels, newchannels...)
 			}
 		}
 
-		cmdlog.Info("Grabbing users for: " + team.Name)
+		cmdlog.Infof("Grabbing users for: %s", team.Name)
 		users := make([]*model.User, 0)
-		numRecieved = 200
+		numReceived = 200
 		total := 0
-		for page := 0; numRecieved == 200; page++ {
-			cmdlog.Info("Page %d", page)
+		for page := 0; numReceived == 200; page++ {
+			cmdlog.Infof("Page %d", page)
 			if newusers, resp2 := adminClient.GetUsersInTeam(team.Id, page, 200, ""); resp2.Error != nil {
 				cmdlog.Errorf("Could not get users in team %v. Error: %v", team.Id, resp2.Error.Error())
 				return
-			} else {
-				numRecieved = len(newusers)
-				total += numRecieved
-				cmdlog.Info("User %v", newusers[0].Username)
+			} else if numReceived = len(newusers); numReceived > 0 {
+				total += numReceived
+				cmdlog.Infof("User %v", newusers[0].Username)
 				users = append(users, newusers...)
 
 				if total >= 10000 {
@@ -485,9 +485,9 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 			}
 		}
 
-		cmdlog.Info("Thread splitting..." + team.Name)
+		cmdlog.Infof("Thread splitting... %s", team.Name)
 		ThreadSplit(len(channels), 16, PrintCounter, func(channelNum int) {
-			cmdlog.Infof("Thread %d.", channelNum)
+			cmdlog.Infof("Thread %d", channelNum)
 			// Only recognizes multiples of 100
 			type rootPost struct {
 				id      string
@@ -519,8 +519,7 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 					vals = append(vals, id, now.Unix()*1000, now.Unix()*1000, zero, zero, zero, users[(j+i+channelNum)%len(users)].Id, channels[channelNum].Id, parentRoot, parentRoot, "", message, "", emptyobject, "", emptyarray, emptyarray, zero)
 				}
 
-				_, err := statement.Exec(vals...)
-				if err != nil {
+				if _, err := statement.Exec(vals...); err != nil {
 					cmdlog.Errorf("Error running statement: " + err.Error())
 				}
 			}
