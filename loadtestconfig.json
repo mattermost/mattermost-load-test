@@ -3,7 +3,7 @@
         "ServerURL": "http://localhost:8065",
         "WebsocketURL": "ws://localhost:8065",
         "PProfURL": "http://localhost:8067/debug/pprof",
-        "DBEndpoint": "mmuser:IjqOyuhpSmBQwFOrl@tcp(loadtest1ar.cwr8afqyinx1.us-east-1.rds.amazonaws.com:3306)/mattermost?charset=utf8mb4,utf8&readTimeout=20s&writeTimeout=20s&timeout=20s",
+        "DBEndpoint": "mmuser:mostest@tcp(localhost:3306)/mattermost?charset=utf8mb4,utf8&readTimeout=20s&writeTimeout=20s&timeout=20s",
         "LocalCommands": true,
         "SSHHostnamePort": "",
         "SSHUsername": "",
