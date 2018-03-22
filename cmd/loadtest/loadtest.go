@@ -106,7 +106,19 @@ func loadCmd(cmd *cobra.Command, args []string) {
 	if err != nil {
 		fmt.Println("Unable to find configuration file: " + err.Error())
 	}
-	loadtest.LoadPosts(cfg, cfg.ConnectionConfiguration.DBEndpoint)
+
+	driverName := cfg.ConnectionConfiguration.DriverName
+	dataSource := cfg.ConnectionConfiguration.DataSource
+
+	// Ensure backwards compatibility with old configuration files.
+	if driverName == "" {
+		driverName = "mysql"
+	}
+	if dataSource == "" {
+		dataSource = cfg.ConnectionConfiguration.DBEndpoint
+	}
+
+	loadtest.LoadPosts(cfg, driverName, dataSource)
 }
 
 func genBulkLoadCmd(cmd *cobra.Command, args []string) {

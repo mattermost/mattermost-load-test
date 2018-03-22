@@ -61,7 +61,7 @@ func RunTest(test *TestRun) error {
 	if len(tokens) == 0 {
 		return fmt.Errorf("Failed to login as any users")
 	} else if len(tokens) != cfg.UserEntitiesConfiguration.NumActiveEntities {
-		cmdlog.Info("Started only %d of %d entities", len(tokens), cfg.UserEntitiesConfiguration.NumActiveEntities)
+		cmdlog.Infof("Started only %d of %d entities", len(tokens), cfg.UserEntitiesConfiguration.NumActiveEntities)
 	}
 
 	// Stop channels and wait groups, to stop and wait verious things
@@ -95,7 +95,7 @@ func RunTest(test *TestRun) error {
 			startEntity = entitiesToSkip
 			entitiesToSkip = 0
 		}
-		cmdlog.Info("Starting " + strconv.Itoa(numEntitesToCreateForType) + " entities")
+		cmdlog.Infof("Starting %d entities ", strconv.Itoa(numEntitesToCreateForType))
 		for i := startEntity; i < numEntitesToCreateForType; i++ {
 			cmdlog.Infof("Starting entity %v", entityNum)
 			// Get the user auth token for this entity.

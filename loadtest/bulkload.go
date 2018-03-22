@@ -16,6 +16,7 @@ import (
 	dbsql "database/sql"
 
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
 
 	"github.com/icrowley/fake"
 	"github.com/mattermost/mattermost-load-test/cmdlog"
@@ -377,8 +378,8 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 	}
 }
 
-func ConnectToDB(dataSource string) *dbsql.DB {
-	db, err := dbsql.Open("mysql", dataSource)
+func ConnectToDB(driverName, dataSource string) *dbsql.DB {
+	db, err := dbsql.Open(driverName, dataSource)
 	if err != nil {
 		fmt.Println("Unable to open database: " + err.Error())
 		return nil
@@ -391,9 +392,9 @@ func ConnectToDB(dataSource string) *dbsql.DB {
 	return db
 }
 
-func LoadPosts(cfg *LoadTestConfig, dbendpoint string) {
+func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 	cmdlog.Info("Loading posts")
-	db := ConnectToDB(dbendpoint)
+	db := ConnectToDB(driverName, dataSource)
 	if db == nil {
 		return
 	}
@@ -412,8 +413,19 @@ func LoadPosts(cfg *LoadTestConfig, dbendpoint string) {
 	numPostsPerChannel := int(math.Floor(float64(cfg.LoadtestEnviromentConfig.NumPosts) / float64(cfg.LoadtestEnviromentConfig.NumTeams*cfg.LoadtestEnviromentConfig.NumChannelsPerTeam)))
 
 	statementStr := "INSERT INTO Posts (Id, CreateAt, UpdateAt, EditAt, DeleteAt, IsPinned, UserId, ChannelId, RootId, ParentId, OriginalId, Message, Type, Props, Hashtags, Filenames, FileIds, HasReactions) VALUES "
-	for i := 0; i < 100; i++ {
-		statementStr += "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?),"
+	if driverName == "mysql" {
+		for i := 0; i < 100; i++ {
+			statementStr += "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?),"
+		}
+	} else if driverName == "postgres" {
+		for i := 0; i < 100; i++ {
+			statementStr += fmt.Sprintf(
+				"($%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d),",
+				i*18+1, i*18+2, i*18+3, i*18+4, i*18+5, i*18+6, i*18+7, i*18+8, i*18+9,
+				i*18+10, i*18+11, i*18+12, i*18+13, i*18+14, i*18+15, i*18+16, i*18+17, i*18+18,
+			)
+		}
+
 	}
 	statementStr = statementStr[0 : len(statementStr)-1]
 	statement, err := db.Prepare(statementStr)
@@ -421,6 +433,7 @@ func LoadPosts(cfg *LoadTestConfig, dbendpoint string) {
 		cmdlog.Error("Unable to prepare statment")
 		cmdlog.Error(statementStr)
 		cmdlog.Error(err)
+		return
 	}
 
 	// Generate a random time before now, either within the configured post time range or after the given time.
@@ -439,32 +452,31 @@ func LoadPosts(cfg *LoadTestConfig, dbendpoint string) {
 			continue
 		}
 
-		cmdlog.Info("Grabbing channels for: " + team.Name)
+		cmdlog.Infof("Grabbing channels for: %s", team.Name)
 		channels := make([]*model.Channel, 0)
-		numRecieved := 200
-		for page := 0; numRecieved == 200; page++ {
+		numReceived := 200
+		for page := 0; numReceived == 200; page++ {
 			if newchannels, resp2 := adminClient.GetPublicChannelsForTeam(team.Id, page, 200, ""); resp2.Error != nil {
 				cmdlog.Errorf("Could not get public channels for team %v. Error: %v", team.Id, resp2.Error.Error())
 				return
 			} else {
-				numRecieved = len(newchannels)
+				numReceived = len(newchannels)
 				channels = append(channels, newchannels...)
 			}
 		}
 
-		cmdlog.Info("Grabbing users for: " + team.Name)
+		cmdlog.Infof("Grabbing users for: %s", team.Name)
 		users := make([]*model.User, 0)
-		numRecieved = 200
+		numReceived = 200
 		total := 0
-		for page := 0; numRecieved == 200; page++ {
-			cmdlog.Info("Page %d", page)
+		for page := 0; numReceived == 200; page++ {
+			cmdlog.Infof("Page %d", page)
 			if newusers, resp2 := adminClient.GetUsersInTeam(team.Id, page, 200, ""); resp2.Error != nil {
 				cmdlog.Errorf("Could not get users in team %v. Error: %v", team.Id, resp2.Error.Error())
 				return
-			} else {
-				numRecieved = len(newusers)
-				total += numRecieved
-				cmdlog.Info("User %v", newusers[0].Username)
+			} else if numReceived = len(newusers); numReceived > 0 {
+				total += numReceived
+				cmdlog.Infof("User %v", newusers[0].Username)
 				users = append(users, newusers...)
 
 				if total >= 10000 {
@@ -473,9 +485,9 @@ func LoadPosts(cfg *LoadTestConfig, dbendpoint string) {
 			}
 		}
 
-		cmdlog.Info("Thread splitting..." + team.Name)
+		cmdlog.Infof("Thread splitting... %s", team.Name)
 		ThreadSplit(len(channels), 16, PrintCounter, func(channelNum int) {
-			cmdlog.Infof("Thread %d.", channelNum)
+			cmdlog.Infof("Thread %d", channelNum)
 			// Only recognizes multiples of 100
 			type rootPost struct {
 				id      string
@@ -507,8 +519,7 @@ func LoadPosts(cfg *LoadTestConfig, dbendpoint string) {
 					vals = append(vals, id, now.Unix()*1000, now.Unix()*1000, zero, zero, zero, users[(j+i+channelNum)%len(users)].Id, channels[channelNum].Id, parentRoot, parentRoot, "", message, "", emptyobject, "", emptyarray, emptyarray, zero)
 				}
 
-				_, err := statement.Exec(vals...)
-				if err != nil {
+				if _, err := statement.Exec(vals...); err != nil {
 					cmdlog.Errorf("Error running statement: " + err.Error())
 				}
 			}

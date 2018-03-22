@@ -49,7 +49,7 @@ func (c *cache) augmentGoroutine(goroutine *Goroutine) {
 	// For each call site, look at the next call and populate it. Then we can
 	// walk back and reformat things.
 	for i := range goroutine.Stack.Calls {
-		c.load(goroutine.Stack.Calls[i].SourcePath)
+		c.load(goroutine.Stack.Calls[i].LocalSourcePath())
 	}
 
 	// Once all loaded, we can look at the next call when available.
@@ -101,7 +101,7 @@ func (c *cache) load(fileName string) {
 }
 
 func (c *cache) getFuncAST(call *Call) *ast.FuncDecl {
-	if p := c.parsed[call.SourcePath]; p != nil {
+	if p := c.parsed[call.LocalSourcePath()]; p != nil {
 		return p.getFuncAST(call.Func.Name(), call.Line)
 	}
 	return nil
@@ -115,6 +115,15 @@ type parsedFile struct {
 // getFuncAST gets the callee site function AST representation for the code
 // inside the function f at line l.
 func (p *parsedFile) getFuncAST(f string, l int) (d *ast.FuncDecl) {
+	if len(p.lineToByteOffset) <= l {
+		// The line number in the stack trace line does not exist in the file. That
+		// can only mean that the sources on disk do not match the sources used to
+		// build the binary.
+		// TODO(maruel): This should be surfaced, so that source parsing is
+		// completely ignored.
+		return
+	}
+
 	// Walk the AST to find the lineToByteOffset that fits the line number.
 	var lastFunc *ast.FuncDecl
 	var found ast.Node

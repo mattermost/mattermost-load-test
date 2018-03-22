@@ -9,6 +9,11 @@ import (
 	"net/http"
 )
 
+const (
+	EMOJI_NAME_MAX_LENGTH = 64
+	EMOJI_SORT_BY_NAME    = "name"
+)
+
 type Emoji struct {
 	Id        string `json:"id"`
 	CreateAt  int64  `json:"create_at"`
@@ -35,7 +40,7 @@ func (emoji *Emoji) IsValid() *AppError {
 		return NewAppError("Emoji.IsValid", "model.emoji.user_id.app_error", nil, "", http.StatusBadRequest)
 	}
 
-	if len(emoji.Name) == 0 || len(emoji.Name) > 64 || !IsValidAlphaNumHyphenUnderscore(emoji.Name, false) {
+	if len(emoji.Name) == 0 || len(emoji.Name) > EMOJI_NAME_MAX_LENGTH || !IsValidAlphaNumHyphenUnderscore(emoji.Name, false) {
 		return NewAppError("Emoji.IsValid", "model.emoji.name.app_error", nil, "", http.StatusBadRequest)
 	}
 
@@ -56,41 +61,23 @@ func (emoji *Emoji) PreUpdate() {
 }
 
 func (emoji *Emoji) ToJson() string {
-	b, err := json.Marshal(emoji)
-	if err != nil {
-		return ""
-	} else {
-		return string(b)
-	}
+	b, _ := json.Marshal(emoji)
+	return string(b)
 }
 
 func EmojiFromJson(data io.Reader) *Emoji {
-	decoder := json.NewDecoder(data)
-	var emoji Emoji
-	err := decoder.Decode(&emoji)
-	if err == nil {
-		return &emoji
-	} else {
-		return nil
-	}
+	var emoji *Emoji
+	json.NewDecoder(data).Decode(&emoji)
+	return emoji
 }
 
 func EmojiListToJson(emojiList []*Emoji) string {
-	b, err := json.Marshal(emojiList)
-	if err != nil {
-		return ""
-	} else {
-		return string(b)
-	}
+	b, _ := json.Marshal(emojiList)
+	return string(b)
 }
 
 func EmojiListFromJson(data io.Reader) []*Emoji {
-	decoder := json.NewDecoder(data)
 	var emojiList []*Emoji
-	err := decoder.Decode(&emojiList)
-	if err == nil {
-		return emojiList
-	} else {
-		return nil
-	}
+	json.NewDecoder(data).Decode(&emojiList)
+	return emojiList
 }

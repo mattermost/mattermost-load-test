@@ -14,6 +14,7 @@ type UserAccessToken struct {
 	Token       string `json:"token,omitempty"`
 	UserId      string `json:"user_id"`
 	Description string `json:"description"`
+	IsActive    bool   `json:"is_active"`
 }
 
 func (t *UserAccessToken) IsValid() *AppError {
@@ -38,44 +39,27 @@ func (t *UserAccessToken) IsValid() *AppError {
 
 func (t *UserAccessToken) PreSave() {
 	t.Id = NewId()
+	t.IsActive = true
 }
 
 func (t *UserAccessToken) ToJson() string {
-	b, err := json.Marshal(t)
-	if err != nil {
-		return ""
-	} else {
-		return string(b)
-	}
+	b, _ := json.Marshal(t)
+	return string(b)
 }
 
 func UserAccessTokenFromJson(data io.Reader) *UserAccessToken {
-	decoder := json.NewDecoder(data)
-	var t UserAccessToken
-	err := decoder.Decode(&t)
-	if err == nil {
-		return &t
-	} else {
-		return nil
-	}
+	var t *UserAccessToken
+	json.NewDecoder(data).Decode(&t)
+	return t
 }
 
 func UserAccessTokenListToJson(t []*UserAccessToken) string {
-	b, err := json.Marshal(t)
-	if err != nil {
-		return ""
-	} else {
-		return string(b)
-	}
+	b, _ := json.Marshal(t)
+	return string(b)
 }
 
 func UserAccessTokenListFromJson(data io.Reader) []*UserAccessToken {
-	decoder := json.NewDecoder(data)
 	var t []*UserAccessToken
-	err := decoder.Decode(&t)
-	if err == nil {
-		return t
-	} else {
-		return nil
-	}
+	json.NewDecoder(data).Decode(&t)
+	return t
 }
