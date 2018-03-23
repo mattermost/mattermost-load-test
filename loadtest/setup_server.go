@@ -143,7 +143,7 @@ func checkConfigForLoadtests(adminClient *model.Client4) error {
 		cmdlog.Info("EnableOpenServer is true")
 
 		if *serverConfig.TeamSettings.MaxUsersPerTeam < 50000 {
-			cmdlog.Infof("MaxUsersPerTeam is %v, attempt to set to 50000 for the load test...", serverConfig.TeamSettings.MaxUsersPerTeam)
+			cmdlog.Infof("MaxUsersPerTeam is %v, attempt to set to 50000 for the load test...", *serverConfig.TeamSettings.MaxUsersPerTeam)
 			*serverConfig.TeamSettings.MaxUsersPerTeam = 50000
 			if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
 				cmdlog.Error("Failed to set MaxUsersPerTeam")
@@ -152,7 +152,7 @@ func checkConfigForLoadtests(adminClient *model.Client4) error {
 			}
 		}
 
-		cmdlog.Infof("MaxUsersPerTeam is %v", serverConfig.TeamSettings.MaxUsersPerTeam)
+		cmdlog.Infof("MaxUsersPerTeam is %v", *serverConfig.TeamSettings.MaxUsersPerTeam)
 
 		if *serverConfig.TeamSettings.MaxChannelsPerTeam < 50000 {
 			cmdlog.Infof("MaxChannelsPerTeam is %v, attempt to set to 50000 for the load test...", *serverConfig.TeamSettings.MaxChannelsPerTeam)
