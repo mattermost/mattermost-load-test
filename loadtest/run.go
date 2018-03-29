@@ -95,7 +95,7 @@ func RunTest(test *TestRun) error {
 			startEntity = entitiesToSkip
 			entitiesToSkip = 0
 		}
-		cmdlog.Infof("Starting %d entities ", strconv.Itoa(numEntitesToCreateForType))
+		cmdlog.Infof("Starting %d entities", numEntitesToCreateForType)
 		for i := startEntity; i < numEntitesToCreateForType; i++ {
 			cmdlog.Infof("Starting entity %v", entityNum)
 			// Get the user auth token for this entity.
