@@ -398,19 +398,23 @@ var standardUserEntity UserEntity = UserEntity{
 	Actions: []randutil.Choice{
 		{
 			Item:   actionPost,
-			Weight: 4,
+			Weight: 8,
 		},
 		{
 			Item:   actionPerformSearch,
-			Weight: 1,
+			Weight: 2,
 		},
 		{
 			Item:   actionGetChannel,
-			Weight: 28,
+			Weight: 56,
 		},
 		{
 			Item:   actionDisconnectWebsocket,
-			Weight: 2,
+			Weight: 4,
+		},
+		{
+			Item:   actionDeactivateReactivate,
+			Weight: 1,
 		},
 	},
 }
@@ -486,6 +490,61 @@ var TestLeaveJoinTeam TestRun = TestRun{
 			Freq:           10.0,
 			RateMultiplier: 1.0,
 			Entity:         teamLeaverJoinerUserEntity,
+		},
+	},
+}
+
+func actionDeactivateReactivate(c *EntityConfig) {
+	user, resp := c.Client.GetMe("")
+	if resp.Error != nil {
+		cmdlog.Errorf("Failed to get me, err=%v", resp.Error.Error())
+		return
+	}
+
+	if ok, resp := c.AdminClient.UpdateUserActive(user.Id, false); !ok {
+		cmdlog.Errorf("Failed to deactivate user %v: %v", user.Id, resp.Error.Error())
+	} else {
+		cmdlog.Infof("Deactivated user %v", user.Id)
+	}
+
+	time.Sleep(time.Second * 1)
+
+	if ok, resp := c.AdminClient.UpdateUserActive(user.Id, true); !ok {
+		cmdlog.Errorf("Failed to reactivate user: %v", resp.Error.Error())
+	} else {
+		cmdlog.Infof("Reactivated user %v", user.Id)
+	}
+
+	// Re-create client since the token will have been invalidated.
+	c.Client = model.NewAPIv4Client(c.LoadTestConfig.ConnectionConfiguration.ServerURL)
+	if _, response := c.Client.Login(user.Email, "Loadtestpassword1"); response != nil && response.Error != nil {
+		cmdlog.Errorf("Failed to recreate client as user %s: %s", user.Email, response.Error)
+	} else {
+		cmdlog.Infof("Recreated client as user %s", user.Email)
+	}
+}
+
+var deactivatingUserEntity UserEntity = UserEntity{
+	Name: "DeactivatingUserEntity",
+	Actions: []randutil.Choice{
+		{
+			Item:   actionDeactivateReactivate,
+			Weight: 1,
+		},
+	},
+}
+
+var TestDeactivation TestRun = TestRun{
+	UserEntities: []UserEntityFrequency{
+		{
+			Freq:           70.0,
+			RateMultiplier: 1.0,
+			Entity:         standardUserEntity,
+		},
+		{
+			Freq:           30.0,
+			RateMultiplier: 1.0,
+			Entity:         deactivatingUserEntity,
 		},
 	},
 }

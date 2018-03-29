@@ -56,6 +56,11 @@ func RunTest(test *TestRun) error {
 		return err
 	}
 
+	adminClient := getAdminClient(cfg.ConnectionConfiguration.ServerURL, cfg.ConnectionConfiguration.AdminEmail, cfg.ConnectionConfiguration.AdminPassword, nil)
+	if adminClient == nil {
+		return fmt.Errorf("Unable create admin client.")
+	}
+
 	cmdlog.Info("Logging in as users.")
 	tokens := loginAsUsers(cfg)
 	if len(tokens) == 0 {
@@ -125,6 +130,7 @@ func RunTest(test *TestRun) error {
 				ChannelMap:          serverData.ChannelIdMap,
 				TeamMap:             serverData.TeamIdMap,
 				TownSquareMap:       serverData.TownSquareIdMap,
+				AdminClient:         adminClient,
 				Client:              userClient,
 				WebSocketClient:     userWebsocketClient,
 				ActionRate:          actionRate,
