@@ -37,11 +37,6 @@ type UserEntity struct {
 	Actions []randutil.Choice
 }
 
-type EntityActions interface {
-	Init(c *EntityConfig)
-	Action(c *EntityConfig)
-}
-
 func readTestFile(name string) ([]byte, error) {
 	path, _ := utils.FindDir("testfiles")
 	file, err := os.Open(path + "/" + name)
