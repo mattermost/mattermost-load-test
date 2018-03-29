@@ -13,7 +13,10 @@ all: install
 install:
 	$(GO) install ./cmd/loadtest
 
-package: install
+loadtestconfig: loadtestconfig.json
+	cp loadtestconfig.default.json loadtestconfig.json
+
+package: loadtestconfig install
 	rm -rf $(DIST_ROOT)
 	mkdir -p $(DIST_PATH)/bin
 

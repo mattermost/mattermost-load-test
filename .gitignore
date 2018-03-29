@@ -1,4 +1,3 @@
-
 logs
 .DS_Store
 
@@ -41,7 +40,6 @@ bin/*
 !bin/echo_example.sh
 !bin/run_example.sh
 
-
 # We just want to always use the latest
 glide.lock
 
@@ -62,3 +60,6 @@ results.txt
 dummies
 dummies.log
 sessions.db
+
+# ignore local loadtestconfig
+loadtestconfig.json
