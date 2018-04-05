@@ -77,11 +77,12 @@ func main() {
 
 	commands := make([]*cobra.Command, 0, len(tests))
 	for _, test := range tests {
+		currentTest := test
 		commands = append(commands, &cobra.Command{
-			Use:   test.Name,
-			Short: test.ShortDesc,
+			Use:   currentTest.Name,
+			Short: currentTest.ShortDesc,
 			Run: func(cmd *cobra.Command, args []string) {
-				if err := loadtest.RunTest(test.Test); err != nil {
+				if err := loadtest.RunTest(currentTest.Test); err != nil {
 					fmt.Println("Run Test Failed: " + err.Error())
 				}
 			},
