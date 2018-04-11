@@ -1,7 +1,10 @@
 package terraform
 
 import (
+	"os"
+
 	ltops "github.com/mattermost/mattermost-load-test-ops"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -76,4 +79,14 @@ func (c *Cluster) DBReaderConnectionStrings() []string {
 	}
 	databaseEndpoint := params.DBReaderEndpoint.Value
 	return []string{"mmuser:" + c.DBPassword + "@tcp(" + databaseEndpoint + ":3306)/mattermost?charset=utf8mb4,utf8&readTimeout=20s&writeTimeout=20s&timeout=20s"}
+}
+
+func (c *Cluster) Destroy() error {
+	logrus.Info("Destroying cluster...")
+	if err := c.Env.destroy(); err != nil {
+		return errors.Wrap(err, "Unable to destroy terraform cluster.")
+	}
+
+	logrus.Info("Cleaning up files...")
+	return os.RemoveAll(c.Env.WorkingDirectory)
 }

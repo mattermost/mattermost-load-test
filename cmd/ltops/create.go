@@ -1,7 +1,10 @@
 package main
 
 import (
+	"path/filepath"
+
 	ltops "github.com/mattermost/mattermost-load-test-ops"
+	"github.com/mattermost/mattermost-load-test-ops/terraform"
 	"github.com/spf13/cobra"
 )
 
@@ -20,13 +23,18 @@ func createClusterCmd(cmd *cobra.Command, args []string) error {
 	config.DBInstanceCount, _ = cmd.Flags().GetInt("db-count")
 	config.LoadtestInstanceCount, _ = cmd.Flags().GetInt("loadtest-count")
 
-	clusterService, err := createTerraformClusterService()
+	workingDir, err := defaultWorkingDirectory()
+	if err != nil {
+		return err
+	}
+	config.WorkingDirectory = filepath.Join(workingDir, config.Name)
+
+	_, err = terraform.CreateCluster(&config)
 	if err != nil {
 		return err
 	}
 
-	_, err = clusterService.CreateCluster(&config)
-	return err
+	return nil
 }
 
 func init() {

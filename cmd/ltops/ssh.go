@@ -1,9 +1,11 @@
 package main
 
 import (
+	"path/filepath"
 	"strconv"
 
 	"github.com/mattermost/mattermost-load-test-ops/sshtools"
+	"github.com/mattermost/mattermost-load-test-ops/terraform"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -25,12 +27,12 @@ var sshAppCommand = &cobra.Command{
 			return errors.Wrap(err, "Instance number must be a number")
 		}
 
-		clusterService, err := createTerraformClusterService()
+		workingDir, err := defaultWorkingDirectory()
 		if err != nil {
 			return err
 		}
 
-		cluster, err := clusterService.LoadCluster(clusterName)
+		cluster, err := terraform.LoadCluster(filepath.Join(workingDir, clusterName))
 		if err != nil {
 			return errors.Wrap(err, "Couldn't load cluster")
 		}
@@ -62,12 +64,12 @@ var sshProxyCommand = &cobra.Command{
 			return errors.Wrap(err, "Instance number must be a number")
 		}
 
-		clusterService, err := createTerraformClusterService()
+		workingDir, err := defaultWorkingDirectory()
 		if err != nil {
 			return err
 		}
 
-		cluster, err := clusterService.LoadCluster(clusterName)
+		cluster, err := terraform.LoadCluster(filepath.Join(workingDir, clusterName))
 		if err != nil {
 			return errors.Wrap(err, "Couldn't load cluster")
 		}
@@ -99,12 +101,12 @@ var sshLoadtestCommand = &cobra.Command{
 			return errors.Wrap(err, "Instance number must be a number")
 		}
 
-		clusterService, err := createTerraformClusterService()
+		workingDir, err := defaultWorkingDirectory()
 		if err != nil {
 			return err
 		}
 
-		cluster, err := clusterService.LoadCluster(clusterName)
+		cluster, err := terraform.LoadCluster(filepath.Join(workingDir, clusterName))
 		if err != nil {
 			return errors.Wrap(err, "Couldn't load cluster")
 		}

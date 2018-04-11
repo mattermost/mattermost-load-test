@@ -3,8 +3,6 @@ package terraform
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -18,108 +16,13 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-type ClusterServiceConfig struct {
-	WorkingDirectory string
-}
-
-type clusterService struct {
-	cfg *ClusterServiceConfig
-}
-
-func NewClusterService(cfg *ClusterServiceConfig) (ltops.ClusterService, error) {
-	return &clusterService{
-		cfg: cfg,
-	}, nil
-}
-
-func (cs *clusterService) CreateCluster(cfg *ltops.ClusterConfig) (ltops.Cluster, error) {
-	dbPassword, err := generatePassword()
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to generate database password")
-	}
-
-	sshPrivateKeyPEM, sshAuthorizedKey, err := generateSSHKey()
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to generate ssh key")
-	}
-
-	terraformParameters := terraformParametersFromClusterConfig(cfg, dbPassword, string(sshAuthorizedKey))
-	env, err := newTerraformEnvironment(filepath.Join(cs.cfg.WorkingDirectory, cfg.Name), terraformParameters)
-	if err != nil {
-		return nil, errors.Wrap(err, "Unable to create terrafrom environment.")
-	}
-
-	logrus.Info("creating cluster...")
-
-	if err := env.apply(); err != nil {
-		return nil, errors.Wrap(err, "Unable to run apply for create cluster")
-	}
-
-	cluster := &Cluster{
-		Config:           cfg,
-		SSHPrivateKeyPEM: sshPrivateKeyPEM,
-		DBPassword:       dbPassword,
-		Env:              env,
-	}
-
-	err = saveCluster(cluster, env.WorkingDirectory)
-	if err != nil {
-		return nil, err
-	}
-
-	return cluster, nil
-}
-
-func (cs *clusterService) LoadCluster(name string) (ltops.Cluster, error) {
-	return loadCluster(filepath.Join(cs.cfg.WorkingDirectory, name))
-}
-
-func (cs *clusterService) DeleteCluster(clust ltops.Cluster) error {
-	terraformCluster, isTerraformCluster := clust.(*Cluster)
-	if !isTerraformCluster {
-		return errors.New("Not a terraform cluster.")
-	}
-
-	logrus.Info("Destroying cluster...")
-	if err := terraformCluster.Env.destroy(); err != nil {
-		return errors.Wrap(err, "Unable to destroy terraform cluster.")
-	}
-
-	logrus.Info("Cleaning up files...")
-	return os.RemoveAll(terraformCluster.Env.WorkingDirectory)
-}
-
-func doDeploy(wg *sync.WaitGroup, failed *int32, addresses []string, addressesName string, deployFunc func(addr string, logger logrus.FieldLogger) error) error {
-	for instanceNum, instanceAddr := range addresses {
-		instanceAddr := instanceAddr
-		instanceNum := instanceNum
-		go func() {
-			logrus.Infof("deploying to %v%v : %v...", addressesName, instanceNum, instanceAddr)
-			if err := deployFunc(instanceAddr, logrus.WithField("instance", strconv.Itoa(instanceNum)+":"+instanceAddr)); err != nil {
-				wrapped := errors.Wrap(err, "unable to deploy to "+addressesName+strconv.Itoa(instanceNum)+" : "+instanceAddr)
-				logrus.Error(wrapped)
-				atomic.AddInt32(failed, 1)
-			} else {
-				logrus.Infof("successfully deployed to %v%v : %v...", addressesName, instanceNum, instanceAddr)
-			}
-			wg.Done()
-		}()
-	}
-	return nil
-}
-
-func (cs *clusterService) DeployMattermost(clust ltops.Cluster, mattermostFile string, licenceFile string) error {
-	terraformCluster, isTerraformCluster := clust.(*Cluster)
-	if !isTerraformCluster {
-		return errors.New("Not a terraform cluster.")
-	}
-
-	appInstanceAddrs, err := terraformCluster.GetAppInstancesAddrs()
+func (c *Cluster) DeployMattermost(mattermostFile string, licenceFile string) error {
+	appInstanceAddrs, err := c.GetAppInstancesAddrs()
 	if err != nil || len(appInstanceAddrs) <= 0 {
 		return errors.Wrap(err, "Unable to get app instance addresses")
 	}
 
-	proxyInstanceAddrs, err := terraformCluster.GetProxyInstancesAddrs()
+	proxyInstanceAddrs, err := c.GetProxyInstancesAddrs()
 	if err != nil || len(proxyInstanceAddrs) <= 0 {
 		return errors.Wrap(err, "Unable to get app instance addresses")
 	}
@@ -130,11 +33,11 @@ func (cs *clusterService) DeployMattermost(clust ltops.Cluster, mattermostFile s
 	failed := new(int32)
 
 	doDeploy(&wg, failed, appInstanceAddrs, "app", func(addr string, logger logrus.FieldLogger) error {
-		return deployToAppInstance(mattermostFile, licenceFile, addr, clust, logrus.WithField("instance", addr))
+		return deployToAppInstance(mattermostFile, licenceFile, addr, c, logrus.WithField("instance", addr))
 	})
 
 	doDeploy(&wg, failed, proxyInstanceAddrs, "proxy", func(addr string, logger logrus.FieldLogger) error {
-		return deployToProxyInstance(addr, clust, logrus.WithField("instance", addr))
+		return deployToProxyInstance(addr, c, logrus.WithField("instance", addr))
 	})
 
 	wg.Wait()
@@ -153,13 +56,8 @@ func (cs *clusterService) DeployMattermost(clust ltops.Cluster, mattermostFile s
 	return nil
 }
 
-func (cs *clusterService) DeployLoadtests(clust ltops.Cluster, loadtestsFile string) error {
-	terraformCluster, isTerraformCluster := clust.(*Cluster)
-	if !isTerraformCluster {
-		return errors.New("Not a terraform cluster.")
-	}
-
-	loadtestInstanceAddrs, err := terraformCluster.GetLoadtestInstancesAddrs()
+func (c *Cluster) DeployLoadtests(loadtestsFile string) error {
+	loadtestInstanceAddrs, err := c.GetLoadtestInstancesAddrs()
 	if err != nil || len(loadtestInstanceAddrs) <= 0 {
 		return errors.Wrap(err, "Unable to get loadtest instance addresses")
 	}
@@ -170,7 +68,7 @@ func (cs *clusterService) DeployLoadtests(clust ltops.Cluster, loadtestsFile str
 	failed := new(int32)
 
 	doDeploy(&wg, failed, loadtestInstanceAddrs, "loadtest", func(addr string, logger logrus.FieldLogger) error {
-		return deployToProxyInstance(addr, clust, logrus.WithField("instance", addr))
+		return deployToProxyInstance(addr, c, logrus.WithField("instance", addr))
 	})
 
 	wg.Wait()
@@ -181,6 +79,25 @@ func (cs *clusterService) DeployLoadtests(clust ltops.Cluster, loadtestsFile str
 		return fmt.Errorf("failed to deploy to %v instances", *failed)
 	}
 
+	return nil
+}
+
+func doDeploy(wg *sync.WaitGroup, failed *int32, addresses []string, addressesName string, deployFunc func(addr string, logger logrus.FieldLogger) error) error {
+	for instanceNum, instanceAddr := range addresses {
+		instanceAddr := instanceAddr
+		instanceNum := instanceNum
+		go func() {
+			logrus.Infof("deploying to %v%v : %v...", addressesName, instanceNum, instanceAddr)
+			if err := deployFunc(instanceAddr, logrus.WithField("instance", strconv.Itoa(instanceNum)+":"+instanceAddr)); err != nil {
+				wrapped := errors.Wrap(err, "unable to deploy to "+addressesName+strconv.Itoa(instanceNum)+" : "+instanceAddr)
+				logrus.Error(wrapped)
+				atomic.AddInt32(failed, 1)
+			} else {
+				logrus.Infof("successfully deployed to %v%v : %v...", addressesName, instanceNum, instanceAddr)
+			}
+			wg.Done()
+		}()
+	}
 	return nil
 }
 
@@ -493,9 +410,5 @@ net.ipv4.tcp_fin_timeout=30
 	}
 	session.Close()
 
-	return nil
-}
-
-func (cs *clusterService) RunLoadtests(clust ltops.Cluster) error {
 	return nil
 }

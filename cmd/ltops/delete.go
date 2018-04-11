@@ -1,6 +1,9 @@
 package main
 
 import (
+	"path/filepath"
+
+	"github.com/mattermost/mattermost-load-test-ops/terraform"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -12,17 +15,17 @@ var deleteCluster = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 
-		clusterService, err := createTerraformClusterService()
+		workingDir, err := defaultWorkingDirectory()
 		if err != nil {
 			return err
 		}
 
-		cluster, err := clusterService.LoadCluster(name)
+		cluster, err := terraform.LoadCluster(filepath.Join(workingDir, name))
 		if err != nil {
 			return errors.Wrap(err, "Couldn't load cluster")
 		}
 
-		return clusterService.DeleteCluster(cluster)
+		return cluster.Destroy()
 	},
 }
 

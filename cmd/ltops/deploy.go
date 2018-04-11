@@ -1,6 +1,9 @@
 package main
 
 import (
+	"path/filepath"
+
+	"github.com/mattermost/mattermost-load-test-ops/terraform"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -15,22 +18,22 @@ var deploy = &cobra.Command{
 		clusterName, _ := cmd.Flags().GetString("cluster")
 		loadtestsFile, _ := cmd.Flags().GetString("loadtests")
 
-		clusterService, err := createTerraformClusterService()
+		workingDir, err := defaultWorkingDirectory()
 		if err != nil {
 			return err
 		}
 
-		cluster, err := clusterService.LoadCluster(clusterName)
+		cluster, err := terraform.LoadCluster(filepath.Join(workingDir, clusterName))
 		if err != nil {
 			return errors.Wrap(err, "Couldn't load cluster")
 		}
 
-		err = clusterService.DeployMattermost(cluster, mattermostFile, licenseFile)
+		err = cluster.DeployMattermost(mattermostFile, licenseFile)
 		if err != nil {
 			return errors.Wrap(err, "Couldn't deploy mattermost")
 		}
 
-		err = clusterService.DeployLoadtests(cluster, loadtestsFile)
+		err = cluster.DeployLoadtests(loadtestsFile)
 		if err != nil {
 			return errors.Wrap(err, "Couldn't deploy loadtests")
 		}

@@ -7,26 +7,47 @@ type ClusterConfig struct {
 	DBInstanceType        string
 	DBInstanceCount       int
 	LoadtestInstanceCount int
+	WorkingDirectory      string
 }
 
+// Represents an active cluster
 type Cluster interface {
+	// Returns the name of the cluster
 	Name() string
-	DBConnectionString() string
-	DBReaderConnectionStrings() []string
-	SSHKey() []byte
-	SiteURL() string
-	GetAppInstancesAddrs() ([]string, error)
-	GetLoadtestInstancesAddrs() ([]string, error)
-	GetProxyInstancesAddrs() ([]string, error)
-}
 
-type ClusterService interface {
-	CreateCluster(cfg *ClusterConfig) (Cluster, error)
-	DeleteCluster(cluster Cluster) error
-	LoadCluster(clusterName string) (Cluster, error)
-	DeployMattermost(cluster Cluster, mattermostFile string, licenceFile string) error
+	// Returns the SSH private key to connect to the cluster's instances
+	SSHKey() []byte
+
+	// Returns the siteURL to connect to the cluster
+	SiteURL() string
+
+	// Retuns a slice of the IP addresses of the app server instances in this cluster
+	GetAppInstancesAddrs() ([]string, error)
+
+	// Retuns a slice of the IP addresses of the loadtest instances in this cluster
+	GetLoadtestInstancesAddrs() ([]string, error)
+
+	// Retuns a slice of the IP addresses of the proxy instances in this cluster
+	GetProxyInstancesAddrs() ([]string, error)
+
+	// Returns the master databame connection string
+	DBConnectionString() string
+
+	// Returns a list of all the read-replica database connection strings
+	DBReaderConnectionStrings() []string
+
+	// Deploys a mattermost package to the cluster.
+	DeployMattermost(mattermostFile string, licenceFile string) error
+
+	// Deploys a loadtest package to the cluster.
+	DeployLoadtests(loadtestsFile string) error
+
+	// Destroys the cluster
+	Destroy() error
+
+	// Modifies the configuration of an active Mattermost deployment
 	//ModifyMattermostConfig(cluster Cluster, mattermostConfig string) error
-	DeployLoadtests(cluster Cluster, loadtestsFile string) error
-	//ModifyLoadtestConfig(cluster Cluster, loadtestsFile string) error
-	//LoadtestCluster(cluster Cluster) error
+
+	// Runs loadtests against the cluster. Must have deployed mattermost and loadtests
+	//ModifyMattermostConfig(cluster Cluster, mattermostConfig string) error
 }

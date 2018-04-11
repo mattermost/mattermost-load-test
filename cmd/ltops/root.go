@@ -22,7 +22,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "make output more verbose")
 }
 
-func Execute() {
+func main() {
 	if err := rootCmd.Execute(); err != nil {
 		logrus.Fatal(err)
 	}
