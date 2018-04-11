@@ -6,9 +6,9 @@ import (
 )
 
 var deleteCluster = &cobra.Command{
-	Use:   "delete-cluster [name]",
+	Use:   "delete [name]",
 	Args:  cobra.ExactArgs(1),
-	Short: "Deletes a cluster previously created by create-cluster",
+	Short: "Deletes a cluster previously created by create",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := args[0]
 
