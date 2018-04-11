@@ -1,19 +1,17 @@
-package ops
+package sshtools
 
 import (
 	"os"
 	"os/signal"
+	"strings"
 
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/ec2"
 )
 
-func SSH(clusterInfo *ClusterInfo, instance *ec2.Instance) error {
-	client, err := sshClient(clusterInfo, instance)
+func SSHInteractiveTerminal(sshKey []byte, addr string) error {
+	client, err := SSHClient(sshKey, addr)
 	if err != nil {
 		return err
 	}
@@ -83,18 +81,61 @@ func SSH(clusterInfo *ClusterInfo, instance *ec2.Instance) error {
 	return session.Wait()
 }
 
-func sshClient(clusterInfo *ClusterInfo, instance *ec2.Instance) (*ssh.Client, error) {
-	sshSigner, err := ssh.ParsePrivateKey(clusterInfo.SSHKey)
+func SSHClient(sshKey []byte, addr string) (*ssh.Client, error) {
+	sshSigner, err := ssh.ParsePrivateKey(sshKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to parse ssh private key")
 	}
 
-	return ssh.Dial("tcp", aws.StringValue(instance.PublicIpAddress)+":22", &ssh.ClientConfig{
-		User: "ec2-user",
+	return ssh.Dial("tcp", addr+":22", &ssh.ClientConfig{
+		User: "ubuntu",
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeys(sshSigner),
 		},
 		// TODO: get and save host key from console output after instance creation
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	})
+}
+
+func RemoteCommand(client *ssh.Client, cmd string) error {
+	session, err := client.NewSession()
+	if err != nil {
+		return errors.Wrap(err, "unable to create ssh session")
+	}
+	defer session.Close()
+
+	if err := session.Run(cmd); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func UploadFile(client *ssh.Client, source, destination string) error {
+	f, err := os.Open(source)
+	if err != nil {
+		return errors.Wrap(err, "unable to open source file")
+	}
+	defer f.Close()
+
+	session, err := client.NewSession()
+	if err != nil {
+		return errors.Wrap(err, "unable to create ssh session")
+	}
+	defer session.Close()
+
+	session.Stdin = f
+	if err := session.Run("cat > " + shellQuote(destination)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func shellQuote(s string) string {
+	if strings.ContainsAny(s, `'\`) {
+		// TODO
+		panic("shell quoting not actually implemented. don't use weird paths")
+	}
+	return "'" + s + "'"
 }
