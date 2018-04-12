@@ -3,6 +3,7 @@ package terraform
 import (
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/mattermost/mattermost-load-test-ops/sshtools"
 	"github.com/pkg/errors"
@@ -48,12 +49,21 @@ func (c *Cluster) Loadtest() error {
 		return errors.Wrap(err, "Unable to get loadtest instance addresses")
 	}
 
+	var wg sync.WaitGroup
+	wg.Add(len(loadtestInstancesAddrs))
+
 	for _, addr := range loadtestInstancesAddrs {
-		err := c.loadtestInstance(addr)
-		if err != nil {
-			logrus.Error(err)
-		}
+		go func() {
+			err := c.loadtestInstance(addr)
+			if err != nil {
+				logrus.Error(err)
+			}
+			wg.Done()
+		}()
 	}
+
+	logrus.Info("Wating for loadtests to complete. See: " + filepath.Join(c.Env.WorkingDirectory, "results") + " for results.")
+	wg.Wait()
 
 	return nil
 }
