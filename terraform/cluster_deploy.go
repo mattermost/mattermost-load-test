@@ -3,6 +3,7 @@ package terraform
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -68,7 +69,7 @@ func (c *Cluster) DeployLoadtests(loadtestsFile string) error {
 	failed := new(int32)
 
 	doDeploy(&wg, failed, loadtestInstanceAddrs, "loadtest", func(addr string, logger logrus.FieldLogger) error {
-		return deployToProxyInstance(addr, c, logrus.WithField("instance", addr))
+		return deployToLoadtestInstance(addr, loadtestsFile, c, logrus.WithField("instance", addr))
 	})
 
 	wg.Wait()
@@ -114,9 +115,17 @@ func deployToLoadtestInstance(instanceAddr string, loadtestFile string, cluster 
 		return errors.Wrap(err, "unable to upload loadtest distribution from path: "+loadtestFile)
 	}
 
+	remoteSSHKeyPath := "/home/ubuntu/key.pem"
+	if err := sshtools.UploadBytes(client, cluster.SSHKey(), remoteSSHKeyPath); err != nil {
+		return errors.Wrap(err, "unable to upload ssh key")
+	}
+
 	for _, cmd := range []string{
+		"sudo apt-get update",
+		"sudo apt-get install -y jq",
 		"sudo rm -rf /home/ubuntu/mattermost-load-test",
 		"tar -xvzf /home/ubuntu/mattermost-load-test.tar.gz",
+		"sudo chmod 600 /home/ubuntu/key.pem",
 	} {
 		logger.Debug("+ " + cmd)
 		if err := sshtools.RemoteCommand(client, cmd); err != nil {
@@ -127,6 +136,51 @@ func deployToLoadtestInstance(instanceAddr string, loadtestFile string, cluster 
 	logger.Debug("uploading limits config...")
 	if err := uploadLimitsConfig(client); err != nil {
 		return errors.Wrap(err, "Unable to upload limits config")
+	}
+
+	siteURL, err := url.Parse(cluster.SiteURL())
+	if err != nil {
+		return errors.Wrap(err, "Can't parse site URL")
+	}
+
+	appURLs, err := cluster.GetAppInstancesAddrs()
+	if err != nil || len(appURLs) < 1 {
+		return errors.Wrap(err, "Couldn't get app instance addresses.")
+	}
+
+	appURL, err := url.Parse(appURLs[0])
+	if err != nil {
+		return errors.Wrap(err, "Couldn't parse app url.")
+	}
+
+	websocketURL := *siteURL
+	websocketURL.Scheme = "ws"
+
+	pprofURL := *appURL
+	pprofURL.Host = pprofURL.Host + ":8067"
+	pprofURL.Path = "/debug/pprof"
+
+	for k, v := range map[string]interface{}{
+		".ConnectionConfiguration.ServerURL":            siteURL.String(),
+		".ConnectionConfiguration.WebsocketURL":         websocketURL.String(),
+		".ConnectionConfiguration.PProfURL":             pprofURL.String(),
+		".ConnectionConfiguration.DBEndpoint":           cluster.DBConnectionString(),
+		".ConnectionConfiguration.LocalCommands":        false,
+		".ConnectionConfiguration.SSHHostnamePort":      appURL.String() + ":22",
+		".ConnectionConfiguration.SSHUsername":          "ubuntu",
+		".ConnectionConfiguration.SSHKey":               remoteSSHKeyPath,
+		".ConnectionConfiguration.MattermostInstallDir": "/opt/mattermost",
+		".ConnectionConfiguration.SkipBulkload":         false,
+		".ConnectionConfiguration.WaitForServerStart":   false,
+	} {
+		logger.Debug("updating config: " + k)
+		jsonValue, err := json.Marshal(v)
+		if err != nil {
+			return errors.Wrap(err, "invalid config value for key: "+k)
+		}
+		if err := sshtools.RemoteCommand(client, fmt.Sprintf(`jq '%s = %s' /home/ubuntu/mattermost-load-test/loadtestconfig.json > /tmp/ltconfig.json && mv /tmp/ltconfig.json /home/ubuntu/mattermost-load-test/loadtestconfig.json`, k, string(jsonValue))); err != nil {
+			return errors.Wrap(err, "error updating config: "+k)
+		}
 	}
 
 	for _, cmd := range []string{

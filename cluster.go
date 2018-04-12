@@ -45,6 +45,9 @@ type Cluster interface {
 	// Deploys a loadtest package to the cluster.
 	DeployLoadtests(loadtestsFile string) error
 
+	// Runs a loadtest
+	Loadtest() error
+
 	// Destroys the cluster
 	Destroy() error
 

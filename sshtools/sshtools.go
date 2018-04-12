@@ -1,6 +1,7 @@
 package sshtools
 
 import (
+	"bytes"
 	"os"
 	"os/signal"
 	"strings"
@@ -125,6 +126,21 @@ func UploadFile(client *ssh.Client, source, destination string) error {
 	defer session.Close()
 
 	session.Stdin = f
+	if err := session.Run("cat > " + shellQuote(destination)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func UploadBytes(client *ssh.Client, source []byte, destination string) error {
+	session, err := client.NewSession()
+	if err != nil {
+		return errors.Wrap(err, "unable to create ssh session")
+	}
+	defer session.Close()
+
+	session.Stdin = bytes.NewReader(source)
 	if err := session.Run("cat > " + shellQuote(destination)); err != nil {
 		return err
 	}
