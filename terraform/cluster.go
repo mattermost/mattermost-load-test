@@ -19,6 +19,10 @@ func (c *Cluster) Name() string {
 	return c.Config.Name
 }
 
+func (c *Cluster) Configuration() *ltops.ClusterConfig {
+	return c.Config
+}
+
 func (c *Cluster) SSHKey() []byte {
 	return c.SSHPrivateKeyPEM
 }

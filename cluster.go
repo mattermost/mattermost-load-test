@@ -15,6 +15,9 @@ type Cluster interface {
 	// Returns the name of the cluster
 	Name() string
 
+	// Returns the current configuration of the cluster
+	Configuration() *ClusterConfig
+
 	// Returns the SSH private key to connect to the cluster's instances
 	SSHKey() []byte
 
