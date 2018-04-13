@@ -248,9 +248,16 @@ func actionGetChannel(c *EntityConfig) {
 		cmdlog.Errorf("Unable to get channel stats. Channel: %v, User: %v, Error: %v", channelId, c.UserData.Username, resp.Error.Error())
 	}
 
-	if posts, resp := c.Client.GetPostsForChannel(channelId, 0, 60, ""); resp.Error != nil {
+	if posts, resp := c.Client.GetPostsForChannel(channelId, 0, 60, c.Etags.GetPostsForChannel); resp.Error != nil {
 		cmdlog.Errorf("Unable to get posts for channel Channel: %v, User: %v, Error: %v", channelId, c.UserData.Username, resp.Error.Error())
 	} else {
+		if resp.StatusCode == http.StatusNotModified {
+			posts = c.Etags.PostsForChannel
+		} else {
+			c.Etags.GetPostsForChannel = resp.Etag
+			c.Etags.PostsForChannel = posts
+		}
+
 		for _, post := range posts.Posts {
 			if post.HasReactions {
 				if _, resp := c.Client.GetReactions(post.Id); resp.Error != nil {
@@ -271,6 +278,7 @@ func actionGetChannel(c *EntityConfig) {
 				}
 			}
 		}
+
 	}
 }
 

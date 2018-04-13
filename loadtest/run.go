@@ -127,6 +127,7 @@ func RunTest(test *TestRun) error {
 				TownSquareMap:       serverData.TownSquareIdMap,
 				Client:              userClient,
 				WebSocketClient:     userWebsocketClient,
+				Etags:               &Etags{},
 				ActionRate:          actionRate,
 				LoadTestConfig:      cfg,
 				StatusReportChannel: statusChannel,
