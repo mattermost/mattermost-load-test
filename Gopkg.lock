@@ -124,6 +124,7 @@
   revision = "d47a5532a7bc36ad7b2b8ec3eebe24e975154f94"
 
 [[projects]]
+  branch = "master"
   name = "github.com/mattermost/mattermost-server"
   packages = [
     "einterfaces",
@@ -131,8 +132,7 @@
     "utils",
     "utils/markdown"
   ]
-  revision = "d1ed79a66c7930020b7fda046a11050f5890c84e"
-  version = "v4.8.0"
+  revision = "911b409936521827152b0a491d3e02ed81202694"
 
 [[projects]]
   name = "github.com/mattn/go-runewidth"
@@ -265,10 +265,11 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "env-settings"
   name = "github.com/spf13/viper"
   packages = ["."]
-  revision = "b5e8006cbee93ec955a89ab31e0e3ce3204f3736"
-  version = "v1.0.2"
+  revision = "4f5003aa93559718c866d86fbc795439079484f5"
+  source = "github.com/mattermost/viper"
 
 [[projects]]
   branch = "master"
@@ -356,6 +357,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0137ec7e1feb3fac4e49c55d517836cc77f3990de3dbf992e9b7f80deaf7b534"
+  inputs-digest = "58a5689a0b81774fe14e211bf8dd552945f0d5792150e285300d2f51bd07311b"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -1,20 +1,22 @@
 // Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
-package main
+
+package commands
 
 import (
 	"errors"
 	"io/ioutil"
 
+	"github.com/mattermost/mattermost-server/cmd"
 	"github.com/spf13/cobra"
 )
 
-var licenseCmd = &cobra.Command{
+var LicenseCmd = &cobra.Command{
 	Use:   "license",
 	Short: "Licensing commands",
 }
 
-var uploadLicenseCmd = &cobra.Command{
+var UploadLicenseCmd = &cobra.Command{
 	Use:     "upload [license]",
 	Short:   "Upload a license.",
 	Long:    "Upload a license. Replaces current license.",
@@ -23,11 +25,12 @@ var uploadLicenseCmd = &cobra.Command{
 }
 
 func init() {
-	licenseCmd.AddCommand(uploadLicenseCmd)
+	LicenseCmd.AddCommand(UploadLicenseCmd)
+	cmd.RootCmd.AddCommand(LicenseCmd)
 }
 
-func uploadLicenseCmdF(cmd *cobra.Command, args []string) error {
-	a, err := initDBCommandContextCobra(cmd)
+func uploadLicenseCmdF(command *cobra.Command, args []string) error {
+	a, err := cmd.InitDBCommandContextCobra(command)
 	if err != nil {
 		return err
 	}
@@ -45,7 +48,7 @@ func uploadLicenseCmdF(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	CommandPrettyPrintln("Uploaded license file")
+	cmd.CommandPrettyPrintln("Uploaded license file")
 
 	return nil
 }

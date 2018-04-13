@@ -43,7 +43,7 @@
 
 [[constraint]]
   name = "github.com/mattermost/mattermost-server"
-  version = "4.8.0"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/montanaflynn/stats"
@@ -67,7 +67,8 @@
 
 [[constraint]]
   name = "github.com/spf13/viper"
-  version = "1.0.2"
+  source = "github.com/mattermost/viper"
+  branch = "env-settings"
 
 [[constraint]]
   branch = "master"

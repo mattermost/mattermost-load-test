@@ -35,10 +35,6 @@ const (
 	SERVICE_GOOGLE    = "google"
 	SERVICE_OFFICE365 = "office365"
 
-	WEBSERVER_MODE_REGULAR  = "regular"
-	WEBSERVER_MODE_GZIP     = "gzip"
-	WEBSERVER_MODE_DISABLED = "disabled"
-
 	GENERIC_NO_CHANNEL_NOTIFICATION = "generic_no_channel"
 	GENERIC_NOTIFICATION            = "generic"
 	FULL_NOTIFICATION               = "full"
@@ -99,15 +95,12 @@ const (
 
 	EMAIL_SETTINGS_DEFAULT_FEEDBACK_ORGANIZATION = ""
 
-	SUPPORT_SETTINGS_DEFAULT_TERMS_OF_SERVICE_LINK      = "https://about.mattermost.com/default-terms/"
-	SUPPORT_SETTINGS_DEFAULT_PRIVACY_POLICY_LINK        = "https://about.mattermost.com/default-privacy-policy/"
-	SUPPORT_SETTINGS_DEFAULT_ABOUT_LINK                 = "https://about.mattermost.com/default-about/"
-	SUPPORT_SETTINGS_DEFAULT_HELP_LINK                  = "https://about.mattermost.com/default-help/"
-	SUPPORT_SETTINGS_DEFAULT_REPORT_A_PROBLEM_LINK      = "https://about.mattermost.com/default-report-a-problem/"
-	SUPPORT_SETTINGS_DEFAULT_ADMINISTRATORS_GUIDE_LINK  = "https://about.mattermost.com/administrators-guide/"
-	SUPPORT_SETTINGS_DEFAULT_TROUBLESHOOTING_FORUM_LINK = "https://about.mattermost.com/troubleshooting-forum/"
-	SUPPORT_SETTINGS_DEFAULT_COMMERCIAL_SUPPORT_LINK    = "https://about.mattermost.com/commercial-support/"
-	SUPPORT_SETTINGS_DEFAULT_SUPPORT_EMAIL              = "feedback@mattermost.com"
+	SUPPORT_SETTINGS_DEFAULT_TERMS_OF_SERVICE_LINK = "https://about.mattermost.com/default-terms/"
+	SUPPORT_SETTINGS_DEFAULT_PRIVACY_POLICY_LINK   = "https://about.mattermost.com/default-privacy-policy/"
+	SUPPORT_SETTINGS_DEFAULT_ABOUT_LINK            = "https://about.mattermost.com/default-about/"
+	SUPPORT_SETTINGS_DEFAULT_HELP_LINK             = "https://about.mattermost.com/default-help/"
+	SUPPORT_SETTINGS_DEFAULT_REPORT_A_PROBLEM_LINK = "https://about.mattermost.com/default-report-a-problem/"
+	SUPPORT_SETTINGS_DEFAULT_SUPPORT_EMAIL         = "feedback@mattermost.com"
 
 	LDAP_SETTINGS_DEFAULT_FIRST_NAME_ATTRIBUTE = ""
 	LDAP_SETTINGS_DEFAULT_LAST_NAME_ATTRIBUTE  = ""
@@ -159,8 +152,12 @@ const (
 	PLUGIN_SETTINGS_DEFAULT_DIRECTORY        = "./plugins"
 	PLUGIN_SETTINGS_DEFAULT_CLIENT_DIRECTORY = "./client/plugins"
 
+	TIMEZONE_SETTINGS_DEFAULT_SUPPORTED_TIMEZONES_PATH = "timezones.json"
+
 	COMPLIANCE_EXPORT_TYPE_ACTIANCE    = "actiance"
 	COMPLIANCE_EXPORT_TYPE_GLOBALRELAY = "globalrelay"
+	GLOBALRELAY_CUSTOMER_TYPE_A9       = "A9"
+	GLOBALRELAY_CUSTOMER_TYPE_A10      = "A10"
 )
 
 type ServiceSettings struct {
@@ -429,7 +426,7 @@ func (s *ServiceSettings) SetDefaults() {
 	}
 
 	if s.PostEditTimeLimit == nil {
-		s.PostEditTimeLimit = NewInt(300)
+		s.PostEditTimeLimit = NewInt(-1)
 	}
 
 	if s.EnablePreviewFeatures == nil {
@@ -972,7 +969,7 @@ func (s *ThemeSettings) SetDefaults() {
 type TeamSettings struct {
 	SiteName                            string
 	MaxUsersPerTeam                     *int
-	EnableTeamCreation                  bool
+	EnableTeamCreation                  *bool
 	EnableUserCreation                  bool
 	EnableOpenServer                    *bool
 	RestrictCreationToDomains           string
@@ -994,6 +991,7 @@ type TeamSettings struct {
 	MaxNotificationsPerChannel          *int64
 	EnableConfirmNotificationsToChannel *bool
 	TeammateNameDisplay                 *string
+	ExperimentalEnableAutomaticReplies  *bool
 	ExperimentalTownSquareIsReadOnly    *bool
 	ExperimentalPrimaryTeam             *string
 }
@@ -1088,12 +1086,20 @@ func (s *TeamSettings) SetDefaults() {
 		s.EnableConfirmNotificationsToChannel = NewBool(true)
 	}
 
+	if s.ExperimentalEnableAutomaticReplies == nil {
+		s.ExperimentalEnableAutomaticReplies = NewBool(false)
+	}
+
 	if s.ExperimentalTownSquareIsReadOnly == nil {
 		s.ExperimentalTownSquareIsReadOnly = NewBool(false)
 	}
 
 	if s.ExperimentalPrimaryTeam == nil {
 		s.ExperimentalPrimaryTeam = NewString("")
+	}
+
+	if s.EnableTeamCreation == nil {
+		s.EnableTeamCreation = NewBool(true)
 	}
 }
 
@@ -1129,7 +1135,7 @@ type LdapSettings struct {
 	IdAttribute        *string
 	PositionAttribute  *string
 
-	// Syncronization
+	// Synchronization
 	SyncIntervalMinutes *int
 
 	// Advanced
@@ -1296,6 +1302,9 @@ type SamlSettings struct {
 	IdpDescriptorUrl            *string
 	AssertionConsumerServiceURL *string
 
+	ScopingIDPProviderId *string
+	ScopingIDPName       *string
+
 	IdpCertificateFile    *string
 	PublicCertificateFile *string
 	PrivateKeyFile        *string
@@ -1355,6 +1364,14 @@ func (s *SamlSettings) SetDefaults() {
 
 	if s.AssertionConsumerServiceURL == nil {
 		s.AssertionConsumerServiceURL = NewString("")
+	}
+
+	if s.ScopingIDPProviderId == nil {
+		s.ScopingIDPProviderId = NewString("")
+	}
+
+	if s.ScopingIDPName == nil {
+		s.ScopingIDPName = NewString("")
 	}
 
 	if s.LoginButtonText == nil || *s.LoginButtonText == "" {
@@ -1634,6 +1651,28 @@ func (s *PluginSettings) SetDefaults() {
 	}
 }
 
+type GlobalRelayMessageExportSettings struct {
+	CustomerType *string // must be either A9 or A10, dictates SMTP server url
+	SmtpUsername *string
+	SmtpPassword *string
+	EmailAddress *string // the address to send messages to
+}
+
+func (s *GlobalRelayMessageExportSettings) SetDefaults() {
+	if s.CustomerType == nil {
+		s.CustomerType = NewString(GLOBALRELAY_CUSTOMER_TYPE_A9)
+	}
+	if s.SmtpUsername == nil {
+		s.SmtpUsername = NewString("")
+	}
+	if s.SmtpPassword == nil {
+		s.SmtpPassword = NewString("")
+	}
+	if s.EmailAddress == nil {
+		s.EmailAddress = NewString("")
+	}
+}
+
 type MessageExportSettings struct {
 	EnableExport        *bool
 	ExportFormat        *string
@@ -1642,7 +1681,7 @@ type MessageExportSettings struct {
 	BatchSize           *int
 
 	// formatter-specific settings - these are only expected to be non-nil if ExportFormat is set to the associated format
-	GlobalRelayEmailAddress *string
+	GlobalRelaySettings *GlobalRelayMessageExportSettings
 }
 
 func (s *MessageExportSettings) SetDefaults() {
@@ -1672,6 +1711,31 @@ func (s *MessageExportSettings) SetDefaults() {
 
 	if s.BatchSize == nil {
 		s.BatchSize = NewInt(10000)
+	}
+
+	if s.GlobalRelaySettings == nil {
+		s.GlobalRelaySettings = &GlobalRelayMessageExportSettings{}
+		s.GlobalRelaySettings.SetDefaults()
+	}
+}
+
+type DisplaySettings struct {
+	ExperimentalTimezone *bool
+}
+
+func (s *DisplaySettings) SetDefaults() {
+	if s.ExperimentalTimezone == nil {
+		s.ExperimentalTimezone = NewBool(false)
+	}
+}
+
+type TimezoneSettings struct {
+	SupportedTimezonesPath *string
+}
+
+func (s *TimezoneSettings) SetDefaults() {
+	if s.SupportedTimezonesPath == nil {
+		s.SupportedTimezonesPath = NewString(TIMEZONE_SETTINGS_DEFAULT_SUPPORTED_TIMEZONES_PATH)
 	}
 }
 
@@ -1708,6 +1772,8 @@ type Config struct {
 	MessageExportSettings MessageExportSettings
 	JobSettings           JobSettings
 	PluginSettings        PluginSettings
+	DisplaySettings       DisplaySettings
+	TimezoneSettings      TimezoneSettings
 }
 
 func (o *Config) Clone() *Config {
@@ -1777,6 +1843,8 @@ func (o *Config) SetDefaults() {
 	o.JobSettings.SetDefaults()
 	o.WebrtcSettings.SetDefaults()
 	o.MessageExportSettings.SetDefaults()
+	o.TimezoneSettings.SetDefaults()
+	o.DisplaySettings.SetDefaults()
 }
 
 func (o *Config) IsValid() *AppError {
@@ -2206,10 +2274,18 @@ func (mes *MessageExportSettings) isValid(fs FileSettings) *AppError {
 		}
 
 		if *mes.ExportFormat == COMPLIANCE_EXPORT_TYPE_GLOBALRELAY {
-			// validating email addresses is hard - just make sure it contains an '@' sign
-			// see https://stackoverflow.com/questions/201323/using-a-regular-expression-to-validate-an-email-address
-			if mes.GlobalRelayEmailAddress == nil || !strings.Contains(*mes.GlobalRelayEmailAddress, "@") {
-				return NewAppError("Config.IsValid", "model.config.is_valid.message_export.global_relay_email_address.app_error", nil, "", http.StatusBadRequest)
+			if mes.GlobalRelaySettings == nil {
+				return NewAppError("Config.IsValid", "model.config.is_valid.message_export.global_relay.config_missing.app_error", nil, "", http.StatusBadRequest)
+			} else if mes.GlobalRelaySettings.CustomerType == nil || (*mes.GlobalRelaySettings.CustomerType != GLOBALRELAY_CUSTOMER_TYPE_A9 && *mes.GlobalRelaySettings.CustomerType != GLOBALRELAY_CUSTOMER_TYPE_A10) {
+				return NewAppError("Config.IsValid", "model.config.is_valid.message_export.global_relay.customer_type.app_error", nil, "", http.StatusBadRequest)
+			} else if mes.GlobalRelaySettings.EmailAddress == nil || !strings.Contains(*mes.GlobalRelaySettings.EmailAddress, "@") {
+				// validating email addresses is hard - just make sure it contains an '@' sign
+				// see https://stackoverflow.com/questions/201323/using-a-regular-expression-to-validate-an-email-address
+				return NewAppError("Config.IsValid", "model.config.is_valid.message_export.global_relay.email_address.app_error", nil, "", http.StatusBadRequest)
+			} else if mes.GlobalRelaySettings.SmtpUsername == nil || *mes.GlobalRelaySettings.SmtpUsername == "" {
+				return NewAppError("Config.IsValid", "model.config.is_valid.message_export.global_relay.smtp_username.app_error", nil, "", http.StatusBadRequest)
+			} else if mes.GlobalRelaySettings.SmtpPassword == nil || *mes.GlobalRelaySettings.SmtpPassword == "" {
+				return NewAppError("Config.IsValid", "model.config.is_valid.message_export.global_relay.smtp_password.app_error", nil, "", http.StatusBadRequest)
 			}
 		}
 	}
