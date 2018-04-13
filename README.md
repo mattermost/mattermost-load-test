@@ -1,44 +1,68 @@
 # mattermost-load-test-ops
-🚧Work-in-progress tool for management of Mattermost load test clusters 🚧
+Work-in-progress tool for management of Mattermost load test clusters
 
-## Basic Instructions
-
-This command will create a cluster:
+# Installation
 
 ```
-AWS_PROFILE=mm go run main.go -v create-cluster --name cb-loadtest-cluster --app-instance-type c5.large --app-instance-count 2 --db-instance-type db.m4.large
+go get github.com/mattermost/mattermost-load-test-ops/cmd/ltops
 ```
 
-It should complete in about 5 minutes. If it doesn't, it'll probably time out in 15 or so and tell you there's insufficient capacity for the dedicated host. In that case, I usually just try a different instance type. Once it's complete, all your AWS resources will be in place.
-
-To actually place a build on those resources, use this command:
+or
 
 ```
-AWS_PROFILE=mm go run main.go -v deploy ../mattermost-server/dist/mattermost-enterprise-linux-amd64.tar.gz --cluster-name cb-loadtest-cluster --license-file ~/Downloads/mattermost_ci-81564.mattermost-license
+git clone https://github.com/mattermost/mattermost-load-test-ops
+dep ensure
+go install ./cmd/ltops
 ```
 
-That command will take just a few seconds, and once it completes, you'll have a fully functional HA Mattermost installation. You can find the load balancer for it in AWS and open it up in your browser if you want to poke around it.
+Install terraform: https://www.terraform.io/intro/getting-started/install.html
 
-And finally, to run a load test:
+Setup your aws cli: https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html
+(really we just need the ~/.aws/credentials file to be populated)
 
+# Running a loadtest
+
+1. Create a cluster:
 ```
-AWS_PROFILE=mm go run main.go -v loadtest --cluster-name cb-loadtest-cluster --config loadtestconfig.json -- all
-```
-
-The instances have SSH / pprof ports exposed. So if you need to SSH into one, you can use this command:
-
-```
-AWS_PROFILE=mm go run main.go -v ssh --cluster-name cb-loadtest-cluster
+ltops create --name myloadtestcluster --app-count 1 --db-count 1 --loadtest-count 1 --app-type m4.large --db-type db.r4.large
 ```
 
-Or for pprof, find the load balancer URL and use pprof directly:
+2. Deploy Mattermost, configure proxy, loadtest
+```
+ltops deploy -c myloadtestcluster -m ~/go/src/github.com/mattermost/mattermost-server/dist/mattermost-enterprise-linux-amd64.tar.gz  -l ~/mylicence.mattermost-license -t ~/go/src/github.com/mattermost/mattermost-load-test/dist/mattermost-load-test.tar.gz
+```
+
+3. Run loadtests
+```
+ltops loadtest -c myloadtestcluster
+```
+
+4. Results will show up in ~/.mattermost-load-test-ops/myloadtestcluster/results
+
+5. Delete cluster when done
+```
+ltops delete myloadtestcluster
+```
+
+# SSH into machines
+
+SSH into app server 0:
+```
+ltops ssh app myloadtestcluster 0
+```
+
+SSH into proxy server 1:
+```
+ltops ssh proxy myloadtestcluster 1
+```
+
+SSH into loadtest server 0:
+```
+ltops ssh loadtest myloadtestcluster 0
+```
+
+# Get status of clusters
 
 ```
-go tool pprof -http 127.0.0.1:9002 http://cb-loadte-LoadBala-WM1VN1SYOCV9-1541897120.us-east-1.elb.amazonaws.com:8067/debug/pprof/profile
-```
-
-When you're done with a cluster:
-
-```
-AWS_PROFILE=mm go run main.go -v delete-cluster --name cb-loadtest-cluster
+ltops status
 ```
