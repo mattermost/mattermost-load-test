@@ -18,7 +18,7 @@ var sshCommand = &cobra.Command{
 
 var sshAppCommand = &cobra.Command{
 	Use:   "app [cluster] [instance number]",
-	Short: "Connected to app instance via SSH",
+	Short: "Connect to app instance via SSH",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clusterName := args[0]
@@ -55,7 +55,7 @@ var sshAppCommand = &cobra.Command{
 
 var sshProxyCommand = &cobra.Command{
 	Use:   "proxy [cluster] [instance number]",
-	Short: "Connected to proxy instance via SSH",
+	Short: "Connect to proxy instance via SSH",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clusterName := args[0]
@@ -92,7 +92,7 @@ var sshProxyCommand = &cobra.Command{
 
 var sshLoadtestCommand = &cobra.Command{
 	Use:   "loadtest [cluster] [instance number]",
-	Short: "Connected to loadtest instance via SSH",
+	Short: "Connect to loadtest instance via SSH",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clusterName := args[0]
