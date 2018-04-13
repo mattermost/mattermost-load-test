@@ -32,12 +32,11 @@ func statusCmd(cmd *cobra.Command, args []string) error {
 	for _, file := range files {
 		path := filepath.Join(workingDir, file.Name())
 
-		cluster, err := terraform.LoadCluster(path)
-		if err != nil {
+		if cluster, err := terraform.LoadCluster(path); err != nil {
 			logrus.Error(errors.Wrap(err, "Unable to load cluster "+file.Name()))
+		} else {
+			printStatusForCluster(cluster)
 		}
-
-		printStatusForCluster(cluster)
 	}
 
 	return nil

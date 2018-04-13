@@ -198,6 +198,8 @@ resource "aws_rds_cluster_instance" "db_cluster_instances" {
     instance_class = "${var.db_instance_type}"
     publicly_accessible = true
     apply_immediately = true
+    monitoring_interval = 10
+    monitoring_role_arn = "${aws_iam_role.rds_enhanced_monitoring.arn}"
 }
 
 resource "aws_rds_cluster" "db_cluster" {
@@ -226,6 +228,32 @@ resource "aws_security_group" "db" {
         to_port = 3306
         protocol = "tcp"
         security_groups = ["${aws_security_group.app.id}"]
+    }
+}
+
+# These roles and policies are to enable enhanced monitoring for the DBs
+resource "aws_iam_role" "rds_enhanced_monitoring" {
+	name               = "rds-enhanced_monitoring-role"
+	assume_role_policy = "${data.aws_iam_policy_document.rds_enhanced_monitoring.json}"
+}
+
+resource "aws_iam_role_policy_attachment" "rds_enhanced_monitoring" {
+	role       = "${aws_iam_role.rds_enhanced_monitoring.name}"
+	policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
+}
+
+data "aws_iam_policy_document" "rds_enhanced_monitoring" {
+	statement {
+        actions = [
+            "sts:AssumeRole",
+        ]
+
+        effect = "Allow"
+
+        principals {
+            type        = "Service"
+            identifiers = ["monitoring.rds.amazonaws.com"]
+        }
     }
 }
 
@@ -272,6 +300,64 @@ resource "aws_security_group" "proxy" {
         cidr_blocks = ["0.0.0.0/0"]
     }
 }
+
+resource "aws_s3_bucket" "app" {
+    bucket = "${var.cluster_name}.loadtestbucket"
+    acl = "private"
+    tags {
+        Name = "${var.cluster_name}"
+    }
+    force_destroy = true
+}
+
+output "s3bucket" {
+    value = "${aws_s3_bucket.app.id}"
+}
+
+output "s3bucketRegion" {
+    value = "${aws_s3_bucket.app.region}"
+}
+
+resource "aws_iam_access_key" "s3" {
+    user = "${aws_iam_user.s3.name}"
+}
+
+output "s3AccessKeyId" {
+    value = "${aws_iam_access_key.s3.id}"
+}
+
+output "s3AccessKeySecret" {
+    value = "${aws_iam_access_key.s3.secret}"
+}
+
+resource "aws_iam_user" "s3" {
+    name = "${var.cluster_name}-s3"
+}
+
+resource "aws_iam_user_policy" "s3" {
+    name = "${var.cluster_name}-s3-user-access"
+    user = "${aws_iam_user.s3.name}"
+
+    policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": [
+                "s3:AbortMultipartUpload",
+                "s3:DeleteObject",
+                "s3:GetObject",
+                "s3:GetObjectAcl",
+                "s3:PutObject",
+                "s3:PutObjectAcl"
+            ],
+            "Effect": "Allow",
+            "Resource": "arn:aws:s3:::${aws_s3_bucket.app.id}/*"
+        }
+    ]
+}
+EOF
+}
 `)
 
 func clusterTfBytes() ([]byte, error) {
@@ -284,7 +370,7 @@ func clusterTf() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "cluster.tf", size: 5582, mode: os.FileMode(420), modTime: time.Unix(1523334489, 0)}
+	info := bindataFileInfo{name: "cluster.tf", size: 7648, mode: os.FileMode(420), modTime: time.Unix(1523577631, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

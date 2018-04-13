@@ -42,4 +42,16 @@ type terraformOutputParameters struct {
 	DBReaderEndpoint struct {
 		Value string
 	}
+	S3bucket struct {
+		Value string
+	}
+	S3bucketRegion struct {
+		Value string
+	}
+	S3AccessKeyId struct {
+		Value string
+	}
+	S3AccessKeySecret struct {
+		Value string
+	}
 }

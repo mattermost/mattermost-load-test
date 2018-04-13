@@ -242,7 +242,7 @@ func deployToProxyInstance(instanceAddr string, clust ltops.Cluster, logger logr
 	return nil
 }
 
-func deployToAppInstance(mattermostFile, licenseFile, instanceAddr string, clust ltops.Cluster, logger logrus.FieldLogger) error {
+func deployToAppInstance(mattermostFile, licenseFile, instanceAddr string, clust *Cluster, logger logrus.FieldLogger) error {
 	client, err := sshtools.SSHClient(clust.SSHKey(), instanceAddr)
 	if err != nil {
 		return errors.Wrap(err, "unable to connect to server via ssh")
@@ -284,19 +284,34 @@ func deployToAppInstance(mattermostFile, licenseFile, instanceAddr string, clust
 		return errors.Wrap(err, "Unable to upload limits config")
 	}
 
+	outputParams, err := clust.Env.getOuptutParams()
+	if err != nil {
+		return errors.Wrap(err, "Can't get output parameters")
+	}
+
+	s3AccessKeyId := outputParams.S3AccessKeyId.Value
+	s3AccessKeySecret := outputParams.S3AccessKeySecret.Value
+	s3Bucket := outputParams.S3bucket.Value
+	s3Region := outputParams.S3bucketRegion.Value
+
 	for k, v := range map[string]interface{}{
-		".ServiceSettings.ListenAddress":       ":80",
-		".ServiceSettings.LicenseFileLocation": remoteLicenseFilePath,
-		".ServiceSettings.SiteURL":             clust.SiteURL(),
-		".ServiceSettings.EnableAPIv3":         true,
-		".SqlSettings.DriverName":              "mysql",
-		".SqlSettings.DataSource":              clust.DBConnectionString(),
-		".SqlSettings.DataSourceReplicas":      clust.DBReaderConnectionStrings(),
-		".ClusterSettings.Enable":              true,
-		".ClusterSettings.ClusterName":         "load-test",
-		".ClusterSettings.ReadOnlyConfig":      false,
-		".MetricsSettings.Enable":              true,
-		".MetricsSettings.BlockProfileRate":    1,
+		".ServiceSettings.ListenAddress":        ":80",
+		".ServiceSettings.LicenseFileLocation":  remoteLicenseFilePath,
+		".ServiceSettings.SiteURL":              clust.SiteURL(),
+		".ServiceSettings.EnableAPIv3":          true,
+		".SqlSettings.DriverName":               "mysql",
+		".SqlSettings.DataSource":               clust.DBConnectionString(),
+		".SqlSettings.DataSourceReplicas":       clust.DBReaderConnectionStrings(),
+		".ClusterSettings.Enable":               true,
+		".ClusterSettings.ClusterName":          "load-test",
+		".ClusterSettings.ReadOnlyConfig":       false,
+		".MetricsSettings.Enable":               true,
+		".MetricsSettings.BlockProfileRate":     1,
+		".FileSettings.DriverName":              "amazons3",
+		".FileSettings.AmazonS3AccessKeyId":     s3AccessKeyId,
+		".FileSettings.AmazonS3SecretAccessKey": s3AccessKeySecret,
+		".FileSettings.AmazonS3Bucket":          s3Bucket,
+		".FileSettings.AmazonS3Region":          s3Region,
 	} {
 		logger.Debug("updating config: " + k)
 		jsonValue, err := json.Marshal(v)
