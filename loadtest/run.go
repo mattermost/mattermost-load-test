@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -20,6 +19,7 @@ import (
 
 	"github.com/gizak/termui"
 	"github.com/mattermost/mattermost-load-test/cmdlog"
+	"github.com/mattermost/mattermost-load-test/randutil"
 	"github.com/mattermost/mattermost-server/model"
 )
 
@@ -70,6 +70,15 @@ func RunTest(test *TestRun) error {
 		loadtestInstance.EntityStartNum,
 	)
 
+	if loadtestInstance.EntityStartNum+cfg.UserEntitiesConfiguration.NumActiveEntities > cfg.LoadtestEnviromentConfig.NumUsers {
+		return fmt.Errorf(
+			"Cannot start %d entities starting at %d with only %d users",
+			cfg.UserEntitiesConfiguration.NumActiveEntities,
+			loadtestInstance.EntityStartNum,
+			cfg.LoadtestEnviromentConfig.NumUsers,
+		)
+	}
+
 	cmdlog.Info("Setting up server.")
 	serverData, err := SetupServer(cfg)
 	if err != nil {
@@ -112,75 +121,69 @@ func RunTest(test *TestRun) error {
 	}
 
 	numEntities := len(tokens)
-	entityNum := 0
-	entitiesToSkip := loadtestInstance.EntityStartNum
-	for _, usertype := range test.UserEntities {
-		numEntitesToCreateForType := int(math.Floor((float64(usertype.Freq) / 100.0) * float64(numEntities)))
-		startEntity := 0
-		if numEntitesToCreateForType <= entitiesToSkip {
-			entitiesToSkip -= numEntitesToCreateForType
+	cmdlog.Infof("Starting %d entities from offset %d", numEntities, loadtestInstance.EntityStartNum)
+	for i := 0; i < numEntities; i++ {
+		entityNum := loadtestInstance.EntityStartNum + i
+		entityToken := tokens[i]
+
+		var usertype UserEntityWithRateMultiplier
+		if userTypeChoice, err := randutil.WeightedChoice(test.UserEntities); err != nil {
+			cmdlog.Errorf("Failed to pick user entity for entity %d", entityNum)
 			continue
 		} else {
-			startEntity = entitiesToSkip
-			entitiesToSkip = 0
+			usertype = userTypeChoice.Item.(UserEntityWithRateMultiplier)
 		}
-		cmdlog.Infof("Starting %d entities", numEntitesToCreateForType)
-		for i := startEntity; i < numEntitesToCreateForType; i++ {
-			cmdlog.Infof("Starting entity %v", entityNum)
-			// Get the user auth token for this entity.
-			entityToken := tokens[entityNum]
 
-			// Create some clients
-			userClient := newClientFromToken(entityToken, cfg.ConnectionConfiguration.ServerURL)
-			if cfg.UserEntitiesConfiguration.EnableRequestTiming {
-				userClient.HttpClient.Transport = NewTimedRoundTripper(clientTimingChannel)
-			}
+		cmdlog.Infof("Starting entity %v [%s]", entityNum, usertype.Entity.Name)
 
-			// Websocket client
-			websocketURL := cfg.ConnectionConfiguration.WebsocketURL
-			userWebsocketClient, err := model.NewWebSocketClient4(websocketURL, entityToken)
-			if err != nil {
-				cmdlog.Error("Unable to connect websocket: " + err.Error())
-			}
-
-			// How fast to spam the server
-			actionRate := time.Duration(float64(cfg.UserEntitiesConfiguration.ActionRateMilliseconds)*usertype.RateMultiplier) * time.Millisecond
-
-			entityConfig := &EntityConfig{
-				EntityNumber:        entityNum,
-				EntityName:          usertype.Entity.Name,
-				EntityActions:       usertype.Entity.Actions,
-				UserData:            serverData.BulkloadResult.Users[entityNum],
-				ChannelMap:          serverData.ChannelIdMap,
-				TeamMap:             serverData.TeamIdMap,
-				TownSquareMap:       serverData.TownSquareIdMap,
-				AdminClient:         adminClient,
-				Client:              userClient,
-				WebSocketClient:     userWebsocketClient,
-				ActionRate:          actionRate,
-				LoadTestConfig:      cfg,
-				StatusReportChannel: statusChannel,
-				StopChannel:         stopEntity,
-				StopWaitGroup:       &waitEntity,
-				Info:                make(map[string]interface{}),
-			}
-
-			waitEntity.Add(1)
-			go runEntity(entityConfig)
-
-			waitEntity.Add(1)
-			go websocketListen(entityConfig)
-
-			if cfg.UserEntitiesConfiguration.DoStatusPolling {
-				waitEntity.Add(1)
-				go doStatusPolling(entityConfig)
-			}
-
-			sleepTime := actionRate / time.Duration(numEntities)
-			time.Sleep(sleepTime)
-
-			entityNum++
+		// Create some clients
+		userClient := newClientFromToken(entityToken, cfg.ConnectionConfiguration.ServerURL)
+		if cfg.UserEntitiesConfiguration.EnableRequestTiming {
+			userClient.HttpClient.Transport = NewTimedRoundTripper(clientTimingChannel)
 		}
+
+		// Websocket client
+		websocketURL := cfg.ConnectionConfiguration.WebsocketURL
+		userWebsocketClient, err := model.NewWebSocketClient4(websocketURL, entityToken)
+		if err != nil {
+			cmdlog.Error("Unable to connect websocket: " + err.Error())
+		}
+
+		// How fast to spam the server
+		actionRate := time.Duration(float64(cfg.UserEntitiesConfiguration.ActionRateMilliseconds)*usertype.RateMultiplier) * time.Millisecond
+
+		entityConfig := &EntityConfig{
+			EntityNumber:        entityNum,
+			EntityName:          usertype.Entity.Name,
+			EntityActions:       usertype.Entity.Actions,
+			UserData:            serverData.BulkloadResult.Users[entityNum],
+			ChannelMap:          serverData.ChannelIdMap,
+			TeamMap:             serverData.TeamIdMap,
+			TownSquareMap:       serverData.TownSquareIdMap,
+			AdminClient:         adminClient,
+			Client:              userClient,
+			WebSocketClient:     userWebsocketClient,
+			ActionRate:          actionRate,
+			LoadTestConfig:      cfg,
+			StatusReportChannel: statusChannel,
+			StopChannel:         stopEntity,
+			StopWaitGroup:       &waitEntity,
+			Info:                make(map[string]interface{}),
+		}
+
+		waitEntity.Add(1)
+		go runEntity(entityConfig)
+
+		waitEntity.Add(1)
+		go websocketListen(entityConfig)
+
+		if cfg.UserEntitiesConfiguration.DoStatusPolling {
+			waitEntity.Add(1)
+			go doStatusPolling(entityConfig)
+		}
+
+		sleepTime := actionRate / time.Duration(numEntities)
+		time.Sleep(sleepTime)
 	}
 
 	cmdlog.Info("Done starting entities")

@@ -23,13 +23,12 @@ import (
 )
 
 type TestRun struct {
-	UserEntities []UserEntityFrequency
+	UserEntities []randutil.Choice
 }
 
-type UserEntityFrequency struct {
-	Freq           float64
-	RateMultiplier float64
+type UserEntityWithRateMultiplier struct {
 	Entity         UserEntity
+	RateMultiplier float64
 }
 
 type UserEntity struct {
@@ -344,11 +343,13 @@ var posterEntity UserEntity = UserEntity{
 }
 
 var TestBasicPosting TestRun = TestRun{
-	UserEntities: []UserEntityFrequency{
+	UserEntities: []randutil.Choice{
 		{
-			Freq:           100.0,
-			RateMultiplier: 1.0,
-			Entity:         posterEntity,
+			Item: UserEntityWithRateMultiplier{
+				Entity:         posterEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 100,
 		},
 	},
 }
@@ -364,11 +365,13 @@ var getChannelEntity UserEntity = UserEntity{
 }
 
 var TestGetChannel TestRun = TestRun{
-	UserEntities: []UserEntityFrequency{
+	UserEntities: []randutil.Choice{
 		{
-			Freq:           100.0,
-			RateMultiplier: 1.0,
-			Entity:         getChannelEntity,
+			Item: UserEntityWithRateMultiplier{
+				Entity:         getChannelEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 100,
 		},
 	},
 }
@@ -384,11 +387,13 @@ var searchEntity UserEntity = UserEntity{
 }
 
 var TestSearch TestRun = TestRun{
-	UserEntities: []UserEntityFrequency{
+	UserEntities: []randutil.Choice{
 		{
-			Freq:           100.0,
-			RateMultiplier: 1.0,
-			Entity:         searchEntity,
+			Item: UserEntityWithRateMultiplier{
+				Entity:         searchEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 100,
 		},
 	},
 }
@@ -430,16 +435,20 @@ var webhookUserEntity UserEntity = UserEntity{
 }
 
 var TestAll TestRun = TestRun{
-	UserEntities: []UserEntityFrequency{
+	UserEntities: []randutil.Choice{
 		{
-			Freq:           90.0,
-			RateMultiplier: 1.0,
-			Entity:         standardUserEntity,
+			Item: UserEntityWithRateMultiplier{
+				Entity:         standardUserEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 90,
 		},
 		{
-			Freq:           10.0,
-			RateMultiplier: 1.5,
-			Entity:         webhookUserEntity,
+			Item: UserEntityWithRateMultiplier{
+				Entity:         webhookUserEntity,
+				RateMultiplier: 1.5,
+			},
+			Weight: 10,
 		},
 	},
 }
@@ -455,16 +464,20 @@ var townSquareSpammerUserEntity UserEntity = UserEntity{
 }
 
 var TestTownSquareSpam TestRun = TestRun{
-	UserEntities: []UserEntityFrequency{
+	UserEntities: []randutil.Choice{
 		{
-			Freq:           90.0,
-			RateMultiplier: 1.0,
-			Entity:         standardUserEntity,
+			Item: UserEntityWithRateMultiplier{
+				Entity:         standardUserEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 90,
 		},
 		{
-			Freq:           10.0,
-			RateMultiplier: 1.0,
-			Entity:         townSquareSpammerUserEntity,
+			Item: UserEntityWithRateMultiplier{
+				Entity:         townSquareSpammerUserEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 10,
 		},
 	},
 }
@@ -480,16 +493,20 @@ var teamLeaverJoinerUserEntity UserEntity = UserEntity{
 }
 
 var TestLeaveJoinTeam TestRun = TestRun{
-	UserEntities: []UserEntityFrequency{
+	UserEntities: []randutil.Choice{
 		{
-			Freq:           90.0,
-			RateMultiplier: 1.0,
-			Entity:         standardUserEntity,
+			Item: UserEntityWithRateMultiplier{
+				Entity:         standardUserEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 90,
 		},
 		{
-			Freq:           10.0,
-			RateMultiplier: 1.0,
-			Entity:         teamLeaverJoinerUserEntity,
+			Item: UserEntityWithRateMultiplier{
+				Entity:         teamLeaverJoinerUserEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 10,
 		},
 	},
 }
@@ -534,16 +551,20 @@ var deactivatingUserEntity UserEntity = UserEntity{
 }
 
 var TestDeactivation TestRun = TestRun{
-	UserEntities: []UserEntityFrequency{
+	UserEntities: []randutil.Choice{
 		{
-			Freq:           70.0,
-			RateMultiplier: 1.0,
-			Entity:         standardUserEntity,
+			Item: UserEntityWithRateMultiplier{
+				Entity:         standardUserEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 70,
 		},
 		{
-			Freq:           30.0,
-			RateMultiplier: 1.0,
-			Entity:         deactivatingUserEntity,
+			Item: UserEntityWithRateMultiplier{
+				Entity:         deactivatingUserEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 30,
 		},
 	},
 }
