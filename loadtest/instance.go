@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	sqlx "github.com/jmoiron/sqlx"
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/pkg/errors"
 
@@ -19,8 +20,8 @@ const (
 	InstanceExpiredInterval   = InstanceHeartbeatInterval * 4
 )
 
-func createInstanceSchema(db *sql.DB) error {
-	sql := `
+func createInstanceSchema(db *sqlx.DB) error {
+	query := `
 	    CREATE TABLE IF NOT EXISTS LoadtestInstances(
 		Id	    VARCHAR(26) PRIMARY KEY,
 		CreateAt    BIGINT,
@@ -29,14 +30,16 @@ func createInstanceSchema(db *sql.DB) error {
 	    )
 `
 
-	if _, err := db.Exec(sql); err != nil {
+	if _, err := db.Exec(query); err != nil {
 		return errors.Wrap(err, "failed to create instance schema")
 	}
 
 	return nil
 }
 
-func insertInstance(db *sql.DB, id string, now time.Time) (int, error) {
+func insertInstance(db *sqlx.DB, id string, now time.Time) (int, error) {
+	var err error
+
 	for attempts := 1; attempts <= 5; attempts++ {
 		var index int
 		row := db.QueryRow(`SELECT COUNT(*) FROM LoadtestInstances`)
@@ -44,34 +47,35 @@ func insertInstance(db *sql.DB, id string, now time.Time) (int, error) {
 			return 0, fmt.Errorf("failed to count instances")
 		}
 
-		sql := `
+		query := `
 		    INSERT INTO LoadtestInstances
 			(Id, CreateAt, ActiveAt, Idx) 
 		    VALUES
 			(?, ?, ?, ?)
     `
-		if _, err := db.Exec(sql, id, now.Unix()*1000, now.Unix()*1000, index); err != nil {
+		_, err = db.Exec(db.Rebind(query), id, now.Unix()*1000, now.Unix()*1000, index)
+		if err != nil {
 			// Try again, on the off chance we tried to create an instance with the same index.
 			cmdlog.Infof("failed to insert instance `%s` with index %d, trying again", id, index)
 			time.Sleep(time.Duration(attempts) * time.Second)
 		} else {
-			return index, err
+			return index, nil
 		}
 	}
 
-	return 0, fmt.Errorf("failed to insert instance `%s` with unique index", id)
+	return 0, fmt.Errorf("failed to insert instance `%s` with unique index: %s", id, err.Error())
 }
 
-func recordInstanceHeartbeat(db *sql.DB, id string, now time.Time) error {
-	sql := `UPDATE LoadtestInstances SET ActiveAt = ? WHERE Id = ?`
-	_, err := db.Exec(sql, now.Unix()*1000, id)
+func recordInstanceHeartbeat(db *sqlx.DB, id string, now time.Time) error {
+	query := `UPDATE LoadtestInstances SET ActiveAt = ? WHERE Id = ?`
+	_, err := db.Exec(db.Rebind(query), now.Unix()*1000, id)
 	return err
 }
 
-func pruneInstances(db *sql.DB, now time.Time) error {
-	sql := `DELETE FROM LoadtestInstances WHERE ActiveAt <= ?`
+func pruneInstances(db *sqlx.DB, now time.Time) error {
+	query := `DELETE FROM LoadtestInstances WHERE ActiveAt <= ?`
 
-	if result, err := db.Exec(sql, now.Add(-1*InstanceExpiredInterval).Unix()*1000); err != nil {
+	if result, err := db.Exec(db.Rebind(query), now.Add(-1*InstanceExpiredInterval).Unix()*1000); err != nil {
 		return errors.Wrapf(err, "failed to prune instances")
 	} else if count, _ := result.RowsAffected(); count > 0 {
 		cmdlog.Infof("Pruned %d expired instances", count)
@@ -80,10 +84,10 @@ func pruneInstances(db *sql.DB, now time.Time) error {
 	return nil
 }
 
-func deleteInstance(db *sql.DB, id string) error {
-	sql := `DELETE FROM LoadtestInstances WHERE Id = ?`
+func deleteInstance(db *sqlx.DB, id string) error {
+	query := `DELETE FROM LoadtestInstances WHERE Id = ?`
 
-	_, err := db.Exec(sql, id)
+	_, err := db.Exec(db.Rebind(query), id)
 	return err
 }
 
@@ -93,12 +97,12 @@ type Instance struct {
 	Index          int
 	EntityStartNum int
 
-	db     *sql.DB
+	db     *sqlx.DB
 	close  chan bool
 	closed chan bool
 }
 
-func NewInstance(db *sql.DB, numActiveEntities int) (*Instance, error) {
+func NewInstance(db *sqlx.DB, numActiveEntities int) (*Instance, error) {
 	if err := createInstanceSchema(db); err != nil {
 		return nil, err
 	}
