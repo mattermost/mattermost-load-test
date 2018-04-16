@@ -24,6 +24,9 @@ import (
 )
 
 func RunTest(test *TestRun) error {
+	interruptChannel := make(chan os.Signal)
+	signal.Notify(interruptChannel, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
 	defer cmdlog.CloseLog()
 
 	cfg, err := GetConfig()
@@ -183,13 +186,16 @@ func RunTest(test *TestRun) error {
 		}
 
 		sleepTime := actionRate / time.Duration(numEntities)
-		time.Sleep(sleepTime)
+
+		select {
+		case <-interruptChannel:
+			close(stopEntity)
+			return nil
+		case <-time.After(sleepTime):
+		}
 	}
 
 	cmdlog.Info("Done starting entities")
-
-	interrupChannel := make(chan os.Signal)
-	signal.Notify(interrupChannel, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	cmdlog.Infof("Test set to run for %v minutes", cfg.UserEntitiesConfiguration.TestLengthMinutes)
 	timeoutchan := time.After(time.Duration(cfg.UserEntitiesConfiguration.TestLengthMinutes) * time.Minute)
@@ -204,7 +210,7 @@ func RunTest(test *TestRun) error {
 	}
 
 	select {
-	case <-interrupChannel:
+	case <-interruptChannel:
 		cmdlog.Info("Interupted!")
 	case <-timeoutchan:
 		cmdlog.Info("Test finished normally")
