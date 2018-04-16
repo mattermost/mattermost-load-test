@@ -56,11 +56,6 @@ func RunTest(test *TestRun) error {
 		return err
 	}
 
-	adminClient := getAdminClient(cfg.ConnectionConfiguration.ServerURL, cfg.ConnectionConfiguration.AdminEmail, cfg.ConnectionConfiguration.AdminPassword, nil)
-	if adminClient == nil {
-		return fmt.Errorf("Unable create admin client.")
-	}
-
 	cmdlog.Info("Logging in as users.")
 	tokens := loginAsUsers(cfg)
 	if len(tokens) == 0 {
@@ -86,6 +81,15 @@ func RunTest(test *TestRun) error {
 
 	waitMonitors.Add(1)
 	go ProcessClientRoundTripReports(clientTimingStats, clientTimingChannel3, clientTimingChannel, stopMonitors, &waitMonitors)
+
+	adminClient := getAdminClient(cfg.ConnectionConfiguration.ServerURL, cfg.ConnectionConfiguration.AdminEmail, cfg.ConnectionConfiguration.AdminPassword, nil)
+	if adminClient == nil {
+		return fmt.Errorf("Unable create admin client.")
+	}
+
+	if cfg.UserEntitiesConfiguration.EnableRequestTiming {
+		adminClient.HttpClient.Transport = NewTimedRoundTripper(clientTimingChannel)
+	}
 
 	numEntities := len(tokens)
 	entityNum := 0

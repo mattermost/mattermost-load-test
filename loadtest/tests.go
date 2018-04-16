@@ -515,8 +515,7 @@ func actionDeactivateReactivate(c *EntityConfig) {
 		cmdlog.Infof("Reactivated user %v", user.Id)
 	}
 
-	// Re-create client since the token will have been invalidated.
-	c.Client = model.NewAPIv4Client(c.LoadTestConfig.ConnectionConfiguration.ServerURL)
+	// Login again since the token will have been invalidated.
 	if _, response := c.Client.Login(user.Email, "Loadtestpassword1"); response != nil && response.Error != nil {
 		cmdlog.Errorf("Failed to recreate client as user %s: %s", user.Email, response.Error)
 	} else {
