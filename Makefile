@@ -7,10 +7,10 @@ DIST_ROOT=dist
 DIST_FOLDER_NAME=mattermost-load-test
 DIST_PATH=$(DIST_ROOT)/$(DIST_FOLDER_NAME)
 
-
 all: install
 
 install:
+	dep ensure
 	$(GO) install ./cmd/loadtest
 
 loadtestconfig: loadtestconfig.json

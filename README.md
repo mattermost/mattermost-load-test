@@ -29,11 +29,11 @@ To run the load test simulation, complete the following:
 
 Follow the regular Mattermost installation instructions for the operating system that you're using. Make sure you pick large enough machines in a configuration that will support the load you are testing for.
 
-### 2) Set up a load test server.
+### 2) Set up one or more load test servers.
 
-The hardware specifications of the server running the load test should be similar to the hardware of your application server.
+The hardware specifications of the servers running the load test should be similar to the hardware of your application server.
 
-Install the `loadtest` command on the load test server using [these instructions](install-load-test-server.md).
+Install the `loadtest` command on the load test servers using [these instructions](install-load-test-server.md).
 
 ### 3) Configure
 
@@ -45,7 +45,7 @@ You can find explanations of the configuration fields in the [Configuration File
 
 ### 4) Run the tests
 
-Now you can run the tests from the load test machine by using the command `loadtest all`.
+Now you can run the tests by invoking the command `loadtest all` on each load test machine.
 
 A summary of activity will be output to the console so you can monitor the test. While the tests are running, it is a good idea to check the health of the server and the databases (e.g. reasonable CPU).
 
@@ -97,9 +97,9 @@ You can manually generate and load the test users into the Mattermost server man
 
 Note that the load tests only support master and possibly 1 version back (although you may need to use a branch)
 
-1. Edit the `glide.yaml` file under `github.com/mattermost/platform` change `version: master` to the branch you want to build against. For a release the branch is called `release-x-x`, eg `release-3.9`
-2. run `make clean`
-3. run `make package`
+1. Edit the `Gopkg.toml` file under `github.com/mattermost/platform` change `branch = "master"` to the branch you want to build against. For a release the branch is called `release-x.y`, eg `release-3.9`
+2. Run `make clean`
+3. Run `make package`
 
 ## Look for slow SQL queries in MySQL
 

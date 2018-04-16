@@ -66,7 +66,7 @@ How long the test should run for.
 
 ### NumActiveEntities
 
-How many entities should be run. This should be set to your number of expected active users.
+How many entities should be run by each load test machine. This should be set to your number of expected active users divided by the number of load test machines.
 
 ### ActionRateMilliseconds
 
