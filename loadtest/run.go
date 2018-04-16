@@ -50,6 +50,26 @@ func RunTest(test *TestRun) error {
 		cmdlog.SetConsoleLog()
 	}
 
+	db := ConnectToDB(cfg.ConnectionConfiguration.DriverName, cfg.ConnectionConfiguration.DataSource)
+	if db == nil {
+		return fmt.Errorf("Failed to connect to database")
+	}
+
+	loadtestInstance, err := NewInstance(db, cfg.UserEntitiesConfiguration.NumActiveEntities)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := loadtestInstance.Close(); err != nil {
+			cmdlog.Errorf("failed to close instance: %s", err.Error())
+		}
+	}()
+	cmdlog.Infof(
+		"Registered loadtest instance `%s` (Entity Start Num: %d)",
+		loadtestInstance.Id,
+		loadtestInstance.EntityStartNum,
+	)
+
 	cmdlog.Info("Setting up server.")
 	serverData, err := SetupServer(cfg)
 	if err != nil {
@@ -57,7 +77,7 @@ func RunTest(test *TestRun) error {
 	}
 
 	cmdlog.Info("Logging in as users.")
-	tokens := loginAsUsers(cfg)
+	tokens := loginAsUsers(cfg, loadtestInstance.EntityStartNum)
 	if len(tokens) == 0 {
 		return fmt.Errorf("Failed to login as any users")
 	} else if len(tokens) != cfg.UserEntitiesConfiguration.NumActiveEntities {
@@ -93,7 +113,7 @@ func RunTest(test *TestRun) error {
 
 	numEntities := len(tokens)
 	entityNum := 0
-	entitiesToSkip := cfg.UserEntitiesConfiguration.EntityStartNum
+	entitiesToSkip := loadtestInstance.EntityStartNum
 	for _, usertype := range test.UserEntities {
 		numEntitesToCreateForType := int(math.Floor((float64(usertype.Freq) / 100.0) * float64(numEntities)))
 		startEntity := 0
