@@ -41,10 +41,25 @@ func insertInstance(db *sqlx.DB, id string, now time.Time) (int, error) {
 	var err error
 
 	for attempts := 1; attempts <= 5; attempts++ {
-		var index int
-		row := db.QueryRow(`SELECT COUNT(*) FROM LoadtestInstances`)
-		if err := row.Scan(&index); err == sql.ErrNoRows {
-			return 0, fmt.Errorf("failed to count instances")
+		var index sql.NullInt64
+		row := db.QueryRow(`
+		    SELECT 
+			CASE 
+			    WHEN li_lower.Idx IS NULL AND li.Idx > 0 THEN li.Idx - 1
+			    ELSE li.Idx + 1
+			END
+		    FROM 
+			LoadtestInstances li 
+		    LEFT JOIN
+			LoadtestInstances li_lower ON ( li_lower.Idx = li.Idx - 1)
+		    LEFT JOIN
+			LoadtestInstances li_higher ON ( li_higher.Idx = li.Idx + 1)
+		    WHERE
+			li_lower.Id IS NULL
+		     OR li_higher.Id IS NULL
+		`)
+		if err := row.Scan(&index); err != nil && err != sql.ErrNoRows {
+			return 0, errors.Wrap(err, "failed to find available instance index")
 		}
 
 		query := `
@@ -53,13 +68,13 @@ func insertInstance(db *sqlx.DB, id string, now time.Time) (int, error) {
 		    VALUES
 			(?, ?, ?, ?)
     `
-		_, err = db.Exec(db.Rebind(query), id, now.Unix()*1000, now.Unix()*1000, index)
+		_, err = db.Exec(db.Rebind(query), id, now.Unix()*1000, now.Unix()*1000, index.Int64)
 		if err != nil {
 			// Try again, on the off chance we tried to create an instance with the same index.
-			cmdlog.Infof("failed to insert instance `%s` with index %d, trying again", id, index)
+			cmdlog.Infof("failed to insert instance `%s` with index %d, trying again", id, index.Int64)
 			time.Sleep(time.Duration(attempts) * time.Second)
 		} else {
-			return index, nil
+			return int(index.Int64), nil
 		}
 	}
 
