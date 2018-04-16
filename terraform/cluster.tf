@@ -187,7 +187,7 @@ resource "aws_security_group" "db" {
 
 # These roles and policies are to enable enhanced monitoring for the DBs
 resource "aws_iam_role" "rds_enhanced_monitoring" {
-	name               = "rds-enhanced_monitoring-role"
+	name               = "${var.cluster_name}-rds-enhanced_monitoring-role"
 	assume_role_policy = "${data.aws_iam_policy_document.rds_enhanced_monitoring.json}"
 }
 

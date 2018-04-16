@@ -233,7 +233,7 @@ resource "aws_security_group" "db" {
 
 # These roles and policies are to enable enhanced monitoring for the DBs
 resource "aws_iam_role" "rds_enhanced_monitoring" {
-	name               = "rds-enhanced_monitoring-role"
+	name               = "${var.cluster_name}-rds-enhanced_monitoring-role"
 	assume_role_policy = "${data.aws_iam_policy_document.rds_enhanced_monitoring.json}"
 }
 
@@ -370,7 +370,7 @@ func clusterTf() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "cluster.tf", size: 7648, mode: os.FileMode(420), modTime: time.Unix(1523577631, 0)}
+	info := bindataFileInfo{name: "cluster.tf", size: 7668, mode: os.FileMode(420), modTime: time.Unix(1523900460, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
