@@ -46,6 +46,8 @@ const statusFormatString = `
 --------------------------------------
 Name: %v
 SiteURL: %v
+DBConnectionString: %v
+RR0ConnectionString: %v
 Instances:
 	APP:    %v
 	DB:     %v
@@ -59,10 +61,18 @@ func printStatusForCluster(cluster ltops.Cluster) {
 	app, _ := cluster.GetAppInstancesAddrs()
 	proxy, _ := cluster.GetProxyInstancesAddrs()
 	loadtest, _ := cluster.GetLoadtestInstancesAddrs()
+	dbConnectionString := cluster.DBConnectionString()
+	rrConnectionStrings := cluster.DBReaderConnectionStrings()
+	rrConnnectionString := ""
+	if len(rrConnectionStrings) > 0 {
+		rrConnnectionString = rrConnectionStrings[0]
+	}
 
 	fmt.Printf(statusFormatString,
 		cluster.Name(),
 		cluster.SiteURL(),
+		dbConnectionString,
+		rrConnnectionString,
 		len(app),
 		cluster.Configuration().DBInstanceCount,
 		len(proxy),
