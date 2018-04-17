@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -20,10 +19,14 @@ import (
 
 	"github.com/gizak/termui"
 	"github.com/mattermost/mattermost-load-test/cmdlog"
+	"github.com/mattermost/mattermost-load-test/randutil"
 	"github.com/mattermost/mattermost-server/model"
 )
 
 func RunTest(test *TestRun) error {
+	interruptChannel := make(chan os.Signal)
+	signal.Notify(interruptChannel, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
 	defer cmdlog.CloseLog()
 
 	cfg, err := GetConfig()
@@ -50,6 +53,35 @@ func RunTest(test *TestRun) error {
 		cmdlog.SetConsoleLog()
 	}
 
+	db := ConnectToDB(cfg.ConnectionConfiguration.DriverName, cfg.ConnectionConfiguration.DataSource)
+	if db == nil {
+		return fmt.Errorf("Failed to connect to database")
+	}
+
+	loadtestInstance, err := NewInstance(db, cfg.UserEntitiesConfiguration.NumActiveEntities)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := loadtestInstance.Close(); err != nil {
+			cmdlog.Errorf("failed to close instance: %s", err.Error())
+		}
+	}()
+	cmdlog.Infof(
+		"Registered loadtest instance `%s` (Entity Start Num: %d)",
+		loadtestInstance.Id,
+		loadtestInstance.EntityStartNum,
+	)
+
+	if loadtestInstance.EntityStartNum+cfg.UserEntitiesConfiguration.NumActiveEntities > cfg.LoadtestEnviromentConfig.NumUsers {
+		return fmt.Errorf(
+			"Cannot start %d entities starting at %d with only %d users",
+			cfg.UserEntitiesConfiguration.NumActiveEntities,
+			loadtestInstance.EntityStartNum,
+			cfg.LoadtestEnviromentConfig.NumUsers,
+		)
+	}
+
 	cmdlog.Info("Setting up server.")
 	serverData, err := SetupServer(cfg)
 	if err != nil {
@@ -57,7 +89,7 @@ func RunTest(test *TestRun) error {
 	}
 
 	cmdlog.Info("Logging in as users.")
-	tokens := loginAsUsers(cfg)
+	tokens := loginAsUsers(cfg, loadtestInstance.EntityStartNum)
 	if len(tokens) == 0 {
 		return fmt.Errorf("Failed to login as any users")
 	} else if len(tokens) != cfg.UserEntitiesConfiguration.NumActiveEntities {
@@ -82,81 +114,88 @@ func RunTest(test *TestRun) error {
 	waitMonitors.Add(1)
 	go ProcessClientRoundTripReports(clientTimingStats, clientTimingChannel3, clientTimingChannel, stopMonitors, &waitMonitors)
 
+	adminClient := getAdminClient(cfg.ConnectionConfiguration.ServerURL, cfg.ConnectionConfiguration.AdminEmail, cfg.ConnectionConfiguration.AdminPassword, nil)
+	if adminClient == nil {
+		return fmt.Errorf("Unable create admin client.")
+	}
+
+	if cfg.UserEntitiesConfiguration.EnableRequestTiming {
+		adminClient.HttpClient.Transport = NewTimedRoundTripper(clientTimingChannel)
+	}
+
 	numEntities := len(tokens)
-	entityNum := 0
-	entitiesToSkip := cfg.UserEntitiesConfiguration.EntityStartNum
-	for _, usertype := range test.UserEntities {
-		numEntitesToCreateForType := int(math.Floor((float64(usertype.Freq) / 100.0) * float64(numEntities)))
-		startEntity := 0
-		if numEntitesToCreateForType <= entitiesToSkip {
-			entitiesToSkip -= numEntitesToCreateForType
+	cmdlog.Infof("Starting %d entities from offset %d", numEntities, loadtestInstance.EntityStartNum)
+	for i := 0; i < numEntities; i++ {
+		entityNum := loadtestInstance.EntityStartNum + i
+		entityToken := tokens[i]
+
+		var usertype UserEntityWithRateMultiplier
+		if userTypeChoice, err := randutil.WeightedChoice(test.UserEntities); err != nil {
+			cmdlog.Errorf("Failed to pick user entity for entity %d", entityNum)
 			continue
 		} else {
-			startEntity = entitiesToSkip
-			entitiesToSkip = 0
+			usertype = userTypeChoice.Item.(UserEntityWithRateMultiplier)
 		}
-		cmdlog.Infof("Starting %d entities ", strconv.Itoa(numEntitesToCreateForType))
-		for i := startEntity; i < numEntitesToCreateForType; i++ {
-			cmdlog.Infof("Starting entity %v", entityNum)
-			// Get the user auth token for this entity.
-			entityToken := tokens[entityNum]
 
-			// Create some clients
-			userClient := newClientFromToken(entityToken, cfg.ConnectionConfiguration.ServerURL)
-			if cfg.UserEntitiesConfiguration.EnableRequestTiming {
-				userClient.HttpClient.Transport = NewTimedRoundTripper(clientTimingChannel)
-			}
+		cmdlog.Infof("Starting entity %v [%s]", entityNum, usertype.Entity.Name)
 
-			// Websocket client
-			websocketURL := cfg.ConnectionConfiguration.WebsocketURL
-			userWebsocketClient, err := model.NewWebSocketClient4(websocketURL, entityToken)
-			if err != nil {
-				cmdlog.Error("Unable to connect websocket: " + err.Error())
-			}
+		// Create some clients
+		userClient := newClientFromToken(entityToken, cfg.ConnectionConfiguration.ServerURL)
+		if cfg.UserEntitiesConfiguration.EnableRequestTiming {
+			userClient.HttpClient.Transport = NewTimedRoundTripper(clientTimingChannel)
+		}
 
-			// How fast to spam the server
-			actionRate := time.Duration(float64(cfg.UserEntitiesConfiguration.ActionRateMilliseconds)*usertype.RateMultiplier) * time.Millisecond
+		// Websocket client
+		websocketURL := cfg.ConnectionConfiguration.WebsocketURL
+		userWebsocketClient, err := model.NewWebSocketClient4(websocketURL, entityToken)
+		if err != nil {
+			cmdlog.Error("Unable to connect websocket: " + err.Error())
+		}
 
-			entityConfig := &EntityConfig{
-				EntityNumber:        entityNum,
-				EntityName:          usertype.Entity.Name,
-				EntityActions:       usertype.Entity.Actions,
-				UserData:            serverData.BulkloadResult.Users[entityNum],
-				ChannelMap:          serverData.ChannelIdMap,
-				TeamMap:             serverData.TeamIdMap,
-				TownSquareMap:       serverData.TownSquareIdMap,
-				Client:              userClient,
-				WebSocketClient:     userWebsocketClient,
-				ActionRate:          actionRate,
-				LoadTestConfig:      cfg,
-				StatusReportChannel: statusChannel,
-				StopChannel:         stopEntity,
-				StopWaitGroup:       &waitEntity,
-				Info:                make(map[string]interface{}),
-			}
+		// How fast to spam the server
+		actionRate := time.Duration(float64(cfg.UserEntitiesConfiguration.ActionRateMilliseconds)*usertype.RateMultiplier) * time.Millisecond
 
+		entityConfig := &EntityConfig{
+			EntityNumber:        entityNum,
+			EntityName:          usertype.Entity.Name,
+			EntityActions:       usertype.Entity.Actions,
+			UserData:            serverData.BulkloadResult.Users[entityNum],
+			ChannelMap:          serverData.ChannelIdMap,
+			TeamMap:             serverData.TeamIdMap,
+			TownSquareMap:       serverData.TownSquareIdMap,
+			AdminClient:         adminClient,
+			Client:              userClient,
+			WebSocketClient:     userWebsocketClient,
+			ActionRate:          actionRate,
+			LoadTestConfig:      cfg,
+			StatusReportChannel: statusChannel,
+			StopChannel:         stopEntity,
+			StopWaitGroup:       &waitEntity,
+			Info:                make(map[string]interface{}),
+		}
+
+		waitEntity.Add(1)
+		go runEntity(entityConfig)
+
+		waitEntity.Add(1)
+		go websocketListen(entityConfig)
+
+		if cfg.UserEntitiesConfiguration.DoStatusPolling {
 			waitEntity.Add(1)
-			go runEntity(entityConfig)
+			go doStatusPolling(entityConfig)
+		}
 
-			waitEntity.Add(1)
-			go websocketListen(entityConfig)
+		sleepTime := actionRate / time.Duration(numEntities)
 
-			if cfg.UserEntitiesConfiguration.DoStatusPolling {
-				waitEntity.Add(1)
-				go doStatusPolling(entityConfig)
-			}
-
-			sleepTime := actionRate / time.Duration(numEntities)
-			time.Sleep(sleepTime)
-
-			entityNum++
+		select {
+		case <-interruptChannel:
+			close(stopEntity)
+			return nil
+		case <-time.After(sleepTime):
 		}
 	}
 
 	cmdlog.Info("Done starting entities")
-
-	interrupChannel := make(chan os.Signal)
-	signal.Notify(interrupChannel, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	cmdlog.Infof("Test set to run for %v minutes", cfg.UserEntitiesConfiguration.TestLengthMinutes)
 	timeoutchan := time.After(time.Duration(cfg.UserEntitiesConfiguration.TestLengthMinutes) * time.Minute)
@@ -171,7 +210,7 @@ func RunTest(test *TestRun) error {
 	}
 
 	select {
-	case <-interrupChannel:
+	case <-interruptChannel:
 		cmdlog.Info("Interupted!")
 	case <-timeoutchan:
 		cmdlog.Info("Test finished normally")

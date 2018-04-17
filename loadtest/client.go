@@ -21,26 +21,31 @@ func newClientFromToken(token string, serverUrl string) *model.Client4 {
 	return client
 }
 
-func loginAsUsers(cfg *LoadTestConfig) []string {
+func loginAsUsers(cfg *LoadTestConfig, entityStartNum int) []string {
 	tokens := make([]string, cfg.UserEntitiesConfiguration.NumActiveEntities)
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	order := r.Perm(cfg.LoadtestEnviromentConfig.NumUsers)
 
-	ThreadSplit(cfg.UserEntitiesConfiguration.NumActiveEntities, runtime.GOMAXPROCS(0)*2, PrintCounter, func(entityNum int) {
+	ThreadSplit(cfg.UserEntitiesConfiguration.NumActiveEntities, runtime.GOMAXPROCS(0)*2, PrintCounter, func(i int) {
 		// Add the usernum to start from
-		userNum := entityNum + cfg.UserEntitiesConfiguration.EntityStartNum
+		entityNum := i + entityStartNum
+		userNum := entityNum
 		client := model.NewAPIv4Client(cfg.ConnectionConfiguration.ServerURL)
 
-		// Random selection if picked
+		// Random selection if picked.
+		// TODO: Synchronize random selection across multiple loadtest instances by using
+		// a common seed.
 		if cfg.UserEntitiesConfiguration.RandomizeEntitySelection {
 			userNum = order[entityNum]
 		}
 
-		if _, response := client.Login("success+user"+strconv.Itoa(userNum)+"@simulator.amazonses.com", "Loadtestpassword1"); response != nil && response.Error != nil {
-			cmdlog.Errorf("Entity %v failed to login as user %v: %s", entityNum, userNum, response.Error)
+		email := "success+user" + strconv.Itoa(userNum) + "@simulator.amazonses.com"
+
+		if _, response := client.Login(email, "Loadtestpassword1"); response != nil && response.Error != nil {
+			cmdlog.Errorf("Entity %v failed to login as user %s: %s", entityNum, email, response.Error)
 		} else {
-			cmdlog.Infof("Entity %v has logged in as user %v", entityNum, userNum)
-			tokens[entityNum] = client.AuthToken
+			cmdlog.Infof("Entity %v has logged in as user %s", entityNum, email)
+			tokens[i] = client.AuthToken
 		}
 	})
 

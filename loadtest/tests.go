@@ -23,23 +23,17 @@ import (
 )
 
 type TestRun struct {
-	UserEntities []UserEntityFrequency
+	UserEntities []randutil.Choice
 }
 
-type UserEntityFrequency struct {
-	Freq           float64
-	RateMultiplier float64
+type UserEntityWithRateMultiplier struct {
 	Entity         UserEntity
+	RateMultiplier float64
 }
 
 type UserEntity struct {
 	Name    string
 	Actions []randutil.Choice
-}
-
-type EntityActions interface {
-	Init(c *EntityConfig)
-	Action(c *EntityConfig)
 }
 
 func readTestFile(name string) ([]byte, error) {
@@ -349,11 +343,13 @@ var posterEntity UserEntity = UserEntity{
 }
 
 var TestBasicPosting TestRun = TestRun{
-	UserEntities: []UserEntityFrequency{
+	UserEntities: []randutil.Choice{
 		{
-			Freq:           100.0,
-			RateMultiplier: 1.0,
-			Entity:         posterEntity,
+			Item: UserEntityWithRateMultiplier{
+				Entity:         posterEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 100,
 		},
 	},
 }
@@ -369,11 +365,13 @@ var getChannelEntity UserEntity = UserEntity{
 }
 
 var TestGetChannel TestRun = TestRun{
-	UserEntities: []UserEntityFrequency{
+	UserEntities: []randutil.Choice{
 		{
-			Freq:           100.0,
-			RateMultiplier: 1.0,
-			Entity:         getChannelEntity,
+			Item: UserEntityWithRateMultiplier{
+				Entity:         getChannelEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 100,
 		},
 	},
 }
@@ -389,11 +387,13 @@ var searchEntity UserEntity = UserEntity{
 }
 
 var TestSearch TestRun = TestRun{
-	UserEntities: []UserEntityFrequency{
+	UserEntities: []randutil.Choice{
 		{
-			Freq:           100.0,
-			RateMultiplier: 1.0,
-			Entity:         searchEntity,
+			Item: UserEntityWithRateMultiplier{
+				Entity:         searchEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 100,
 		},
 	},
 }
@@ -403,19 +403,23 @@ var standardUserEntity UserEntity = UserEntity{
 	Actions: []randutil.Choice{
 		{
 			Item:   actionPost,
-			Weight: 4,
+			Weight: 8,
 		},
 		{
 			Item:   actionPerformSearch,
-			Weight: 1,
+			Weight: 2,
 		},
 		{
 			Item:   actionGetChannel,
-			Weight: 28,
+			Weight: 56,
 		},
 		{
 			Item:   actionDisconnectWebsocket,
-			Weight: 2,
+			Weight: 4,
+		},
+		{
+			Item:   actionDeactivateReactivate,
+			Weight: 1,
 		},
 	},
 }
@@ -431,16 +435,20 @@ var webhookUserEntity UserEntity = UserEntity{
 }
 
 var TestAll TestRun = TestRun{
-	UserEntities: []UserEntityFrequency{
+	UserEntities: []randutil.Choice{
 		{
-			Freq:           90.0,
-			RateMultiplier: 1.0,
-			Entity:         standardUserEntity,
+			Item: UserEntityWithRateMultiplier{
+				Entity:         standardUserEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 90,
 		},
 		{
-			Freq:           10.0,
-			RateMultiplier: 1.5,
-			Entity:         webhookUserEntity,
+			Item: UserEntityWithRateMultiplier{
+				Entity:         webhookUserEntity,
+				RateMultiplier: 1.5,
+			},
+			Weight: 10,
 		},
 	},
 }
@@ -456,16 +464,20 @@ var townSquareSpammerUserEntity UserEntity = UserEntity{
 }
 
 var TestTownSquareSpam TestRun = TestRun{
-	UserEntities: []UserEntityFrequency{
+	UserEntities: []randutil.Choice{
 		{
-			Freq:           90.0,
-			RateMultiplier: 1.0,
-			Entity:         standardUserEntity,
+			Item: UserEntityWithRateMultiplier{
+				Entity:         standardUserEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 90,
 		},
 		{
-			Freq:           10.0,
-			RateMultiplier: 1.0,
-			Entity:         townSquareSpammerUserEntity,
+			Item: UserEntityWithRateMultiplier{
+				Entity:         townSquareSpammerUserEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 10,
 		},
 	},
 }
@@ -481,16 +493,78 @@ var teamLeaverJoinerUserEntity UserEntity = UserEntity{
 }
 
 var TestLeaveJoinTeam TestRun = TestRun{
-	UserEntities: []UserEntityFrequency{
+	UserEntities: []randutil.Choice{
 		{
-			Freq:           90.0,
-			RateMultiplier: 1.0,
-			Entity:         standardUserEntity,
+			Item: UserEntityWithRateMultiplier{
+				Entity:         standardUserEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 90,
 		},
 		{
-			Freq:           10.0,
-			RateMultiplier: 1.0,
-			Entity:         teamLeaverJoinerUserEntity,
+			Item: UserEntityWithRateMultiplier{
+				Entity:         teamLeaverJoinerUserEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 10,
+		},
+	},
+}
+
+func actionDeactivateReactivate(c *EntityConfig) {
+	user, resp := c.Client.GetMe("")
+	if resp.Error != nil {
+		cmdlog.Errorf("Failed to get me, err=%v", resp.Error.Error())
+		return
+	}
+
+	if ok, resp := c.AdminClient.UpdateUserActive(user.Id, false); !ok {
+		cmdlog.Errorf("Failed to deactivate user %v: %v", user.Id, resp.Error.Error())
+	} else {
+		cmdlog.Infof("Deactivated user %v", user.Id)
+	}
+
+	time.Sleep(time.Second * 1)
+
+	if ok, resp := c.AdminClient.UpdateUserActive(user.Id, true); !ok {
+		cmdlog.Errorf("Failed to reactivate user: %v", resp.Error.Error())
+	} else {
+		cmdlog.Infof("Reactivated user %v", user.Id)
+	}
+
+	// Login again since the token will have been invalidated.
+	if _, response := c.Client.Login(user.Email, "Loadtestpassword1"); response != nil && response.Error != nil {
+		cmdlog.Errorf("Failed to recreate client as user %s: %s", user.Email, response.Error)
+	} else {
+		cmdlog.Infof("Recreated client as user %s", user.Email)
+	}
+}
+
+var deactivatingUserEntity UserEntity = UserEntity{
+	Name: "DeactivatingUserEntity",
+	Actions: []randutil.Choice{
+		{
+			Item:   actionDeactivateReactivate,
+			Weight: 1,
+		},
+	},
+}
+
+var TestDeactivation TestRun = TestRun{
+	UserEntities: []randutil.Choice{
+		{
+			Item: UserEntityWithRateMultiplier{
+				Entity:         standardUserEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 70,
+		},
+		{
+			Item: UserEntityWithRateMultiplier{
+				Entity:         deactivatingUserEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 30,
 		},
 	},
 }

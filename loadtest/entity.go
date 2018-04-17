@@ -23,6 +23,7 @@ type EntityConfig struct {
 	TeamMap             map[string]string
 	TownSquareMap       map[string]string
 	Client              *model.Client4
+	AdminClient         *model.Client4
 	WebSocketClient     *model.WebSocketClient
 	ActionRate          time.Duration
 	LoadTestConfig      *LoadTestConfig

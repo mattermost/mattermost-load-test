@@ -52,6 +52,11 @@ var tests []TestItem = []TestItem{
 		ShortDesc: "Test leaving and joining a team while under load",
 		Test:      &loadtest.TestLeaveJoinTeam,
 	},
+	{
+		Name:      "user-deactivation",
+		ShortDesc: "Test deactivating and reactivating users while under load",
+		Test:      &loadtest.TestDeactivation,
+	},
 }
 
 func main() {
