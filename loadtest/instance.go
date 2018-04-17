@@ -46,16 +46,17 @@ func insertInstance(db *sqlx.DB, id string, now time.Time) (int, error) {
 		    SELECT 
 			CASE 
 			    WHEN li_lower.Idx IS NULL AND li.Idx > 0 THEN li.Idx - 1
-			    ELSE li.Idx + 1
+			    WHEN li_higher.Idx IS NULL THEN li.Idx + 1
+			    ELSE NULL
 			END
 		    FROM 
 			LoadtestInstances li 
 		    LEFT JOIN
-			LoadtestInstances li_lower ON ( li_lower.Idx = li.Idx - 1)
+			LoadtestInstances li_lower ON ( li_lower.Idx = li.Idx - 1 )
 		    LEFT JOIN
-			LoadtestInstances li_higher ON ( li_higher.Idx = li.Idx + 1)
+			LoadtestInstances li_higher ON ( li_higher.Idx = li.Idx + 1 )
 		    WHERE
-			li_lower.Id IS NULL
+			li.Idx > 0 AND li_lower.Id IS NULL
 		     OR li_higher.Id IS NULL
 		`)
 		if err := row.Scan(&index); err != nil && err != sql.ErrNoRows {
