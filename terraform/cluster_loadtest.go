@@ -53,6 +53,7 @@ func (c *Cluster) Loadtest() error {
 	wg.Add(len(loadtestInstancesAddrs))
 
 	for _, addr := range loadtestInstancesAddrs {
+		addr := addr
 		go func() {
 			err := c.loadtestInstance(addr)
 			if err != nil {
