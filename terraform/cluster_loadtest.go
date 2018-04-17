@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/mattermost/mattermost-load-test-ops/sshtools"
 	"github.com/pkg/errors"
@@ -61,6 +62,8 @@ func (c *Cluster) Loadtest() error {
 			}
 			wg.Done()
 		}()
+		// Give some time between instances just to avoid any races
+		time.Sleep(time.Second * 10)
 	}
 
 	logrus.Info("Wating for loadtests to complete. See: " + filepath.Join(c.Env.WorkingDirectory, "results") + " for results.")
