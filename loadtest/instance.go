@@ -100,6 +100,16 @@ func pruneInstances(db *sqlx.DB, now time.Time) error {
 	return nil
 }
 
+func getCoordinatedRandomSeed(db *sqlx.DB) (int64, error) {
+	var seed int64
+	row := db.QueryRow(`SELECT li.CreateAt FROM LoadtestInstances li WHERE li.Idx = 0`)
+	if err := row.Scan(&seed); err != nil {
+		return 0, err
+	}
+
+	return seed, nil
+}
+
 func deleteInstance(db *sqlx.DB, id string) error {
 	query := `DELETE FROM LoadtestInstances WHERE Id = ?`
 
@@ -112,6 +122,7 @@ type Instance struct {
 	Id             string
 	Index          int
 	EntityStartNum int
+	Seed           int64
 
 	db     *sqlx.DB
 	close  chan bool
@@ -135,11 +146,21 @@ func NewInstance(db *sqlx.DB, numActiveEntities int) (*Instance, error) {
 		return nil, errors.Wrapf(err, "failed to insert instance `%s`", id)
 	}
 
+	// Attempt to arrive at a seed by which to coordinate randomness across loadtest instances.
+	// Note that this is not resilient in the event that the loadtest with Index 0 restarts,
+	// since its CreateAt time is used as the seed value. All loadtest instances should
+	// be restarted in such a case to maintain coordination.
+	seed, err := getCoordinatedRandomSeed(db)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to query for coordinated random seed")
+	}
+
 	i := &Instance{
 		Id:    id,
 		Index: index,
 		// TODO: Support variable number of configured entities per instance.
 		EntityStartNum: index * numActiveEntities,
+		Seed:           seed,
 
 		db:     db,
 		close:  make(chan bool),

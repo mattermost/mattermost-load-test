@@ -21,9 +21,9 @@ func newClientFromToken(token string, serverUrl string) *model.Client4 {
 	return client
 }
 
-func loginAsUsers(cfg *LoadTestConfig, entityStartNum int) []string {
+func loginAsUsers(cfg *LoadTestConfig, entityStartNum int, seed int64) []string {
 	tokens := make([]string, cfg.UserEntitiesConfiguration.NumActiveEntities)
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	r := rand.New(rand.NewSource(seed))
 	order := r.Perm(cfg.LoadtestEnviromentConfig.NumUsers)
 
 	ThreadSplit(cfg.UserEntitiesConfiguration.NumActiveEntities, runtime.GOMAXPROCS(0)*2, PrintCounter, func(i int) {
@@ -33,8 +33,6 @@ func loginAsUsers(cfg *LoadTestConfig, entityStartNum int) []string {
 		client := model.NewAPIv4Client(cfg.ConnectionConfiguration.ServerURL)
 
 		// Random selection if picked.
-		// TODO: Synchronize random selection across multiple loadtest instances by using
-		// a common seed.
 		if cfg.UserEntitiesConfiguration.RandomizeEntitySelection {
 			userNum = order[entityNum]
 		}
