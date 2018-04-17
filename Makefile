@@ -10,13 +10,12 @@ DIST_PATH=$(DIST_ROOT)/$(DIST_FOLDER_NAME)
 all: install
 
 install:
-	dep ensure
 	$(GO) install ./cmd/loadtest
 
-loadtestconfig: loadtestconfig.json
+loadtestconfig.json:
 	cp loadtestconfig.default.json loadtestconfig.json
 
-package: loadtestconfig install
+package: loadtestconfig.json install
 	rm -rf $(DIST_ROOT)
 	mkdir -p $(DIST_PATH)/bin
 

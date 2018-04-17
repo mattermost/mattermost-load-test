@@ -68,9 +68,10 @@ func RunTest(test *TestRun) error {
 		}
 	}()
 	cmdlog.Infof(
-		"Registered loadtest instance `%s` (Entity Start Num: %d)",
+		"Registered loadtest instance `%s` (Entity Start Num: %d, Seed: %d)",
 		loadtestInstance.Id,
 		loadtestInstance.EntityStartNum,
+		loadtestInstance.Seed,
 	)
 
 	if loadtestInstance.EntityStartNum+cfg.UserEntitiesConfiguration.NumActiveEntities > cfg.LoadtestEnviromentConfig.NumUsers {
@@ -89,7 +90,7 @@ func RunTest(test *TestRun) error {
 	}
 
 	cmdlog.Info("Logging in as users.")
-	tokens := loginAsUsers(cfg, loadtestInstance.EntityStartNum)
+	tokens := loginAsUsers(cfg, loadtestInstance.EntityStartNum, loadtestInstance.Seed)
 	if len(tokens) == 0 {
 		return fmt.Errorf("Failed to login as any users")
 	} else if len(tokens) != cfg.UserEntitiesConfiguration.NumActiveEntities {
