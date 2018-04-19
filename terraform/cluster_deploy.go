@@ -33,11 +33,11 @@ func (c *Cluster) DeployMattermost(mattermostFile string, licenceFile string) er
 
 	failed := new(int32)
 
-	doDeploy(&wg, failed, appInstanceAddrs, "app", func(addr string, logger logrus.FieldLogger) error {
+	doDeploy(&wg, failed, appInstanceAddrs, "app", func(instanceNum int, addr string, logger logrus.FieldLogger) error {
 		return deployToAppInstance(mattermostFile, licenceFile, addr, c, logrus.WithField("instance", addr))
 	})
 
-	doDeploy(&wg, failed, proxyInstanceAddrs, "proxy", func(addr string, logger logrus.FieldLogger) error {
+	doDeploy(&wg, failed, proxyInstanceAddrs, "proxy", func(instanceNum int, addr string, logger logrus.FieldLogger) error {
 		return deployToProxyInstance(addr, c, logrus.WithField("instance", addr))
 	})
 
@@ -68,8 +68,8 @@ func (c *Cluster) DeployLoadtests(loadtestsFile string) error {
 
 	failed := new(int32)
 
-	doDeploy(&wg, failed, loadtestInstanceAddrs, "loadtest", func(addr string, logger logrus.FieldLogger) error {
-		return deployToLoadtestInstance(addr, loadtestsFile, c, logrus.WithField("instance", addr))
+	doDeploy(&wg, failed, loadtestInstanceAddrs, "loadtest", func(instanceNum int, addr string, logger logrus.FieldLogger) error {
+		return deployToLoadtestInstance(instanceNum, addr, loadtestsFile, c, logrus.WithField("instance", addr))
 	})
 
 	wg.Wait()
@@ -83,13 +83,13 @@ func (c *Cluster) DeployLoadtests(loadtestsFile string) error {
 	return nil
 }
 
-func doDeploy(wg *sync.WaitGroup, failed *int32, addresses []string, addressesName string, deployFunc func(addr string, logger logrus.FieldLogger) error) error {
+func doDeploy(wg *sync.WaitGroup, failed *int32, addresses []string, addressesName string, deployFunc func(instanceNum int, addr string, logger logrus.FieldLogger) error) error {
 	for instanceNum, instanceAddr := range addresses {
 		instanceAddr := instanceAddr
 		instanceNum := instanceNum
 		go func() {
 			logrus.Infof("deploying to %v%v : %v...", addressesName, instanceNum, instanceAddr)
-			if err := deployFunc(instanceAddr, logrus.WithField("instance", strconv.Itoa(instanceNum)+":"+instanceAddr)); err != nil {
+			if err := deployFunc(instanceNum, instanceAddr, logrus.WithField("instance", strconv.Itoa(instanceNum)+":"+instanceAddr)); err != nil {
 				wrapped := errors.Wrap(err, "unable to deploy to "+addressesName+strconv.Itoa(instanceNum)+" : "+instanceAddr)
 				logrus.Error(wrapped)
 				atomic.AddInt32(failed, 1)
@@ -102,7 +102,7 @@ func doDeploy(wg *sync.WaitGroup, failed *int32, addresses []string, addressesNa
 	return nil
 }
 
-func deployToLoadtestInstance(instanceAddr string, loadtestFile string, cluster ltops.Cluster, logger logrus.FieldLogger) error {
+func deployToLoadtestInstance(instanceNum int, instanceAddr string, loadtestFile string, cluster ltops.Cluster, logger logrus.FieldLogger) error {
 	client, err := sshtools.SSHClient(cluster.SSHKey(), instanceAddr)
 	if err != nil {
 		return errors.Wrap(err, "unable to connect to server via ssh")
@@ -138,9 +138,9 @@ func deployToLoadtestInstance(instanceAddr string, loadtestFile string, cluster 
 		return errors.Wrap(err, "Unable to upload limits config")
 	}
 
-	siteURL, err := url.Parse(cluster.SiteURL())
-	if err != nil {
-		return errors.Wrap(err, "Can't parse site URL")
+	proxyURLs, err := cluster.GetProxyInstancesAddrs()
+	if err != nil || len(proxyURLs) < 1 {
+		return errors.Wrap(err, "Couldn't get app instance addresses.")
 	}
 
 	appURLs, err := cluster.GetAppInstancesAddrs()
@@ -153,6 +153,14 @@ func deployToLoadtestInstance(instanceAddr string, loadtestFile string, cluster 
 		return errors.Wrap(err, "Couldn't parse app url.")
 	}
 
+	siteURL, err := url.Parse(proxyURLs[instanceNum])
+	if err != nil {
+		return errors.Wrap(err, "Can't parse site URL")
+	}
+
+	serverURL := *siteURL
+	serverURL.Scheme = "http"
+
 	websocketURL := *siteURL
 	websocketURL.Scheme = "ws"
 
@@ -161,16 +169,15 @@ func deployToLoadtestInstance(instanceAddr string, loadtestFile string, cluster 
 	pprofURL.Path = "/debug/pprof"
 
 	for k, v := range map[string]interface{}{
-		".ConnectionConfiguration.ServerURL":            siteURL.String(),
+		".ConnectionConfiguration.ServerURL":            serverURL.String(),
 		".ConnectionConfiguration.WebsocketURL":         websocketURL.String(),
 		".ConnectionConfiguration.PProfURL":             pprofURL.String(),
-		".ConnectionConfiguration.DBEndpoint":           cluster.DBConnectionString(),
+		".ConnectionConfiguration.DataSource":           cluster.DBConnectionString(),
 		".ConnectionConfiguration.LocalCommands":        false,
 		".ConnectionConfiguration.SSHHostnamePort":      appURL.String() + ":22",
 		".ConnectionConfiguration.SSHUsername":          "ubuntu",
 		".ConnectionConfiguration.SSHKey":               remoteSSHKeyPath,
 		".ConnectionConfiguration.MattermostInstallDir": "/opt/mattermost",
-		".ConnectionConfiguration.SkipBulkload":         false,
 		".ConnectionConfiguration.WaitForServerStart":   false,
 	} {
 		logger.Debug("updating config: " + k)
@@ -228,6 +235,8 @@ func deployToProxyInstance(instanceAddr string, clust ltops.Cluster, logger logr
 	for _, cmd := range []string{
 		"sudo ln -fs /etc/nginx/sites-available/mattermost /etc/nginx/sites-enabled/mattermost",
 		"sudo rm -f /etc/nginx/sites-enabled/default",
+		"sudo grep -q -F 'worker_rlimit_nofile' /etc/nginx/nginx.conf || echo 'worker_rlimit_nofile 65536;' | sudo tee -a /etc/nginx/nginx.conf",
+		"sudo sed -i 's/worker_connections.*/worker_connections 200000;/g' /etc/nginx/nginx.conf",
 		"sudo systemctl daemon-reload",
 		"sudo systemctl restart nginx",
 		"sudo systemctl enable nginx",
@@ -295,23 +304,28 @@ func deployToAppInstance(mattermostFile, licenseFile, instanceAddr string, clust
 	s3Region := outputParams.S3bucketRegion.Value
 
 	for k, v := range map[string]interface{}{
-		".ServiceSettings.ListenAddress":        ":80",
-		".ServiceSettings.LicenseFileLocation":  remoteLicenseFilePath,
-		".ServiceSettings.SiteURL":              clust.SiteURL(),
-		".ServiceSettings.EnableAPIv3":          true,
-		".SqlSettings.DriverName":               "mysql",
-		".SqlSettings.DataSource":               clust.DBConnectionString(),
-		".SqlSettings.DataSourceReplicas":       clust.DBReaderConnectionStrings(),
-		".ClusterSettings.Enable":               true,
-		".ClusterSettings.ClusterName":          "load-test",
-		".ClusterSettings.ReadOnlyConfig":       false,
-		".MetricsSettings.Enable":               true,
-		".MetricsSettings.BlockProfileRate":     1,
-		".FileSettings.DriverName":              "amazons3",
-		".FileSettings.AmazonS3AccessKeyId":     s3AccessKeyId,
-		".FileSettings.AmazonS3SecretAccessKey": s3AccessKeySecret,
-		".FileSettings.AmazonS3Bucket":          s3Bucket,
-		".FileSettings.AmazonS3Region":          s3Region,
+		".ServiceSettings.ListenAddress":               ":80",
+		".ServiceSettings.LicenseFileLocation":         remoteLicenseFilePath,
+		".ServiceSettings.SiteURL":                     clust.SiteURL(),
+		".ServiceSettings.EnableAPIv3":                 true,
+		".SqlSettings.DriverName":                      "mysql",
+		".SqlSettings.DataSource":                      clust.DBConnectionString(),
+		".SqlSettings.DataSourceReplicas":              clust.DBReaderConnectionStrings(),
+		".ClusterSettings.Enable":                      true,
+		".ClusterSettings.ClusterName":                 "load-test",
+		".ClusterSettings.ReadOnlyConfig":              false,
+		".MetricsSettings.Enable":                      true,
+		".MetricsSettings.BlockProfileRate":            1,
+		".FileSettings.DriverName":                     "amazons3",
+		".FileSettings.AmazonS3AccessKeyId":            s3AccessKeyId,
+		".FileSettings.AmazonS3SecretAccessKey":        s3AccessKeySecret,
+		".FileSettings.AmazonS3Bucket":                 s3Bucket,
+		".FileSettings.AmazonS3Region":                 s3Region,
+		".TeamSettings.MaxUsersPerTeam":                10000000,
+		".TeamSettings.EnableOpenServer":               true,
+		".TeamSettings.MaxChannelsPerTeam":             10000000,
+		".ServiceSettings.EnableIncomingWehbooks":      true,
+		".ServiceSettings.EnableOnlyAdminIntegrations": false,
 	} {
 		logger.Debug("updating config: " + k)
 		jsonValue, err := json.Marshal(v)
