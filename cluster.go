@@ -33,6 +33,9 @@ type Cluster interface {
 	// Retuns a slice of the IP addresses of the proxy instances in this cluster
 	GetProxyInstancesAddrs() ([]string, error)
 
+	// Retuns the ip address of the metrics server
+	GetMetricsAddr() (string, error)
+
 	// Returns the master databame connection string
 	DBConnectionString() string
 

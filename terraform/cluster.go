@@ -65,6 +65,15 @@ func (c *Cluster) GetProxyInstancesAddrs() ([]string, error) {
 	return instanceIps, nil
 }
 
+func (c *Cluster) GetMetricsAddr() (string, error) {
+	params, err := c.Env.getOuptutParams()
+	if err != nil {
+		return "", err
+	}
+
+	return params.MetricsIp.Value, nil
+}
+
 func (c *Cluster) DBConnectionString() string {
 	params, err := c.Env.getOuptutParams()
 	if err != nil {

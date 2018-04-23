@@ -14,6 +14,7 @@ variable "loadtest_instance_count" {
 }
 variable "db_password" {}
 variable "ssh_public_key" {}
+variable "ssh_private_key" {}
 
 provider "aws" {
     region = "us-east-1"
@@ -33,6 +34,7 @@ resource "aws_instance" "app_server" {
     ]
     key_name = "${aws_key_pair.key.id}"
     count = "${var.app_instance_count}"
+    availability_zone = "us-east-1a"
 }
 
 resource "aws_key_pair" "key" {
@@ -41,7 +43,7 @@ resource "aws_key_pair" "key" {
 }
 
 output "instanceIP" {
-    value = "${aws_instance.app_server.*.public_ip}"
+    value = "${aws_instance.app_server.*.public_dns}"
 }
 
 resource "aws_security_group" "app" {
@@ -121,6 +123,7 @@ resource "aws_instance" "loadtest" {
     ]
     key_name = "${aws_key_pair.key.id}"
     count = "${var.loadtest_instance_count}"
+    availability_zone = "us-east-1a"
 }
 
 output "loadtestInstanceIP" {
@@ -164,6 +167,7 @@ resource "aws_rds_cluster" "db_cluster" {
     skip_final_snapshot = true
     apply_immediately = true
     vpc_security_group_ids = ["${aws_security_group.db.id}"]
+    availability_zones = ["us-east-1a"]
 }
 
 output "dbEndpoint" {
@@ -223,10 +227,11 @@ resource "aws_instance" "proxy_server" {
     ]
     key_name = "${aws_key_pair.key.id}"
     count = "${var.loadtest_instance_count}"
+    availability_zone = "us-east-1a"
 }
 
 output "proxyIP" {
-    value = "${aws_instance.proxy_server.*.public_ip}"
+    value = "${aws_instance.proxy_server.*.public_dns}"
 }
 
 resource "aws_security_group" "proxy" {
@@ -312,3 +317,150 @@ resource "aws_iam_user_policy" "s3" {
 }
 EOF
 }
+
+resource "aws_instance" "metrics" {
+    tags {
+        Name = "${var.cluster_name}-metrics"
+    }
+    ami = "ami-43a15f3e"
+    instance_type = "t2.large"
+    associate_public_ip_address = true
+    vpc_security_group_ids = [
+        "${aws_security_group.metrics.id}",
+    ]
+    key_name = "${aws_key_pair.key.id}"
+    availability_zone = "us-east-1a"
+
+    provisioner "file" {
+        destination = "/home/ubuntu/prometheus.service"
+        connection {
+            user="ubuntu"
+            private_key="${var.ssh_private_key}"
+            agent=false
+        }
+
+        content = <<EOF
+[Unit]
+Description=Monitoring system and time series database
+Documentation=https://prometheus.io/docs/introduction/overview/
+
+[Service]
+Restart=always
+User=ubuntu
+WorkingDirectory=/home/ubuntu/prometheus
+ExecStart=/home/ubuntu/prometheus/prometheus $ARGS
+ExecReload=/bin/kill -HUP $MAINPID
+TimeoutStopSec=20s
+SendSIGKILL=no
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    }
+
+    provisioner "remote-exec" {
+        connection {
+            user="ubuntu"
+            private_key="${var.ssh_private_key}"
+            agent=false
+        }
+        inline = [
+            "sudo mv prometheus.service /lib/systemd/system/prometheus.service",
+            "wget https://github.com/prometheus/prometheus/releases/download/v2.2.1/prometheus-2.2.1.linux-amd64.tar.gz",
+            "tar -zxf *.tar.gz",
+            "rm *.tar.gz",
+            "mv prometheus* prometheus",
+        ]
+    }
+
+    provisioner "file" {
+        destination = "/home/ubuntu/prometheus/prometheus.yml"
+        connection {
+            user="ubuntu"
+            private_key="${var.ssh_private_key}"
+            agent=false
+        }
+        content = <<EOF
+global:
+  scrape_interval:     10s
+  evaluation_interval: 10s
+  external_labels:
+      monitor: 'mattermost-monitor'
+
+scrape_configs:
+  - job_name: 'loadtest'
+    static_configs:
+      - targets: ["${join("\",\"", formatlist("%s:8067", aws_instance.app_server.*.public_dns))}"]
+EOF
+    }
+
+    provisioner "remote-exec" {
+        connection {
+            user="ubuntu"
+            private_key="${var.ssh_private_key}"
+            agent=false
+        }
+        inline = [
+            "sudo systemctl enable prometheus",
+            "sudo systemctl start prometheus",
+            "sudo apt-get update",
+            "sudo apt-get install -y adduser libfontconfig",
+            "wget https://s3-us-west-2.amazonaws.com/grafana-releases/release/grafana_5.0.4_amd64.deb",
+            "sudo dpkg -i grafana_5.0.4_amd64.deb",
+            "sudo systemctl daemon-reload",
+            "sudo systemctl enable grafana-server",
+            "sudo systemctl start grafana-server",
+            "sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 3000",
+            "sleep 10"
+        ]
+    }
+}
+
+output "metricsIP" {
+    value = "${aws_instance.metrics.public_ip}"
+}
+
+resource "aws_security_group" "metrics" {
+    name = "${var.cluster_name}-metrics-secuirty-group"
+    description = "Metrics security group for loadtest cluster ${var.cluster_name}"
+
+    ingress {
+        from_port = 80
+        to_port = 80
+        protocol = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    ingress {
+        from_port = 9090
+        to_port = 9090
+        protocol = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    ingress {
+        from_port = 22
+        to_port = 22
+        protocol = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    egress {
+        from_port = 0
+        to_port = 0
+        protocol = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+}
+/*
+provider "grafana" {
+    url = "http://${aws_instance.metrics.public_ip}"
+    auth = "admin:admin"
+}
+
+resource "grafana_data_source" "prometheus" {
+    type = "prometheus"
+    name = "prometheus"
+    url = "http://localhost:9090"
+    depends_on = ["aws_instance.metrics"]
+}*/

@@ -127,8 +127,36 @@ var sshLoadtestCommand = &cobra.Command{
 	},
 }
 
+var sshMetricsCommand = &cobra.Command{
+	Use:   "metrics [cluster]",
+	Short: "Connect to metrics instance",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		clusterName := args[0]
+
+		workingDir, err := defaultWorkingDirectory()
+		if err != nil {
+			return err
+		}
+
+		cluster, err := terraform.LoadCluster(filepath.Join(workingDir, clusterName))
+		if err != nil {
+			return errors.Wrap(err, "Couldn't load cluster")
+		}
+
+		addr, err := cluster.GetMetricsAddr()
+		if err != nil {
+			return errors.Wrap(err, "Could not get metrics server address.")
+		}
+
+		logrus.Info("Connecting to " + addr)
+
+		return sshtools.SSHInteractiveTerminal(cluster.SSHKey(), addr)
+	},
+}
+
 func init() {
-	sshCommand.AddCommand(sshAppCommand, sshLoadtestCommand, sshProxyCommand)
+	sshCommand.AddCommand(sshAppCommand, sshLoadtestCommand, sshProxyCommand, sshMetricsCommand)
 
 	rootCmd.AddCommand(sshCommand)
 }
