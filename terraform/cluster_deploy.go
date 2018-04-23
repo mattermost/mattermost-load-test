@@ -311,6 +311,8 @@ func deployToAppInstance(mattermostFile, licenseFile, instanceAddr string, clust
 		".SqlSettings.DriverName":                      "mysql",
 		".SqlSettings.DataSource":                      clust.DBConnectionString(),
 		".SqlSettings.DataSourceReplicas":              clust.DBReaderConnectionStrings(),
+		".SqlSettings.MaxOpenConns":                    3000,
+		".SqlSettings.MaxIdleConns":                    200,
 		".ClusterSettings.Enable":                      true,
 		".ClusterSettings.ClusterName":                 "load-test",
 		".ClusterSettings.ReadOnlyConfig":              false,

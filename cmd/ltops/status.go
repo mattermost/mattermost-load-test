@@ -46,6 +46,7 @@ const statusFormatString = `
 --------------------------------------
 Name: %v
 SiteURL: %v
+Metrics: %v
 DBConnectionString: %v
 RR0ConnectionString: %v
 Instances:
@@ -67,10 +68,12 @@ func printStatusForCluster(cluster ltops.Cluster) {
 	if len(rrConnectionStrings) > 0 {
 		rrConnnectionString = rrConnectionStrings[0]
 	}
+	metrics, _ := cluster.GetMetricsAddr()
 
 	fmt.Printf(statusFormatString,
 		cluster.Name(),
 		cluster.SiteURL(),
+		metrics,
 		dbConnectionString,
 		rrConnnectionString,
 		len(app),

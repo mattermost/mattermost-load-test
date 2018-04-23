@@ -21,7 +21,7 @@ func CreateCluster(cfg *ltops.ClusterConfig) (ltops.Cluster, error) {
 		return nil, errors.Wrap(err, "unable to generate ssh key")
 	}
 
-	terraformParameters := terraformParametersFromClusterConfig(cfg, dbPassword, string(sshAuthorizedKey))
+	terraformParameters := terraformParametersFromClusterConfig(cfg, dbPassword, string(sshAuthorizedKey), string(sshPrivateKeyPEM))
 	env, err := newTerraformEnvironment(cfg.WorkingDirectory, terraformParameters)
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to create terrafrom environment.")

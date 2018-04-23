@@ -11,9 +11,10 @@ type terraformParameters struct {
 	DBPassword            string `json:"db_password"`
 	LoadtestInstanceCount int    `json:"loadtest_instance_count"`
 	SSHPublicKey          string `json:"ssh_public_key"`
+	SSHPrivateKey         string `json:"ssh_private_key"`
 }
 
-func terraformParametersFromClusterConfig(config *ltops.ClusterConfig, dbPassword string, sshPublicKey string) *terraformParameters {
+func terraformParametersFromClusterConfig(config *ltops.ClusterConfig, dbPassword string, sshPublicKey string, sshPrivateKey string) *terraformParameters {
 	return &terraformParameters{
 		ClusterName:           config.Name,
 		AppInstanceType:       config.AppInstanceType,
@@ -23,6 +24,7 @@ func terraformParametersFromClusterConfig(config *ltops.ClusterConfig, dbPasswor
 		LoadtestInstanceCount: config.LoadtestInstanceCount,
 		DBPassword:            dbPassword,
 		SSHPublicKey:          sshPublicKey,
+		SSHPrivateKey:         sshPrivateKey,
 	}
 }
 
@@ -52,6 +54,9 @@ type terraformOutputParameters struct {
 		Value string
 	}
 	S3AccessKeySecret struct {
+		Value string
+	}
+	MetricsIp struct {
 		Value string
 	}
 }
