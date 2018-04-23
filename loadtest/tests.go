@@ -245,6 +245,10 @@ func actionGetChannel(c *EntityConfig) {
 	if posts, resp := c.Client.GetPostsForChannel(channelId, 0, 60, ""); resp.Error != nil {
 		cmdlog.Errorf("Unable to get posts for channel Channel: %v, User: %v, Error: %v", channelId, c.UserData.Username, resp.Error.Error())
 	} else {
+		if posts == nil {
+			cmdlog.Errorf("Got nil posts for get posts for channel. Resp was: %#v", resp)
+			return
+		}
 		for _, post := range posts.Posts {
 			if post.HasReactions {
 				if _, resp := c.Client.GetReactions(post.Id); resp.Error != nil {

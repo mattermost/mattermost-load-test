@@ -87,6 +87,7 @@ func main() {
 			Use:   currentTest.Name,
 			Short: currentTest.ShortDesc,
 			Run: func(cmd *cobra.Command, args []string) {
+				fmt.Println("Running test: " + currentTest.Name)
 				if err := loadtest.RunTest(currentTest.Test); err != nil {
 					fmt.Println("Run Test Failed: " + err.Error())
 				}
