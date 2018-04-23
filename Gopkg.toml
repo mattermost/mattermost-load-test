@@ -67,7 +67,7 @@
 
 [[constraint]]
   name = "github.com/spf13/viper"
-  source = "github.com/mattermost/viper"
+  source = "https://github.com/mattermost/viper"
   branch = "env-settings"
 
 [[constraint]]

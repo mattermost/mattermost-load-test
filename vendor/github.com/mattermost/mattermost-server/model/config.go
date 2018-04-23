@@ -21,6 +21,7 @@ const (
 	IMAGE_DRIVER_LOCAL = "local"
 	IMAGE_DRIVER_S3    = "amazons3"
 
+	DATABASE_DRIVER_SQLITE   = "sqlite3"
 	DATABASE_DRIVER_MYSQL    = "mysql"
 	DATABASE_DRIVER_POSTGRES = "postgres"
 
@@ -1715,8 +1716,8 @@ func (s *MessageExportSettings) SetDefaults() {
 
 	if s.GlobalRelaySettings == nil {
 		s.GlobalRelaySettings = &GlobalRelayMessageExportSettings{}
-		s.GlobalRelaySettings.SetDefaults()
 	}
+	s.GlobalRelaySettings.SetDefaults()
 }
 
 type DisplaySettings struct {

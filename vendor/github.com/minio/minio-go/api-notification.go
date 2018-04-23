@@ -205,11 +205,13 @@ func (c Client) ListenBucketNotification(bucketName, prefix, suffix string, even
 				if err = json.Unmarshal(bio.Bytes(), &notificationInfo); err != nil {
 					continue
 				}
-				// Send notificationInfo
-				select {
-				case notificationInfoCh <- notificationInfo:
-				case <-doneCh:
-					return
+				// Send notifications on channel only if there are events received.
+				if len(notificationInfo.Records) > 0 {
+					select {
+					case notificationInfoCh <- notificationInfo:
+					case <-doneCh:
+						return
+					}
 				}
 			}
 			// Look for any underlying errors.

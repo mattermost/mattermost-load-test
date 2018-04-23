@@ -11,7 +11,8 @@
   branch = "master"
   name = "github.com/alecthomas/log4go"
   packages = ["."]
-  revision = "d146e6b86faab5f7e4d135cc63b749d74bf0d4a6"
+  revision = "9c17fbb2767ccbdda78584f28d545c44a4b29c4f"
+  source = "https://github.com/mattermost/log4go.git"
 
 [[projects]]
   branch = "master"
@@ -46,8 +47,8 @@
 [[projects]]
   name = "github.com/go-ini/ini"
   packages = ["."]
-  revision = "6333e38ac20b8949a8dd68baa3650f4dee8f39f0"
-  version = "v1.33.0"
+  revision = "ace140f73450505f33e8b8418216792275ae82a7"
+  version = "v1.35.0"
 
 [[projects]]
   name = "github.com/go-ldap/ldap"
@@ -62,10 +63,10 @@
   version = "v1.3"
 
 [[projects]]
+  branch = "master"
   name = "github.com/gorilla/websocket"
   packages = ["."]
-  revision = "ea4d1f681babbce9545c9c5f3d5194a789c89f5b"
-  version = "v1.2.0"
+  revision = "cd94665a654c1ec903896f2902573b46dd21baa7"
 
 [[projects]]
   branch = "master"
@@ -82,7 +83,7 @@
     "json/scanner",
     "json/token"
   ]
-  revision = "f40e974e75af4e271d97ce0fc917af5898ae7bda"
+  revision = "ef8a98b0bbce4a65b5aa4c368430a80ddc533168"
 
 [[projects]]
   branch = "master"
@@ -112,7 +113,7 @@
     ".",
     "oid"
   ]
-  revision = "b2004221932bd6b13167ef654c81cffac36f7537"
+  revision = "d34b9ff171c21ad295489235aec8b6626023cd04"
 
 [[projects]]
   name = "github.com/magiconair/properties"
@@ -141,7 +142,7 @@
     "utils",
     "utils/markdown"
   ]
-  revision = "911b409936521827152b0a491d3e02ed81202694"
+  revision = "b13a228b0451098ea32933a36fe64566e366583d"
 
 [[projects]]
   name = "github.com/mattn/go-runewidth"
@@ -150,6 +151,7 @@
   version = "v0.0.2"
 
 [[projects]]
+  branch = "minio-temporary-fixes"
   name = "github.com/minio/minio-go"
   packages = [
     ".",
@@ -160,8 +162,8 @@
     "pkg/s3utils",
     "pkg/set"
   ]
-  revision = "66252c2a3c15f7b90cc8493d497a04ac3b6e3606"
-  version = "5.0.0"
+  revision = "e30d3b9eaff9a3fbfa74cda4c56cb22bec264ffa"
+  source = "https://github.com/mattermost/minio-go.git"
 
 [[projects]]
   branch = "master"
@@ -202,7 +204,7 @@
   branch = "master"
   name = "github.com/nsf/termbox-go"
   packages = ["."]
-  revision = "e2050e41c8847748ec5288741c0b19a8cb26d084"
+  revision = "7cbfaac9e282b3ea0cefeddc67b2c3ed3aaf97bc"
 
 [[projects]]
   name = "github.com/op/go-logging"
@@ -246,8 +248,8 @@
     ".",
     "mem"
   ]
-  revision = "bb8f1927f2a9d3ab41c9340aa034f6b803f4359c"
-  version = "v1.0.2"
+  revision = "63644898a8da0bc22138abf860edaf5277b6102e"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/spf13/cast"
@@ -258,8 +260,8 @@
 [[projects]]
   name = "github.com/spf13/cobra"
   packages = ["."]
-  revision = "7b2c5ac9fc04fc5efafb60700713d4fa609b777b"
-  version = "v0.0.1"
+  revision = "a1f051bc3eba734da4772d60e2d677f47cf93ef4"
+  version = "v0.0.2"
 
 [[projects]]
   branch = "master"
@@ -270,23 +272,21 @@
 [[projects]]
   name = "github.com/spf13/pflag"
   packages = ["."]
-  revision = "e57e3eeb33f795204c1ca35f56c44f83227c6e66"
-  version = "v1.0.0"
+  revision = "583c0c0531f06d5278b7d917446061adc344b5cd"
+  version = "v1.0.1"
 
 [[projects]]
   branch = "env-settings"
   name = "github.com/spf13/viper"
   packages = ["."]
   revision = "4f5003aa93559718c866d86fbc795439079484f5"
-  source = "github.com/mattermost/viper"
+  source = "https://github.com/mattermost/viper"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
   packages = [
-    "argon2",
     "bcrypt",
-    "blake2b",
     "blowfish",
     "curve25519",
     "ed25519",
@@ -296,7 +296,7 @@
     "ssh",
     "ssh/terminal"
   ]
-  revision = "80db560fac1fb3e6ac81dbc7f8ae4c061f5257bd"
+  revision = "d6449816ce06963d9d136eee5a56fca5b0616e7e"
 
 [[projects]]
   branch = "master"
@@ -307,7 +307,7 @@
     "idna",
     "lex/httplex"
   ]
-  revision = "6078986fec03a1dcc236c34816c71b0e05018fda"
+  revision = "d41e8174641f662c5a2d1c7a5f9e828788eb8706"
 
 [[projects]]
   branch = "master"
@@ -316,7 +316,7 @@
     "unix",
     "windows"
   ]
-  revision = "c488ab1dd8481ef762f96a79a9577c27825be697"
+  revision = "b126b21c05a91c856b027c16779c12e3bf236954"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -360,12 +360,12 @@
 [[projects]]
   name = "gopkg.in/yaml.v2"
   packages = ["."]
-  revision = "7f97868eec74b32b0982dd158a51a446d1da7eb5"
-  version = "v2.1.1"
+  revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
+  version = "v2.2.1"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "63c7961f1bea499ea577278b8b2080b684d5b274d4920f8389a39709259d3b08"
+  inputs-digest = "3d5e2be1d19bb6e72d04fbae470b9fb0357d2cb79d922fe94120dc6d3683a42e"
   solver-name = "gps-cdcl"
   solver-version = 1

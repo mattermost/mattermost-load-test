@@ -33,16 +33,15 @@ import (
 
 // PutObjectOptions represents options specified by user for PutObject call
 type PutObjectOptions struct {
-	UserMetadata         map[string]string
-	Progress             io.Reader
-	ContentType          string
-	ContentEncoding      string
-	ContentDisposition   string
-	ContentLanguage      string
-	CacheControl         string
-	ServerSideEncryption encrypt.ServerSide
-	NumThreads           uint
-	StorageClass         string
+	UserMetadata       map[string]string
+	Progress           io.Reader
+	ContentType        string
+	ContentEncoding    string
+	ContentDisposition string
+	CacheControl       string
+	EncryptMaterials   encrypt.Materials
+	NumThreads         uint
+	StorageClass       string
 }
 
 // getNumThreads - gets the number of threads to be used in the multipart
@@ -72,20 +71,19 @@ func (opts PutObjectOptions) Header() (header http.Header) {
 	if opts.ContentDisposition != "" {
 		header["Content-Disposition"] = []string{opts.ContentDisposition}
 	}
-	if opts.ContentLanguage != "" {
-		header["Content-Language"] = []string{opts.ContentLanguage}
-	}
 	if opts.CacheControl != "" {
 		header["Cache-Control"] = []string{opts.CacheControl}
 	}
-	if opts.ServerSideEncryption != nil {
-		opts.ServerSideEncryption.Marshal(header)
+	if opts.EncryptMaterials != nil {
+		header[amzHeaderIV] = []string{opts.EncryptMaterials.GetIV()}
+		header[amzHeaderKey] = []string{opts.EncryptMaterials.GetKey()}
+		header[amzHeaderMatDesc] = []string{opts.EncryptMaterials.GetDesc()}
 	}
 	if opts.StorageClass != "" {
 		header[amzStorageClass] = []string{opts.StorageClass}
 	}
 	for k, v := range opts.UserMetadata {
-		if !isAmzHeader(k) && !isStandardHeader(k) && !isStorageClassHeader(k) {
+		if !isAmzHeader(k) && !isStandardHeader(k) && !isSSEHeader(k) && !isStorageClassHeader(k) {
 			header["X-Amz-Meta-"+k] = []string{v}
 		} else {
 			header[k] = []string{v}
@@ -94,10 +92,11 @@ func (opts PutObjectOptions) Header() (header http.Header) {
 	return
 }
 
-// validate() checks if the UserMetadata map has standard headers or and raises an error if so.
+// validate() checks if the UserMetadata map has standard headers or client side
+// encryption headers and raises an error if so.
 func (opts PutObjectOptions) validate() (err error) {
 	for k, v := range opts.UserMetadata {
-		if !httplex.ValidHeaderFieldName(k) || isStandardHeader(k) || isSSEHeader(k) || isStorageClassHeader(k) {
+		if !httplex.ValidHeaderFieldName(k) || isStandardHeader(k) || isCSEHeader(k) || isStorageClassHeader(k) {
 			return ErrInvalidArgument(k + " unsupported user defined metadata name")
 		}
 		if !httplex.ValidHeaderFieldValue(v) {
@@ -208,7 +207,7 @@ func (c Client) putObjectMultipartStreamNoLength(ctx context.Context, bucketName
 		if rErr == io.EOF && partNumber > 1 {
 			break
 		}
-		if rErr != nil && rErr != io.ErrUnexpectedEOF {
+		if rErr != nil && rErr != io.ErrUnexpectedEOF && rErr != io.EOF {
 			return 0, rErr
 		}
 		// Update progress reader appropriately to the latest offset
@@ -218,7 +217,7 @@ func (c Client) putObjectMultipartStreamNoLength(ctx context.Context, bucketName
 		// Proceed to upload the part.
 		var objPart ObjectPart
 		objPart, err = c.uploadPart(ctx, bucketName, objectName, uploadID, rd, partNumber,
-			"", "", int64(length), opts.ServerSideEncryption)
+			"", "", int64(length), opts.UserMetadata)
 		if err != nil {
 			return totalUploadedSize, err
 		}

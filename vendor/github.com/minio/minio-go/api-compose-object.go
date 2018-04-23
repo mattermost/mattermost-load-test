@@ -19,6 +19,7 @@ package minio
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -26,15 +27,58 @@ import (
 	"strings"
 	"time"
 
-	"github.com/minio/minio-go/pkg/encrypt"
 	"github.com/minio/minio-go/pkg/s3utils"
 )
+
+// SSEInfo - represents Server-Side-Encryption parameters specified by
+// a user.
+type SSEInfo struct {
+	key  []byte
+	algo string
+}
+
+// NewSSEInfo - specifies (binary or un-encoded) encryption key and
+// algorithm name. If algo is empty, it defaults to "AES256". Ref:
+// https://docs.aws.amazon.com/AmazonS3/latest/dev/ServerSideEncryptionCustomerKeys.html
+func NewSSEInfo(key []byte, algo string) SSEInfo {
+	if algo == "" {
+		algo = "AES256"
+	}
+	return SSEInfo{key, algo}
+}
+
+// internal method that computes SSE-C headers
+func (s *SSEInfo) getSSEHeaders(isCopySource bool) map[string]string {
+	if s == nil {
+		return nil
+	}
+
+	cs := ""
+	if isCopySource {
+		cs = "copy-source-"
+	}
+	return map[string]string{
+		"x-amz-" + cs + "server-side-encryption-customer-algorithm": s.algo,
+		"x-amz-" + cs + "server-side-encryption-customer-key":       base64.StdEncoding.EncodeToString(s.key),
+		"x-amz-" + cs + "server-side-encryption-customer-key-MD5":   sumMD5Base64(s.key),
+	}
+}
+
+// GetSSEHeaders - computes and returns headers for SSE-C as key-value
+// pairs. They can be set as metadata in PutObject* requests (for
+// encryption) or be set as request headers in `Core.GetObject` (for
+// decryption).
+func (s *SSEInfo) GetSSEHeaders() map[string]string {
+	return s.getSSEHeaders(false)
+}
 
 // DestinationInfo - type with information about the object to be
 // created via server-side copy requests, using the Compose API.
 type DestinationInfo struct {
 	bucket, object string
-	encryption     encrypt.ServerSide
+
+	// key for encrypting destination
+	encryption *SSEInfo
 
 	// if no user-metadata is provided, it is copied from source
 	// (when there is only once source object in the compose
@@ -53,7 +97,9 @@ type DestinationInfo struct {
 // if needed. If nil is passed, and if only a single source (of any
 // size) is provided in the ComposeObject call, then metadata from the
 // source is copied to the destination.
-func NewDestinationInfo(bucket, object string, sse encrypt.ServerSide, userMeta map[string]string) (d DestinationInfo, err error) {
+func NewDestinationInfo(bucket, object string, encryptSSEC *SSEInfo,
+	userMeta map[string]string) (d DestinationInfo, err error) {
+
 	// Input validation.
 	if err = s3utils.CheckValidBucketName(bucket); err != nil {
 		return d, err
@@ -79,7 +125,7 @@ func NewDestinationInfo(bucket, object string, sse encrypt.ServerSide, userMeta 
 	return DestinationInfo{
 		bucket:       bucket,
 		object:       object,
-		encryption:   sse,
+		encryption:   encryptSSEC,
 		userMetadata: m,
 	}, nil
 }
@@ -108,8 +154,10 @@ func (d *DestinationInfo) getUserMetaHeadersMap(withCopyDirectiveHeader bool) ma
 // server-side copying APIs.
 type SourceInfo struct {
 	bucket, object string
-	start, end     int64
-	encryption     encrypt.ServerSide
+
+	start, end int64
+
+	decryptKey *SSEInfo
 	// Headers to send with the upload-part-copy request involving
 	// this source object.
 	Headers http.Header
@@ -121,12 +169,12 @@ type SourceInfo struct {
 // `decryptSSEC` is the decryption key using server-side-encryption
 // with customer provided key. It may be nil if the source is not
 // encrypted.
-func NewSourceInfo(bucket, object string, sse encrypt.ServerSide) SourceInfo {
+func NewSourceInfo(bucket, object string, decryptSSEC *SSEInfo) SourceInfo {
 	r := SourceInfo{
 		bucket:     bucket,
 		object:     object,
 		start:      -1, // range is unspecified by default
-		encryption: sse,
+		decryptKey: decryptSSEC,
 		Headers:    make(http.Header),
 	}
 
@@ -134,8 +182,8 @@ func NewSourceInfo(bucket, object string, sse encrypt.ServerSide) SourceInfo {
 	r.Headers.Set("x-amz-copy-source", s3utils.EncodePath(bucket+"/"+object))
 
 	// Assemble decryption headers for upload-part-copy request
-	if r.encryption != nil {
-		encrypt.SSECopy(r.encryption).Marshal(r.Headers)
+	for k, v := range decryptSSEC.getSSEHeaders(true) {
+		r.Headers.Set(k, v)
 	}
 
 	return r
@@ -197,7 +245,10 @@ func (s *SourceInfo) getProps(c Client) (size int64, etag string, userMeta map[s
 	// Get object info - need size and etag here. Also, decryption
 	// headers are added to the stat request if given.
 	var objInfo ObjectInfo
-	opts := StatObjectOptions{GetObjectOptions{ServerSideEncryption: s.encryption}}
+	opts := StatObjectOptions{}
+	for k, v := range s.decryptKey.getSSEHeaders(false) {
+		opts.Set(k, v)
+	}
 	objInfo, err = c.statObject(context.Background(), s.bucket, s.object, opts)
 	if err != nil {
 		err = ErrInvalidArgument(fmt.Sprintf("Could not stat object - %s/%s: %v", s.bucket, s.object, err))
@@ -429,8 +480,8 @@ func (c Client) ComposeObject(dst DestinationInfo, srcs []SourceInfo) error {
 	if (totalParts == 1 && srcs[0].start == -1 && totalSize <= maxPartSize) || (totalSize == 0) {
 		h := srcs[0].Headers
 		// Add destination encryption headers
-		if dst.encryption != nil {
-			dst.encryption.Marshal(h)
+		for k, v := range dst.encryption.getSSEHeaders(false) {
+			h.Set(k, v)
 		}
 
 		// If no user metadata is specified (and so, the
@@ -476,8 +527,7 @@ func (c Client) ComposeObject(dst DestinationInfo, srcs []SourceInfo) error {
 	for k, v := range metaMap {
 		metaHeaders[k] = v
 	}
-
-	uploadID, err := c.newUploadID(ctx, dst.bucket, dst.object, PutObjectOptions{ServerSideEncryption: dst.encryption, UserMetadata: metaHeaders})
+	uploadID, err := c.newUploadID(ctx, dst.bucket, dst.object, PutObjectOptions{UserMetadata: metaHeaders})
 	if err != nil {
 		return err
 	}
@@ -488,8 +538,8 @@ func (c Client) ComposeObject(dst DestinationInfo, srcs []SourceInfo) error {
 	for i, src := range srcs {
 		h := src.Headers
 		// Add destination encryption headers
-		if dst.encryption != nil {
-			dst.encryption.Marshal(h)
+		for k, v := range dst.encryption.getSSEHeaders(false) {
+			h.Set(k, v)
 		}
 
 		// calculate start/end indices of parts after

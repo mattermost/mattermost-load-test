@@ -23,18 +23,8 @@ type formatCacheType struct {
 }
 
 var formatCache = &formatCacheType{}
-var muFormatCache = sync.Mutex{}
+var mutex sync.Mutex
 
-func setFormatCache(f *formatCacheType)  {
-	muFormatCache.Lock()
-	defer muFormatCache.Unlock()
-	formatCache = f
-}
-func getFormatCache() *formatCacheType {
-	muFormatCache.Lock()
-	defer muFormatCache.Unlock()
-	return formatCache
-}
 // Known format codes:
 // %T - Time (15:04:05 MST)
 // %t - Time (15:04)
@@ -56,7 +46,8 @@ func FormatLogRecord(format string, rec *LogRecord) string {
 	out := bytes.NewBuffer(make([]byte, 0, 64))
 	secs := rec.Created.UnixNano() / 1e9
 
-	cache := getFormatCache()
+	mutex.Lock()
+	cache := *formatCache
 	if cache.LastUpdateSeconds != secs {
 		month, day, year := rec.Created.Month(), rec.Created.Day(), rec.Created.Year()
 		hour, minute, second := rec.Created.Hour(), rec.Created.Minute(), rec.Created.Second()
@@ -68,9 +59,10 @@ func FormatLogRecord(format string, rec *LogRecord) string {
 			longTime:          fmt.Sprintf("%02d:%02d:%02d %s", hour, minute, second, zone),
 			longDate:          fmt.Sprintf("%04d/%02d/%02d", year, month, day),
 		}
-		cache = updated
-		setFormatCache(updated)
+		cache = *updated
+		formatCache = updated
 	}
+	mutex.Unlock()
 
 	// Split the string into pieces by % signs
 	pieces := bytes.Split([]byte(format), []byte{'%'})
