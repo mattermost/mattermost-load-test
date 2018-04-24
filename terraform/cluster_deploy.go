@@ -3,7 +3,10 @@ package terraform
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -17,7 +20,23 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func (c *Cluster) DeployMattermost(mattermostFile string, licenceFile string) error {
+func getFileOrURL(fileOrUrl string) (io.ReadCloser, error) {
+	if strings.HasPrefix(fileOrUrl, "http") {
+		response, err := http.Get(fileOrUrl)
+		if err != nil {
+			return nil, errors.Wrap(err, "Can't get file at URL: "+fileOrUrl)
+		}
+		return response.Body, nil
+	} else {
+		f, err := os.Open(fileOrUrl)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to open file "+fileOrUrl)
+		}
+		return f, nil
+	}
+}
+
+func (c *Cluster) DeployMattermost(mattermostDistLocation string, licenceFileLocation string) error {
 	appInstanceAddrs, err := c.GetAppInstancesAddrs()
 	if err != nil || len(appInstanceAddrs) <= 0 {
 		return errors.Wrap(err, "Unable to get app instance addresses")
@@ -28,13 +47,25 @@ func (c *Cluster) DeployMattermost(mattermostFile string, licenceFile string) er
 		return errors.Wrap(err, "Unable to get app instance addresses")
 	}
 
+	mattermostDist, err := getFileOrURL(mattermostDistLocation)
+	if err != nil {
+		return err
+	}
+	defer mattermostDist.Close()
+
+	licenseFile, err := getFileOrURL(licenceFileLocation)
+	if err != nil {
+		return err
+	}
+	defer licenseFile.Close()
+
 	var wg sync.WaitGroup
 	wg.Add(len(appInstanceAddrs) + len(proxyInstanceAddrs))
 
 	failed := new(int32)
 
 	doDeploy(&wg, failed, appInstanceAddrs, "app", func(instanceNum int, addr string, logger logrus.FieldLogger) error {
-		return deployToAppInstance(mattermostFile, licenceFile, addr, c, logrus.WithField("instance", addr))
+		return deployToAppInstance(mattermostDist, licenseFile, addr, c, logrus.WithField("instance", addr))
 	})
 
 	doDeploy(&wg, failed, proxyInstanceAddrs, "proxy", func(instanceNum int, addr string, logger logrus.FieldLogger) error {
@@ -57,11 +88,17 @@ func (c *Cluster) DeployMattermost(mattermostFile string, licenceFile string) er
 	return nil
 }
 
-func (c *Cluster) DeployLoadtests(loadtestsFile string) error {
+func (c *Cluster) DeployLoadtests(loadtestsDistLocation string) error {
 	loadtestInstanceAddrs, err := c.GetLoadtestInstancesAddrs()
 	if err != nil || len(loadtestInstanceAddrs) <= 0 {
 		return errors.Wrap(err, "Unable to get loadtest instance addresses")
 	}
+
+	loadtestsDist, err := getFileOrURL(loadtestsDistLocation)
+	if err != nil {
+		return err
+	}
+	defer loadtestsDist.Close()
 
 	var wg sync.WaitGroup
 	wg.Add(len(loadtestInstanceAddrs))
@@ -69,7 +106,7 @@ func (c *Cluster) DeployLoadtests(loadtestsFile string) error {
 	failed := new(int32)
 
 	doDeploy(&wg, failed, loadtestInstanceAddrs, "loadtest", func(instanceNum int, addr string, logger logrus.FieldLogger) error {
-		return deployToLoadtestInstance(instanceNum, addr, loadtestsFile, c, logrus.WithField("instance", addr))
+		return deployToLoadtestInstance(instanceNum, addr, loadtestsDist, c, logrus.WithField("instance", addr))
 	})
 
 	wg.Wait()
@@ -102,7 +139,7 @@ func doDeploy(wg *sync.WaitGroup, failed *int32, addresses []string, addressesNa
 	return nil
 }
 
-func deployToLoadtestInstance(instanceNum int, instanceAddr string, loadtestFile string, cluster ltops.Cluster, logger logrus.FieldLogger) error {
+func deployToLoadtestInstance(instanceNum int, instanceAddr string, loadtestDistribution io.Reader, cluster ltops.Cluster, logger logrus.FieldLogger) error {
 	client, err := sshtools.SSHClient(cluster.SSHKey(), instanceAddr)
 	if err != nil {
 		return errors.Wrap(err, "unable to connect to server via ssh")
@@ -111,8 +148,8 @@ func deployToLoadtestInstance(instanceNum int, instanceAddr string, loadtestFile
 
 	logger.Debug("uploading distribution...")
 	remoteDistributionPath := "/home/ubuntu/mattermost-load-test.tar.gz"
-	if err := sshtools.UploadFile(client, loadtestFile, remoteDistributionPath); err != nil {
-		return errors.Wrap(err, "unable to upload loadtest distribution from path: "+loadtestFile)
+	if err := sshtools.UploadReader(client, loadtestDistribution, remoteDistributionPath); err != nil {
+		return errors.Wrap(err, "unable to upload loadtest distribution.")
 	}
 
 	remoteSSHKeyPath := "/home/ubuntu/key.pem"
@@ -251,7 +288,7 @@ func deployToProxyInstance(instanceAddr string, clust ltops.Cluster, logger logr
 	return nil
 }
 
-func deployToAppInstance(mattermostFile, licenseFile, instanceAddr string, clust *Cluster, logger logrus.FieldLogger) error {
+func deployToAppInstance(mattermostDistribution, license io.Reader, instanceAddr string, clust *Cluster, logger logrus.FieldLogger) error {
 	client, err := sshtools.SSHClient(clust.SSHKey(), instanceAddr)
 	if err != nil {
 		return errors.Wrap(err, "unable to connect to server via ssh")
@@ -260,8 +297,8 @@ func deployToAppInstance(mattermostFile, licenseFile, instanceAddr string, clust
 
 	logger.Debug("uploading distribution...")
 	remoteDistributionPath := "/tmp/mattermost.tar.gz"
-	if err := sshtools.UploadFile(client, mattermostFile, remoteDistributionPath); err != nil {
-		return errors.Wrap(err, "unable to upload distribution from path: "+mattermostFile)
+	if err := sshtools.UploadReader(client, mattermostDistribution, remoteDistributionPath); err != nil {
+		return errors.Wrap(err, "unable to upload distribution.")
 	}
 
 	if err := uploadSystemdFile(client); err != nil {
@@ -284,7 +321,7 @@ func deployToAppInstance(mattermostFile, licenseFile, instanceAddr string, clust
 
 	logger.Debug("uploading license file...")
 	remoteLicenseFilePath := "/opt/mattermost/config/mattermost.mattermost-license"
-	if err := sshtools.UploadFile(client, licenseFile, remoteLicenseFilePath); err != nil {
+	if err := sshtools.UploadReader(client, license, remoteLicenseFilePath); err != nil {
 		return errors.Wrap(err, "unable to upload license file")
 	}
 

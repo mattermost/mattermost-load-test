@@ -42,10 +42,10 @@ type Cluster interface {
 	// Returns a list of all the read-replica database connection strings
 	DBReaderConnectionStrings() []string
 
-	// Deploys a mattermost package to the cluster.
+	// Deploys a mattermost package to the cluster. mattermostFile can be disk file or URL.
 	DeployMattermost(mattermostFile string, licenceFile string) error
 
-	// Deploys a loadtest package to the cluster.
+	// Deploys a loadtest package to the cluster. loadtestsFile can be disk file or URL.
 	DeployLoadtests(loadtestsFile string) error
 
 	// Runs a loadtest
