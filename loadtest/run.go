@@ -236,7 +236,7 @@ func RunTest(test *TestRun) error {
 	report += configReport
 	report += timingsReport
 
-	cmdlog.Info(report)
+	fmt.Fprint(os.Stdout, report)
 	ioutil.WriteFile("results.txt", []byte(report), 0644)
 
 	files := []string{

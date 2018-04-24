@@ -53,7 +53,7 @@ func GetStringChannelBackend() <-chan string {
 }
 
 func SetConsoleLog() {
-	formattedLogBackend := logging.NewBackendFormatter(logging.NewLogBackend(os.Stdout, "", 0), FORMAT_STRING_CONSOLE)
+	formattedLogBackend := logging.NewBackendFormatter(logging.NewLogBackend(os.Stderr, "", 0), FORMAT_STRING_CONSOLE)
 	log.SetBackend(logging.MultiLogger(formattedFileBackend, formattedLogBackend))
 }
 
