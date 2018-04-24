@@ -82,17 +82,12 @@ func (env *TerraformEnvironment) runCommandResult(args ...string) ([]byte, error
 		return nil, errors.Wrap(err, "Terraform not installed. Please install terraform.")
 	}
 
-	if err := os.Chdir(env.WorkingDirectory); err != nil {
-		return nil, errors.Wrap(err, "Unable to change directory to "+env.WorkingDirectory)
-	}
 	cmd := exec.Command(terraformCommand, args...)
+	cmd.Dir = env.WorkingDirectory
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logrus.Error("Failed CMD Ouptut: " + string(output))
 		return output, errors.Wrap(err, fmt.Sprintln("Terraform command failed.", terraformCommand, args))
-	}
-	if err := os.Chdir(".."); err != nil {
-		return nil, errors.Wrap(err, "Unable to change directory to "+env.WorkingDirectory)
 	}
 
 	return output, nil
