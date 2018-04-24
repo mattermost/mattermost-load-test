@@ -2,62 +2,10 @@
 
 
 [[projects]]
-  name = "github.com/aws/aws-sdk-go-v2"
-  packages = [
-    "aws",
-    "aws/awserr",
-    "aws/defaults",
-    "aws/ec2metadata",
-    "aws/ec2rolecreds",
-    "aws/endpointcreds",
-    "aws/endpoints",
-    "aws/external",
-    "aws/signer/v4",
-    "aws/stscreds",
-    "internal/awsutil",
-    "internal/sdk",
-    "private/protocol",
-    "private/protocol/ec2query",
-    "private/protocol/json/jsonutil",
-    "private/protocol/jsonrpc",
-    "private/protocol/query",
-    "private/protocol/query/queryutil",
-    "private/protocol/rest",
-    "private/protocol/xml/xmlutil",
-    "service/cloudformation",
-    "service/cloudformation/cloudformationiface",
-    "service/cloudwatchlogs",
-    "service/cloudwatchlogs/cloudwatchlogsiface",
-    "service/ec2",
-    "service/ecs",
-    "service/ecs/ecsiface",
-    "service/sts"
-  ]
-  revision = "b8e7febd4b80c6517240e473410b54d4e63fed1d"
-  version = "v2.0.0-preview.2"
-
-[[projects]]
-  name = "github.com/go-ini/ini"
-  packages = ["."]
-  revision = "32e4c1e6bc4e7d0d8451aa6b75200d19e37a536a"
-  version = "v1.32.0"
-
-[[projects]]
   name = "github.com/inconshreveable/mousetrap"
   packages = ["."]
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
   version = "v1.0"
-
-[[projects]]
-  name = "github.com/jmespath/go-jmespath"
-  packages = ["."]
-  revision = "0b12d6b5"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/nu7hatch/gouuid"
-  packages = ["."]
-  revision = "179d4d0c4d8d407a32af483c2354df1d2c91e6c3"
 
 [[projects]]
   name = "github.com/pkg/errors"
@@ -109,6 +57,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c525dc18250b31646d88b45677990e0c2a7e51e437a858ea1f5229a6778ec4c8"
+  inputs-digest = "6f68988da19b528ce7fb5d41984cf27e8e059f00f579b720ad3e24be178c5b5e"
   solver-name = "gps-cdcl"
   solver-version = 1
