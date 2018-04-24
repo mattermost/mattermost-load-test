@@ -1,5 +1,7 @@
 package ltops
 
+import "io"
+
 type ClusterConfig struct {
 	Name                  string
 	AppInstanceType       string
@@ -49,7 +51,7 @@ type Cluster interface {
 	DeployLoadtests(loadtestsFile string) error
 
 	// Runs a loadtest
-	Loadtest() error
+	Loadtest(resultsOutput io.Writer) error
 
 	// Destroys the cluster
 	Destroy() error

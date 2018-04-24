@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"sync"
@@ -11,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (c *Cluster) loadtestInstance(addr string) error {
+func (c *Cluster) loadtestInstance(addr string, resultsOutput io.Writer) error {
 	client, err := sshtools.SSHClient(c.SSHKey(), addr)
 	if err != nil {
 		return errors.Wrap(err, "unable to connect to loadtest instance via ssh")
@@ -33,7 +34,11 @@ func (c *Cluster) loadtestInstance(addr string) error {
 		return errors.Wrap(err, "Unable to create loadtest results file.")
 	}
 
-	session.Stdout = outfile
+	if resultsOutput != nil {
+		session.Stdout = io.MultiWriter(outfile, resultsOutput)
+	} else {
+		session.Stdout = outfile
+	}
 	session.Stderr = outfile
 
 	logrus.Info("Running loadtest on " + addr)
@@ -44,7 +49,7 @@ func (c *Cluster) loadtestInstance(addr string) error {
 	return nil
 }
 
-func (c *Cluster) Loadtest() error {
+func (c *Cluster) Loadtest(resultsOutput io.Writer) error {
 	loadtestInstancesAddrs, err := c.GetLoadtestInstancesAddrs()
 	if err != nil || len(loadtestInstancesAddrs) <= 0 {
 		return errors.Wrap(err, "Unable to get loadtest instance addresses")
@@ -53,10 +58,15 @@ func (c *Cluster) Loadtest() error {
 	var wg sync.WaitGroup
 	wg.Add(len(loadtestInstancesAddrs))
 
-	for _, addr := range loadtestInstancesAddrs {
+	for i, addr := range loadtestInstancesAddrs {
 		addr := addr
 		go func() {
-			err := c.loadtestInstance(addr)
+			var err error
+			if i == 0 {
+				err = c.loadtestInstance(addr, resultsOutput)
+			} else {
+				err = c.loadtestInstance(addr, nil)
+			}
 			if err != nil {
 				logrus.Error(err)
 			}

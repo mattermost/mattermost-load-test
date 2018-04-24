@@ -25,7 +25,7 @@ var loadTest = &cobra.Command{
 			return errors.Wrap(err, "Couldn't load cluster")
 		}
 
-		return cluster.Loadtest()
+		return cluster.Loadtest(nil)
 	},
 }
 
