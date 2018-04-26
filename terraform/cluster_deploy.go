@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,19 +21,28 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func getFileOrURL(fileOrUrl string) (io.ReadCloser, error) {
+func getFileOrURL(fileOrUrl string) ([]byte, error) {
+	buffer := bytes.NewBuffer(nil)
 	if strings.HasPrefix(fileOrUrl, "http") {
 		response, err := http.Get(fileOrUrl)
 		if err != nil {
 			return nil, errors.Wrap(err, "Can't get file at URL: "+fileOrUrl)
 		}
-		return response.Body, nil
+		defer response.Body.Close()
+
+		io.Copy(buffer, response.Body)
+
+		return buffer.Bytes(), nil
 	} else {
 		f, err := os.Open(fileOrUrl)
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to open file "+fileOrUrl)
 		}
-		return f, nil
+		defer f.Close()
+
+		io.Copy(buffer, f)
+
+		return buffer.Bytes(), nil
 	}
 }
 
@@ -51,13 +61,11 @@ func (c *Cluster) DeployMattermost(mattermostDistLocation string, licenceFileLoc
 	if err != nil {
 		return err
 	}
-	defer mattermostDist.Close()
 
 	licenseFile, err := getFileOrURL(licenceFileLocation)
 	if err != nil {
 		return err
 	}
-	defer licenseFile.Close()
 
 	var wg sync.WaitGroup
 	wg.Add(len(appInstanceAddrs) + len(proxyInstanceAddrs))
@@ -65,7 +73,7 @@ func (c *Cluster) DeployMattermost(mattermostDistLocation string, licenceFileLoc
 	failed := new(int32)
 
 	doDeploy(&wg, failed, appInstanceAddrs, "app", func(instanceNum int, addr string, logger logrus.FieldLogger) error {
-		return deployToAppInstance(mattermostDist, licenseFile, addr, c, logrus.WithField("instance", addr))
+		return deployToAppInstance(bytes.NewReader(mattermostDist), bytes.NewReader(licenseFile), addr, c, logrus.WithField("instance", addr))
 	})
 
 	doDeploy(&wg, failed, proxyInstanceAddrs, "proxy", func(instanceNum int, addr string, logger logrus.FieldLogger) error {
@@ -98,7 +106,6 @@ func (c *Cluster) DeployLoadtests(loadtestsDistLocation string) error {
 	if err != nil {
 		return err
 	}
-	defer loadtestsDist.Close()
 
 	var wg sync.WaitGroup
 	wg.Add(len(loadtestInstanceAddrs))
@@ -106,7 +113,7 @@ func (c *Cluster) DeployLoadtests(loadtestsDistLocation string) error {
 	failed := new(int32)
 
 	doDeploy(&wg, failed, loadtestInstanceAddrs, "loadtest", func(instanceNum int, addr string, logger logrus.FieldLogger) error {
-		return deployToLoadtestInstance(instanceNum, addr, loadtestsDist, c, logrus.WithField("instance", addr))
+		return deployToLoadtestInstance(instanceNum, addr, bytes.NewReader(loadtestsDist), c, logrus.WithField("instance", addr))
 	})
 
 	wg.Wait()
