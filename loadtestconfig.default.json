@@ -46,7 +46,7 @@
     "UserEntitiesConfiguration": {
         "TestLengthMinutes": 20,
         "NumActiveEntities": 500,
-        "ActionRateMilliseconds": 60000,
+        "ActionRateMilliseconds": 240000,
         "ActionRateMaxVarianceMilliseconds": 1500,
         "EnableRequestTiming": true,
         "ChannelLinkChance": 0.02,
