@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	ltops "github.com/mattermost/mattermost-load-test-ops"
-	"github.com/mattermost/mattermost-load-test-ops/terraform"
+	"github.com/mattermost/mattermost-load-test/ltops"
+	"github.com/mattermost/mattermost-load-test/terraform"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

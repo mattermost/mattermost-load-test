@@ -3,7 +3,7 @@ package main
 import (
 	"path/filepath"
 
-	"github.com/mattermost/mattermost-load-test-ops/terraform"
+	"github.com/mattermost/mattermost-load-test/terraform"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )

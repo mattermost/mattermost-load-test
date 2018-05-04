@@ -1,6 +1,6 @@
 package terraform
 
-import ltops "github.com/mattermost/mattermost-load-test-ops"
+import "github.com/mattermost/mattermost-load-test/ltops"
 
 type terraformParameters struct {
 	ClusterName           string `json:"cluster_name"`

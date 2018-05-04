@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mattermost/mattermost-load-test-ops/sshtools"
+	"github.com/mattermost/mattermost-load-test/sshtools"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

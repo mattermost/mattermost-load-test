@@ -3,7 +3,7 @@ package terraform
 import (
 	"os"
 
-	ltops "github.com/mattermost/mattermost-load-test-ops"
+	"github.com/mattermost/mattermost-load-test/ltops"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

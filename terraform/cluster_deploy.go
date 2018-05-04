@@ -14,8 +14,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	ltops "github.com/mattermost/mattermost-load-test-ops"
-	"github.com/mattermost/mattermost-load-test-ops/sshtools"
+	"github.com/mattermost/mattermost-load-test/ltops"
+	"github.com/mattermost/mattermost-load-test/sshtools"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
