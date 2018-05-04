@@ -9,11 +9,15 @@ DIST_PATH=$(DIST_ROOT)/$(DIST_FOLDER_NAME)
 
 all: install
 
-install:
+vendor:
+	dep ensure
+
+install: vendor
 	$(GO) install ./cmd/loadtest
+	$(GO) install ./cmd/ltops
 
 loadtestconfig.json:
-	cp loadtestconfig.default.json loadtestconfig.json
+	cp -n loadtestconfig.default.json loadtestconfig.json
 
 package: loadtestconfig.json install
 	rm -rf $(DIST_ROOT)

@@ -1,7 +1,8 @@
-FROM golang:1.10-alpine3.7
+FROM golang:1-alpine
 WORKDIR /go/src/github.com/mattermost/mattermost-load-test
 COPY . .
-RUN apk --no-cache add make
+RUN apk --no-cache add make git
+RUN go get -u github.com/golang/dep/cmd/dep
 RUN make package
 
 FROM alpine:3.7

@@ -206,3 +206,80 @@ ltops ssh loadtest myloadtestcluster 0
 ```
 ltops status
 ```
+
+Tips and Useful Performance Testing Commands
+===============================================
+
+Check number of Connections
+--------------------------------------------------
+
+To see the number of connections to the mattermost server you can run commands like:
+
+   sudo netstat -an | grep :8065 | wc -l
+
+or:
+
+   ss | grep ESTA | grep 8065
+
+
+Verify the resource limits are set correctly
+---------------------------------------------
+
+- You can verify the NGINX process has the correct amounts by running:
+
+    ps -aux | grep nginx
+    cat /proc/<worker process ID>/limits
+
+
+Look for slow SQL queries in MySQL
+--------------------------------------------------
+
+Considering using the following: 
+
+   SET GLOBAL log_output = 'TABLE';
+   SET GLOBAL slow_query_log = 'ON'; 
+   SET GLOBAL long_query_time = 1;
+   SET GLOBAL log_queries_not_using_indexes = 'OFF';
+
+   show global variables WHERE Variable_name IN ('log_output', 'slow_query_log', 'long_query_time', 'long_query_time', 'log_queries_not_using_indexes');
+
+   SELECT *, CAST(sql_text AS CHAR(10000) CHARACTER SET utf8) AS Query FROM mysql.slow_log ORDER BY start_time DESC LIMIT 100 
+
+   TRUNCATE mysql.slow_log; 
+
+
+To process the logs use mysqldumpslow::
+ - mysqldumpslow -s c -t 100 mysql-slowquery.log > top100-c.log
+ - mysqldumpslow -s r -t 100 mysql-slowquery.log > top100-r.log
+ - mysqldumpslow -s ar -t 100 mysql-slowquery.log > top100-ar.log
+ - mysqldumpslow -s t -t 100 mysql-slowquery.log > top100-t.log
+ - mysqldumpslow -s at -t 100 mysql-slowquery.log > top100-at.log
+ - grep "FROM Status" mysql-slowquery.log | wc -l
+
+Generate Profiling Data
+--------------------------------------------------
+
+Start the server with: 
+
+   ./bin/platform -httpprofiler
+
+
+Look at different profiles with:
+
+   - go tool pprof platform http://localhost:8065/debug/pprof/profile
+   - go tool pprof platform http://localhost:8065/debug/pprof/heap
+   - go tool pprof platform http://localhost:8065/debug/pprof/block
+   - go tool pprof platform http://localhost:8065/debug/pprof/goroutine
+
+Check the process list in the MySQL Database
+--------------------------------------------------
+
+   SHOW FULL PROCESSLIST
+
+
+
+Check the sql engine status in the MySQL Database
+--------------------------------------------------
+
+   SHOW ENGINE INNODB STATUS
+
