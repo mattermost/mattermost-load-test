@@ -16,15 +16,12 @@ install: vendor
 	$(GO) install ./cmd/loadtest
 	$(GO) install ./cmd/ltops
 
-loadtestconfig.json:
-	cp -n loadtestconfig.default.json loadtestconfig.json
-
-package: loadtestconfig.json install
+package: install
 	rm -rf $(DIST_ROOT)
 	mkdir -p $(DIST_PATH)/bin
 
 	cp $(GOPATH)/bin/loadtest $(DIST_PATH)/bin
-	cp loadtestconfig.json $(DIST_PATH)
+	cp loadtestconfig.default.json $(DIST_PATH)/loadtestconfig.json
 	cp README.md $(DIST_PATH)
 	cp -r testfiles $(DIST_PATH)
 	
