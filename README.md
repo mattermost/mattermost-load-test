@@ -10,13 +10,13 @@ The ltops tool allows you to easily spin up and loadtest a cluster of Mattermost
 
 Install with go get
 ```
-go get github.com/mattermost/mattermost-load-test-ops/cmd/ltops
+go get github.com/mattermost/mattermost-load-test/cmd/ltops
 ```
 
 or clone the repository and build for yourself.
 
 ```
-git clone https://github.com/mattermost/mattermost-load-test-ops
+git clone https://github.com/mattermost/mattermost-load-test
 make install
 ```
 
