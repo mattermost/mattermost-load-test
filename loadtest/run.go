@@ -89,14 +89,6 @@ func RunTest(test *TestRun) error {
 		return err
 	}
 
-	cmdlog.Info("Logging in as users.")
-	tokens := loginAsUsers(cfg, loadtestInstance.EntityStartNum, loadtestInstance.Seed)
-	if len(tokens) == 0 {
-		return fmt.Errorf("Failed to login as any users")
-	} else if len(tokens) != cfg.UserEntitiesConfiguration.NumActiveEntities {
-		cmdlog.Infof("Started only %d of %d entities", len(tokens), cfg.UserEntitiesConfiguration.NumActiveEntities)
-	}
-
 	// Stop channels and wait groups, to stop and wait verious things
 	// For entity monitoring routines
 	stopMonitors := make(chan bool)
@@ -122,6 +114,14 @@ func RunTest(test *TestRun) error {
 
 	if cfg.UserEntitiesConfiguration.EnableRequestTiming {
 		adminClient.HttpClient.Transport = NewTimedRoundTripper(clientTimingChannel)
+	}
+
+	cmdlog.Info("Logging in as users.")
+	tokens := loginAsUsers(cfg, adminClient, loadtestInstance.EntityStartNum, loadtestInstance.Seed)
+	if len(tokens) == 0 {
+		return fmt.Errorf("Failed to login as any users")
+	} else if len(tokens) != cfg.UserEntitiesConfiguration.NumActiveEntities {
+		cmdlog.Infof("Started only %d of %d entities", len(tokens), cfg.UserEntitiesConfiguration.NumActiveEntities)
 	}
 
 	numEntities := len(tokens)
