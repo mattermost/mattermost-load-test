@@ -21,7 +21,7 @@ func newClientFromToken(token string, serverUrl string) *model.Client4 {
 	return client
 }
 
-func loginAsUsers(cfg *LoadTestConfig, entityStartNum int, seed int64) []string {
+func loginAsUsers(cfg *LoadTestConfig, adminClient *model.Client4, entityStartNum int, seed int64) []string {
 	tokens := make([]string, cfg.UserEntitiesConfiguration.NumActiveEntities)
 	r := rand.New(rand.NewSource(seed))
 	order := r.Perm(cfg.LoadtestEnviromentConfig.NumUsers)
@@ -39,7 +39,11 @@ func loginAsUsers(cfg *LoadTestConfig, entityStartNum int, seed int64) []string 
 
 		email := "success+user" + strconv.Itoa(userNum) + "@simulator.amazonses.com"
 
-		if _, response := client.Login(email, "Loadtestpassword1"); response != nil && response.Error != nil {
+		if user, response := adminClient.GetUserByEmail(email, ""); response.Error != nil {
+			cmdlog.Errorf("Failed to find user by email %s: %v", email, response.Error.Error())
+		} else if ok, response := adminClient.UpdateUserActive(user.Id, true); !ok {
+			cmdlog.Errorf("Failed to activate user: %v", response.Error.Error())
+		} else if _, response := client.Login(email, "Loadtestpassword1"); response != nil && response.Error != nil {
 			cmdlog.Errorf("Entity %v failed to login as user %s: %s", entityNum, email, response.Error)
 		} else {
 			cmdlog.Infof("Entity %v has logged in as user %s", entityNum, email)
