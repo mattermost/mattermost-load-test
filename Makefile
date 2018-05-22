@@ -15,6 +15,7 @@ vendor:
 install: vendor
 	$(GO) install ./cmd/loadtest
 	$(GO) install ./cmd/ltops
+	$(GO) install ./cmd/ltparse
 
 package: install
 	rm -rf $(DIST_ROOT)
