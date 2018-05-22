@@ -9,12 +9,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/alecthomas/log4go"
-  packages = ["."]
-  revision = "d146e6b86faab5f7e4d135cc63b749d74bf0d4a6"
-
-[[projects]]
-  branch = "master"
   name = "github.com/corpix/uarand"
   packages = ["."]
   revision = "2b8494104d86337cdd41d0a49cbed8e4583c0ab4"
@@ -38,22 +32,10 @@
   version = "v1.4.7"
 
 [[projects]]
-  name = "github.com/gizak/termui"
-  packages = ["."]
-  revision = "24acd523c756fd9728824cdfac66aad9d8982fb7"
-  version = "v2.2.0"
-
-[[projects]]
   name = "github.com/go-ini/ini"
   packages = ["."]
   revision = "6529cf7c58879c08d927016dde4477f18a0634cb"
   version = "v1.36.0"
-
-[[projects]]
-  name = "github.com/go-ldap/ldap"
-  packages = ["."]
-  revision = "bb7a9ca6e4fbc2129e3db588a34bc970ffe811a9"
-  version = "v2.5.1"
 
 [[projects]]
   name = "github.com/go-sql-driver/mysql"
@@ -62,10 +44,10 @@
   version = "v1.3"
 
 [[projects]]
+  branch = "master"
   name = "github.com/gorilla/websocket"
   packages = ["."]
-  revision = "ea4d1f681babbce9545c9c5f3d5194a789c89f5b"
-  version = "v1.2.0"
+  revision = "21ab95fa12b9bdd8fecf5fa3586aad941cc98785"
 
 [[projects]]
   branch = "master"
@@ -121,12 +103,6 @@
   version = "v1.7.6"
 
 [[projects]]
-  name = "github.com/maruel/panicparse"
-  packages = ["stack"]
-  revision = "785840568bdc7faa0dfb1cd6c643207f03271f64"
-  version = "v1.1.1"
-
-[[projects]]
   branch = "master"
   name = "github.com/mattermost/html2text"
   packages = ["."]
@@ -136,18 +112,13 @@
   name = "github.com/mattermost/mattermost-server"
   packages = [
     "einterfaces",
+    "mlog",
     "model",
     "utils",
+    "utils/jsonutils",
     "utils/markdown"
   ]
-  revision = "416c7523c3097af6759b7c40075df51d44624672"
-  version = "v4.9.2"
-
-[[projects]]
-  name = "github.com/mattn/go-runewidth"
-  packages = ["."]
-  revision = "9e777a8366cce605130a531d2cd6363d07ad7317"
-  version = "v0.0.2"
+  revision = "fbbe1f7cefd52a27fd52893509b5365d275f9bee"
 
 [[projects]]
   name = "github.com/minio/minio-go"
@@ -167,12 +138,6 @@
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
   revision = "b8bc1bf767474819792c23f32d8286a45736f1c6"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/mitchellh/go-wordwrap"
-  packages = ["."]
-  revision = "ad45545899c7b13c020ea92b2072220eefad42b8"
 
 [[projects]]
   branch = "master"
@@ -196,18 +161,6 @@
   ]
   revision = "0dc1626d56435e9d605a29875701721c54bc9bbd"
   version = "v1.10.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/nsf/termbox-go"
-  packages = ["."]
-  revision = "5a49b82160547cc98fca189a677a1c14eff796f8"
-
-[[projects]]
-  name = "github.com/op/go-logging"
-  packages = ["."]
-  revision = "b2cb9fa56473e98db8caba80237377e83fe44db5"
-  version = "v1"
 
 [[projects]]
   name = "github.com/paulbellamy/ratecounter"
@@ -273,10 +226,36 @@
   version = "v1.0.1"
 
 [[projects]]
+  branch = "env-settings"
   name = "github.com/spf13/viper"
   packages = ["."]
-  revision = "b5e8006cbee93ec955a89ab31e0e3ce3204f3736"
-  version = "v1.0.2"
+  revision = "4f5003aa93559718c866d86fbc795439079484f5"
+  source = "https://github.com/mattermost/viper"
+
+[[projects]]
+  name = "go.uber.org/atomic"
+  packages = ["."]
+  revision = "1ea20fb1cbb1cc08cbd0d913a96dead89aa18289"
+  version = "v1.3.2"
+
+[[projects]]
+  name = "go.uber.org/multierr"
+  packages = ["."]
+  revision = "3c4937480c32f4c13a875a1829af76c98ca3d40a"
+  version = "v1.1.0"
+
+[[projects]]
+  name = "go.uber.org/zap"
+  packages = [
+    ".",
+    "buffer",
+    "internal/bufferpool",
+    "internal/color",
+    "internal/exit",
+    "zapcore"
+  ]
+  revision = "eeedf312bc6c57391d84767a4cd413f02a917974"
+  version = "v1.8.0"
 
 [[projects]]
   branch = "master"
@@ -345,16 +324,16 @@
   revision = "2caba252f4dc53eaf6b553000885530023f54623"
 
 [[projects]]
-  name = "gopkg.in/asn1-ber.v1"
-  packages = ["."]
-  revision = "379148ca0225df7a432012b8df0355c2a2063ac0"
-  version = "v1.2"
-
-[[projects]]
   name = "gopkg.in/gomail.v2"
   packages = ["."]
   revision = "41f3572897373c5538c50a2402db15db079fa4fd"
   version = "2.0.0"
+
+[[projects]]
+  name = "gopkg.in/natefinch/lumberjack.v2"
+  packages = ["."]
+  revision = "a96e63847dc3c67d17befa69c303767e2f84e54f"
+  version = "v2.1"
 
 [[projects]]
   name = "gopkg.in/yaml.v2"
@@ -365,6 +344,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "157fc4dd59918157f367d0e2b36dda525868b1f7011e46527e726db443f30ec8"
+  inputs-digest = "e143dc326ef6c3396b19dcab4c5b01a14d6302059e354d3ebb0763f167fa9358"
   solver-name = "gps-cdcl"
   solver-version = 1
