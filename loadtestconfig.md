@@ -79,9 +79,3 @@ This is the maximum variance in action rate for each wait period. So if the acti
 ### EnableRequestTiming
 
 Set this to true
-
-## Display Configuration
-
-### LogToConsole
-
-Enable to disable output to the console. 

@@ -35,9 +35,7 @@ func RunTest(test *TestRun) error {
 
 	clientTimingStats := NewClientTimingStats()
 
-	if cfg.DisplayConfiguration.LogToConsole {
-		cmdlog.SetConsoleLog()
-	}
+	cmdlog.SetConsoleLog()
 
 	db := ConnectToDB(cfg.ConnectionConfiguration.DriverName, cfg.ConnectionConfiguration.DataSource)
 	if db == nil {

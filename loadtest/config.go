@@ -19,7 +19,6 @@ type LoadTestConfig struct {
 	LoadtestEnviromentConfig  LoadtestEnviromentConfig
 	ConnectionConfiguration   ConnectionConfiguration
 	UserEntitiesConfiguration UserEntitiesConfiguration
-	DisplayConfiguration      DisplayConfiguration
 	ResultsConfiguration      ResultsConfiguration
 }
 
@@ -66,10 +65,6 @@ type ResultsConfiguration struct {
 	PProfLength          int
 }
 
-type DisplayConfiguration struct {
-	LogToConsole bool
-}
-
 func GetConfig() (*LoadTestConfig, error) {
 	viper.SetConfigName("loadtestconfig")
 	viper.AddConfigPath(".")
@@ -98,7 +93,7 @@ Number of Active Entities: {{.UserEntitiesConfiguration.NumActiveEntities}}
 Action Rate: {{.UserEntitiesConfiguration.ActionRateMilliseconds}} ms
 Action Rate Max Variance: {{.UserEntitiesConfiguration.ActionRateMaxVarianceMilliseconds}} ms
 Server: {{.ConnectionConfiguration.ServerURL}}
-{{.DisplayConfiguration.CustomReportText}}
+{{.ResultsConfiguration.CustomReportText}}
 `
 	settingsTemplate := template.Must(template.New("settings").Parse(settingsTemplateString))
 
