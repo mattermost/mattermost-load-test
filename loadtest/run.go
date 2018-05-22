@@ -17,8 +17,8 @@ import (
 
 	"time"
 
-	"github.com/mattermost/mattermost-load-test/cmdlog"
 	"github.com/mattermost/mattermost-load-test/randutil"
+	"github.com/mattermost/mattermost-server/mlog"
 	"github.com/mattermost/mattermost-server/model"
 )
 
@@ -26,16 +26,12 @@ func RunTest(test *TestRun) error {
 	interruptChannel := make(chan os.Signal)
 	signal.Notify(interruptChannel, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	defer cmdlog.CloseLog()
-
 	cfg, err := GetConfig()
 	if err != nil {
 		return fmt.Errorf("Unable to find configuration file: " + err.Error())
 	}
 
 	clientTimingStats := NewClientTimingStats()
-
-	cmdlog.SetConsoleLog()
 
 	db := ConnectToDB(cfg.ConnectionConfiguration.DriverName, cfg.ConnectionConfiguration.DataSource)
 	if db == nil {
@@ -48,14 +44,14 @@ func RunTest(test *TestRun) error {
 	}
 	defer func() {
 		if err := loadtestInstance.Close(); err != nil {
-			cmdlog.Errorf("failed to close instance: %s", err.Error())
+			mlog.Error("failed to close instance", mlog.Err(err))
 		}
 	}()
-	cmdlog.Infof(
-		"Registered loadtest instance `%s` (Entity Start Num: %d, Seed: %d)",
-		loadtestInstance.Id,
-		loadtestInstance.EntityStartNum,
-		loadtestInstance.Seed,
+	mlog.Info(
+		"Registered loadtest instance",
+		mlog.String("instance_id", loadtestInstance.Id),
+		mlog.Int("entity_start_num", loadtestInstance.EntityStartNum),
+		mlog.Int64("seed", loadtestInstance.Seed),
 	)
 
 	if loadtestInstance.EntityStartNum+cfg.UserEntitiesConfiguration.NumActiveEntities > cfg.LoadtestEnviromentConfig.NumUsers {
@@ -67,7 +63,7 @@ func RunTest(test *TestRun) error {
 		)
 	}
 
-	cmdlog.Info("Setting up server.")
+	mlog.Info("Setting up server.")
 	serverData, err := SetupServer(cfg)
 	if err != nil {
 		return err
@@ -100,29 +96,29 @@ func RunTest(test *TestRun) error {
 		adminClient.HttpClient.Transport = NewTimedRoundTripper(clientTimingChannel)
 	}
 
-	cmdlog.Info("Logging in as users.")
+	mlog.Info("Logging in as users.")
 	tokens := loginAsUsers(cfg, adminClient, loadtestInstance.EntityStartNum, loadtestInstance.Seed)
 	if len(tokens) == 0 {
 		return fmt.Errorf("Failed to login as any users")
 	} else if len(tokens) != cfg.UserEntitiesConfiguration.NumActiveEntities {
-		cmdlog.Infof("Started only %d of %d entities", len(tokens), cfg.UserEntitiesConfiguration.NumActiveEntities)
+		mlog.Info(fmt.Sprintf("Started only %d of %d entities", len(tokens), cfg.UserEntitiesConfiguration.NumActiveEntities))
 	}
 
 	numEntities := len(tokens)
-	cmdlog.Infof("Starting %d entities from offset %d", numEntities, loadtestInstance.EntityStartNum)
+	mlog.Info("Starting entities", mlog.Int("num_entities", numEntities), mlog.Int("entity_start_num", loadtestInstance.EntityStartNum))
 	for i := 0; i < numEntities; i++ {
 		entityNum := loadtestInstance.EntityStartNum + i
 		entityToken := tokens[i]
 
 		var usertype UserEntityWithRateMultiplier
 		if userTypeChoice, err := randutil.WeightedChoice(test.UserEntities); err != nil {
-			cmdlog.Errorf("Failed to pick user entity for entity %d", entityNum)
+			mlog.Error("Failed to pick user entity", mlog.Int("entity_num", entityNum))
 			continue
 		} else {
 			usertype = userTypeChoice.Item.(UserEntityWithRateMultiplier)
 		}
 
-		cmdlog.Infof("Starting entity %v [%s]", entityNum, usertype.Entity.Name)
+		mlog.Info("Starting entity", mlog.Int("entity_num", entityNum), mlog.String("entity_name", usertype.Entity.Name))
 
 		// Create some clients
 		userClient := newClientFromToken(entityToken, cfg.ConnectionConfiguration.ServerURL)
@@ -134,7 +130,7 @@ func RunTest(test *TestRun) error {
 		websocketURL := cfg.ConnectionConfiguration.WebsocketURL
 		userWebsocketClient, err := model.NewWebSocketClient4(websocketURL, entityToken)
 		if err != nil {
-			cmdlog.Error("Unable to connect websocket: " + err.Error())
+			mlog.Error("Unable to connect websocket: " + err.Error())
 		}
 
 		// How fast to spam the server
@@ -180,70 +176,63 @@ func RunTest(test *TestRun) error {
 		}
 	}
 
-	cmdlog.Info("Done starting entities")
+	mlog.Info("Done starting entities")
 
-	cmdlog.Infof("Test set to run for %v minutes", cfg.UserEntitiesConfiguration.TestLengthMinutes)
+	mlog.Info(fmt.Sprintf("Test set to run for %v minutes", cfg.UserEntitiesConfiguration.TestLengthMinutes))
 	timeoutchan := time.After(time.Duration(cfg.UserEntitiesConfiguration.TestLengthMinutes) * time.Minute)
 
 	if cfg.ResultsConfiguration.PProfDelayMinutes != 0 {
-		cmdlog.Infof("Will run PProf after %v minutes.", cfg.ResultsConfiguration.PProfDelayMinutes)
+		mlog.Info(fmt.Sprintf("Will run PProf after %v minutes.", cfg.ResultsConfiguration.PProfDelayMinutes))
 		go func() {
 			time.Sleep(time.Duration(cfg.ResultsConfiguration.PProfDelayMinutes) * time.Minute)
-			cmdlog.Info("Running PProf.")
+			mlog.Info("Running PProf.")
 			RunProfile(cfg.ConnectionConfiguration.PProfURL, cfg.ResultsConfiguration.PProfLength)
 		}()
 	}
 
 	select {
 	case <-interruptChannel:
-		cmdlog.Info("Interupted!")
+		mlog.Info("Interupted!")
 	case <-timeoutchan:
-		cmdlog.Info("Test finished normally")
+		mlog.Info("Test finished normally")
 	}
 	close(stopEntity)
 
-	cmdlog.Info("Waiting for user entities. Timout is 10 seconds.")
+	mlog.Info("Waiting for user entities. Timout is 10 seconds.")
 	waitWithTimeout(&waitEntity, 10*time.Second)
 
-	cmdlog.Info("Stopping monitor routines. Timeout is 10 seconds.")
+	mlog.Info("Stopping monitor routines. Timeout is 10 seconds.")
 	close(stopMonitors)
 	waitWithTimeout(&waitMonitors, 10*time.Second)
 
-	report := "\n"
-	report += "--------------------------------------\n"
-	report += "-------- Loadtest Results ------------\n"
-	report += "--------------------------------------\n"
-	timingsReport := clientTimingStats.PrintReport()
-	configReport := cfg.PrintReport()
+	clientTimingStats.CalcResults()
+	mlog.Info("Settings", mlog.String("tag", "report"), mlog.Any("configuration", *cfg))
+	mlog.Info("Timings", mlog.String("tag", "timings"), mlog.Any("timings", *clientTimingStats))
 
-	report += configReport
-	report += timingsReport
+	// ioutil.WriteFile("results.txt", []byte(report), 0644)
 
-	fmt.Fprint(os.Stdout, report)
-	ioutil.WriteFile("results.txt", []byte(report), 0644)
+	// files := []string{
+	// 	"results.txt",
+	// 	"loadtest.log",
+	// }
 
-	files := []string{
-		"results.txt",
-		"loadtest.log",
-	}
+	// if cfg.ResultsConfiguration.PProfDelayMinutes != 0 {
+	// 	files = append(files, "goroutine.svg", "block.svg", "profile.svg")
+	// }
 
-	if cfg.ResultsConfiguration.PProfDelayMinutes != 0 {
-		files = append(files, "goroutine.svg", "block.svg", "profile.svg")
-	}
+	// if cfg.ResultsConfiguration.SendReportToMMServer {
+	// 	mlog.Info("Sending results to mm server.")
+	// 	sendResultsToMMServer(
+	// 		cfg.ResultsConfiguration.ResultsServerURL,
+	// 		cfg.ResultsConfiguration.ResultsUsername,
+	// 		cfg.ResultsConfiguration.ResultsPassword,
+	// 		cfg.ResultsConfiguration.ResultsChannelId,
+	// 		cfg.ResultsConfiguration.CustomReportText,
+	// 		files,
+	// 	)
+	// }
 
-	if cfg.ResultsConfiguration.SendReportToMMServer {
-		cmdlog.Info("Sending results to mm server.")
-		sendResultsToMMServer(
-			cfg.ResultsConfiguration.ResultsServerURL,
-			cfg.ResultsConfiguration.ResultsUsername,
-			cfg.ResultsConfiguration.ResultsPassword,
-			cfg.ResultsConfiguration.ResultsChannelId,
-			cfg.ResultsConfiguration.CustomReportText,
-			files,
-		)
-	}
-
-	cmdlog.Info("DONE!")
+	mlog.Info("DONE!")
 
 	return nil
 }
@@ -255,19 +244,19 @@ func RunProfile(pprofurl string, profileLength int) {
 
 	datagoroutine, err := cmdgoroutine.Output()
 	if err != nil {
-		cmdlog.Error("Error running goroutine profile: " + err.Error())
+		mlog.Error("Error running goroutine profile: " + err.Error())
 	}
 	ioutil.WriteFile("goroutine.svg", datagoroutine, 0644)
 
 	datablock, err := cmdblock.Output()
 	if err != nil {
-		cmdlog.Error("Error running block profile: " + err.Error())
+		mlog.Error("Error running block profile: " + err.Error())
 	}
 	ioutil.WriteFile("block.svg", datablock, 0644)
 
 	dataprofile, err := cmdprofile.Output()
 	if err != nil {
-		cmdlog.Error("Error running cpu profile: " + err.Error())
+		mlog.Error("Error running cpu profile: " + err.Error())
 	}
 	ioutil.WriteFile("profile.svg", dataprofile, 0644)
 }

@@ -12,7 +12,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 
-	"github.com/mattermost/mattermost-load-test/cmdlog"
+	"github.com/mattermost/mattermost-server/mlog"
 )
 
 const (
@@ -72,7 +72,7 @@ func insertInstance(db *sqlx.DB, id string, now time.Time) (int, error) {
 		_, err = db.Exec(db.Rebind(query), id, now.Unix()*1000, now.Unix()*1000, index.Int64)
 		if err != nil {
 			// Try again, on the off chance we tried to create an instance with the same index.
-			cmdlog.Infof("failed to insert instance `%s` with index %d, trying again", id, index.Int64)
+			mlog.Info("failed to insert instance", mlog.String("instance_id", id), mlog.Int64("index", index.Int64))
 			time.Sleep(time.Duration(attempts) * time.Second)
 		} else {
 			return int(index.Int64), nil
@@ -94,7 +94,7 @@ func pruneInstances(db *sqlx.DB, now time.Time) error {
 	if result, err := db.Exec(db.Rebind(query), now.Add(-1*InstanceExpiredInterval).Unix()*1000); err != nil {
 		return errors.Wrapf(err, "failed to prune instances")
 	} else if count, _ := result.RowsAffected(); count > 0 {
-		cmdlog.Infof("Pruned %d expired instances", count)
+		mlog.Info("Pruned expired instances", mlog.Int64("count", count))
 	}
 
 	return nil
@@ -137,7 +137,7 @@ func NewInstance(db *sqlx.DB, numActiveEntities int) (*Instance, error) {
 	now := time.Now()
 
 	if err := pruneInstances(db, now); err != nil {
-		cmdlog.Errorf("failed to prune instances: %s", err.Error())
+		mlog.Error("failed to prune instances", mlog.Err(err))
 	}
 
 	id := model.NewId()
@@ -181,7 +181,7 @@ func (i *Instance) heartbeat() {
 		select {
 		case t := <-ticker.C:
 			if err := recordInstanceHeartbeat(i.db, i.Id, t); err != nil {
-				cmdlog.Infof("failed to record instance heartbeat for `%s` at `%s`: %s", i.Id, t, err.Error())
+				mlog.Info("failed to record instance heartbeat", mlog.String("instance_id", i.Id), mlog.Int64("time", t.Unix()), mlog.Err(err))
 			}
 
 		case <-i.close:

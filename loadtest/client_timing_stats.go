@@ -4,16 +4,11 @@
 package loadtest
 
 import (
-	"fmt"
-	"html/template"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
 
-	"bytes"
-
-	"github.com/mattermost/mattermost-load-test/cmdlog"
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/montanaflynn/stats"
 	"github.com/paulbellamy/ratecounter"
@@ -30,8 +25,8 @@ type RouteStatResults struct {
 type RouteStats struct {
 	NumHits            int64
 	NumErrors          int64
-	Duration           []float64
-	DurationLastMinute *ratecounter.AvgRateCounter
+	Duration           []float64                   `json:"-"`
+	DurationLastMinute *ratecounter.AvgRateCounter `json:"-"`
 	Max                float64
 	Min                float64
 	Mean               float64
@@ -40,8 +35,7 @@ type RouteStats struct {
 }
 
 type ClientTimingStats struct {
-	Routes     map[string]*RouteStats
-	RouteNames []string
+	Routes map[string]*RouteStats
 }
 
 func NewRouteStats() *RouteStats {
@@ -83,7 +77,6 @@ func (ts *ClientTimingStats) AddRouteSample(route string, duration int64, status
 		newroutestats := NewRouteStats()
 		newroutestats.AddSample(duration, status)
 		ts.Routes[route] = newroutestats
-		ts.RouteNames = append(ts.RouteNames, route)
 	}
 }
 
@@ -114,8 +107,7 @@ func (ts *ClientTimingStats) AddTimingReport(timingReport TimedRoundTripperRepor
 func (ts *ClientTimingStats) GetScore() float64 {
 	total := 0.0
 	num := 0.0
-	for _, route := range ts.RouteNames {
-		stats := ts.Routes[route]
+	for _, stats := range ts.Routes {
 		total += stats.Mean
 		total += stats.Median
 		total += stats.InterQuartileRange
@@ -125,42 +117,10 @@ func (ts *ClientTimingStats) GetScore() float64 {
 	return total / num
 }
 
-func (ts *ClientTimingStats) PrintReport() string {
-	const rates = `Total Hits: {{.NumHits}}
-Error Rate: {{percent .NumErrors .NumHits}}%
-Max Response Time: {{.Max}}ms
-Min Response Time: {{.Min}}ms
-Mean Response Time: {{printf "%.2f" .Mean}}ms
-Median Response Time: {{printf "%.2f" .Median}}ms
-Inter Quartile Range: {{.InterQuartileRange}}
-
-`
+func (ts *ClientTimingStats) CalcResults() {
 	for _, route := range ts.Routes {
 		route.CalcResults()
 	}
-
-	funcMap := template.FuncMap{
-		"percent": func(x, y int64) string {
-			return fmt.Sprintf("%.2f", float64(x)/float64(y)*100.0)
-		},
-	}
-	rateTemplate := template.Must(template.New("rates").Funcs(funcMap).Parse(rates))
-
-	var buf bytes.Buffer
-	fmt.Fprintln(&buf, "")
-	fmt.Fprintln(&buf, "--------- Timings Report ------------")
-
-	for _, route := range ts.RouteNames {
-		fmt.Fprintln(&buf, "Route: "+route)
-		if err := rateTemplate.Execute(&buf, ts.Routes[route]); err != nil {
-			cmdlog.Error("Error executing template: " + err.Error())
-		}
-	}
-
-	fmt.Fprintf(&buf, "Score: %.2f", ts.GetScore())
-	fmt.Fprintln(&buf, "")
-
-	return buf.String()
 }
 
 func ProcessClientRoundTripReports(stats *ClientTimingStats, v3chan <-chan TimedRoundTripperReport, v4chan <-chan TimedRoundTripperReport, stopChan <-chan bool, stopWait *sync.WaitGroup) {

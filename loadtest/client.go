@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mattermost/mattermost-load-test/cmdlog"
+	"github.com/mattermost/mattermost-server/mlog"
 	"github.com/mattermost/mattermost-server/model"
 )
 
@@ -40,13 +40,13 @@ func loginAsUsers(cfg *LoadTestConfig, adminClient *model.Client4, entityStartNu
 		email := "success+user" + strconv.Itoa(userNum) + "@simulator.amazonses.com"
 
 		if user, response := adminClient.GetUserByEmail(email, ""); response.Error != nil {
-			cmdlog.Errorf("Failed to find user by email %s: %v", email, response.Error.Error())
+			mlog.Error("Failed to find user by email", mlog.String("email", email), mlog.Err(response.Error))
 		} else if ok, response := adminClient.UpdateUserActive(user.Id, true); !ok {
-			cmdlog.Errorf("Failed to activate user: %v", response.Error.Error())
+			mlog.Error("Failed to activate user", mlog.String("user_id", user.Id), mlog.Err(response.Error))
 		} else if _, response := client.Login(email, "Loadtestpassword1"); response != nil && response.Error != nil {
-			cmdlog.Errorf("Entity %v failed to login as user %s: %s", entityNum, email, response.Error)
+			mlog.Error("Entity %v failed to login as user", mlog.Int("entity_num", entityNum), mlog.String("email", email), mlog.Err(response.Error))
 		} else {
-			cmdlog.Infof("Entity %v has logged in as user %s", entityNum, email)
+			mlog.Info("Entity has logged in", mlog.Int("entity_num", entityNum), mlog.String("email", email))
 			tokens[i] = client.AuthToken
 		}
 	})
@@ -65,36 +65,34 @@ func getAdminClient(serverURL string, adminEmail string, adminPass string, cmdru
 	client := model.NewAPIv4Client(serverURL)
 
 	if success, resp := client.GetPing(); resp.Error != nil || success != "OK" {
-		cmdlog.Errorf("Failed to ping server at %v", serverURL)
+		mlog.Error(fmt.Sprintf("Failed to ping server at %v", serverURL))
 		if success != "" {
-			cmdlog.Errorf("Got %v from ping", success)
+			mlog.Error(fmt.Sprintf("Got %v from ping", success))
 		}
-		cmdlog.Error("Did you follow the setup guide and modify loadtestconfig.json?")
-		cmdlog.AppError(resp.Error)
+		mlog.Error("Did you follow the setup guide and modify loadtestconfig.json?", mlog.Err(resp.Error))
 		return nil
 	} else {
-		cmdlog.Infof("Successfully pinged server at %v", serverURL)
+		mlog.Info("Successfully pinged server", mlog.String("server_url", serverURL))
 	}
 
 	var adminUser *model.User
 	if user, _ := client.Login(adminEmail, adminPass); user == nil {
-		cmdlog.Info("Failed to login as admin user.")
+		mlog.Info("Failed to login as admin user.")
 		if cmdrun == nil {
-			cmdlog.Error("Unable to create admin user because was not able to connect to app server. Please create the admin user manually or fill in SSH information.")
-			cmdlog.Errorf("Command to create admin user: ./bin/platform user create --email %v --password %v --system_admin --username ltadmin", adminEmail, adminPass)
+			mlog.Error("Unable to create admin user because was not able to connect to app server. Please create the admin user manually or fill in SSH information.")
+			mlog.Error(fmt.Sprintf("Command to create admin user: ./bin/platform user create --email %v --password %v --system_admin --username ltadmin", adminEmail, adminPass))
 			return nil
 		}
-		cmdlog.Info("Attempting to create admin user.")
+		mlog.Info("Attempting to create admin user.")
 		if success, output := cmdrun.RunPlatformCommand(fmt.Sprintf("user create --email %v --password %v --system_admin --username ltadmin", adminEmail, adminPass)); !success {
-			cmdlog.Errorf("Failed to create admin user. Got: %v", output)
+			mlog.Error("Failed to create admin user", mlog.String("output", output))
 		}
 		if success, output := cmdrun.RunPlatformCommand(fmt.Sprintf("user verify ltadmin")); !success {
-			cmdlog.Errorf("Failed to verify email of admin user. Got: %v", output)
+			mlog.Error("Failed to verify email of admin user.", mlog.String("output", output))
 		}
 		time.Sleep(time.Second)
 		if user2, resp2 := client.Login(adminEmail, adminPass); user2 == nil {
-			cmdlog.Errorf("Failed to login to admin account. %v", resp2.Error.Error())
-			cmdlog.AppError(resp2.Error)
+			mlog.Error("Failed to login to admin account.", mlog.Err(resp2.Error))
 			return nil
 		} else {
 			adminUser = user2
@@ -103,11 +101,11 @@ func getAdminClient(serverURL string, adminEmail string, adminPass string, cmdru
 		adminUser = user
 	}
 
-	cmdlog.Infof("Successfully logged in with user %v and roles of %v", adminUser.Email, adminUser.Roles)
+	mlog.Info("Successfully logged in", mlog.String("email", adminUser.Email), mlog.String("roles", adminUser.Roles))
 
 	if !adminUser.IsInRole(model.PERMISSIONS_SYSTEM_ADMIN) {
-		cmdlog.Errorf("%v is not a system admin, please run the command", adminUser.Email)
-		cmdlog.Errorf("'./bin/platform roles system_admin %v", adminUser.Username)
+		mlog.Error(fmt.Sprintf("%v is not a system admin, please run the command", adminUser.Email))
+		mlog.Error(fmt.Sprintf("'./bin/platform roles system_admin %v", adminUser.Username))
 		return nil
 	}
 

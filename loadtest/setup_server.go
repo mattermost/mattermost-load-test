@@ -8,7 +8,7 @@ import (
 
 	"time"
 
-	"github.com/mattermost/mattermost-load-test/cmdlog"
+	"github.com/mattermost/mattermost-server/mlog"
 	"github.com/mattermost/mattermost-server/model"
 )
 
@@ -27,19 +27,19 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 	var cmdrun ServerCLICommandRunner
 	var cmderr error
 	if cfg.ConnectionConfiguration.LocalCommands {
-		cmdlog.Info("Connecting to local app server")
+		mlog.Info("Connecting to local app server")
 		cmdrun, cmderr = NewLocalConnection(cfg.ConnectionConfiguration.MattermostInstallDir)
 	} else {
-		cmdlog.Info("Connecting to app server over SSH")
+		mlog.Info("Connecting to app server over SSH")
 		cmdrun, cmderr = ConnectSSH(cfg.ConnectionConfiguration.SSHHostnamePort, cfg.ConnectionConfiguration.SSHKey, cfg.ConnectionConfiguration.SSHUsername, cfg.ConnectionConfiguration.SSHPassword, cfg.ConnectionConfiguration.MattermostInstallDir, cfg.ConnectionConfiguration.ConfigFileLoc)
 	}
 	if cmderr != nil {
-		cmdlog.Error("Unable to connect issue platform commands. Continuing anyway... Got error: " + cmderr.Error())
+		mlog.Error("Unable to connect issue platform commands. Continuing anyway... Got error: " + cmderr.Error())
 		cmdrun = nil
 	} else {
-		cmdlog.Info("Testing ability to run commands.")
+		mlog.Info("Testing ability to run commands.")
 		if success, output := cmdrun.RunPlatformCommand("version"); !success {
-			cmdlog.Error("Unable to connect issue platform commands. Continuing anyway... Got Output: " + output)
+			mlog.Error("Unable to connect issue platform commands. Continuing anyway... Got Output: " + output)
 			cmdrun.Close()
 			cmdrun = nil
 		}
@@ -54,39 +54,39 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 		return nil, fmt.Errorf("Unable create admin client.")
 	}
 
-	cmdlog.Info("Checking configuration parameters.")
+	mlog.Info("Checking configuration parameters.")
 	if err := checkConfigForLoadtests(adminClient); err != nil {
 		return nil, err
 	}
 
-	cmdlog.Info("Generating users for loadtest.")
+	mlog.Info("Generating users for loadtest.")
 	bulkloadResult := GenerateBulkloadFile(&cfg.LoadtestEnviromentConfig)
 
 	if !cfg.ConnectionConfiguration.SkipBulkload {
 		if cmdrun == nil {
 			return nil, fmt.Errorf("Failed to bulk import users because was unable to connect to app server to issue platform CLI commands. Please fill in SSH info and see errors above. You can also use `loadtest genbulkload` to load the users manually without having to provide SSH info.")
 		}
-		cmdlog.Info("Acquiring bulkload lock")
+		mlog.Info("Acquiring bulkload lock")
 		if getBulkloadLock(adminClient) {
-			cmdlog.Info("Sending loadtest file.")
+			mlog.Info("Sending loadtest file.")
 			if err := cmdrun.SendLoadtestFile(&bulkloadResult.File); err != nil {
 				releaseBulkloadLock(adminClient)
 				return nil, err
 			}
-			cmdlog.Info("Running bulk import.")
+			mlog.Info("Running bulk import.")
 			if success, output := cmdrun.RunPlatformCommand("import bulk --workers 64 --apply loadtestusers.json"); !success {
 				releaseBulkloadLock(adminClient)
 				return nil, fmt.Errorf("Failed to bulk import users: " + output)
 			} else {
-				cmdlog.Info(output)
+				mlog.Info(output)
 			}
 			releaseBulkloadLock(adminClient)
 		}
 	}
 
-	cmdlog.Info("Clearing caches")
+	mlog.Info("Clearing caches")
 	if success, _ := adminClient.InvalidateCaches(); !success {
-		cmdlog.Error("Could not clear caches")
+		mlog.Error("Could not clear caches")
 	}
 
 	teamIdMap := make(map[string]string)
@@ -100,14 +100,14 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 			numRecieved := 200
 			for page := 0; numRecieved == 200; page++ {
 				if channels, resp2 := adminClient.GetPublicChannelsForTeam(team.Id, page, 200, ""); resp2.Error != nil {
-					cmdlog.Errorf("Could not get public channels for team %v. Error: %v", team.Id, resp2.Error.Error())
+					mlog.Error("Could not get public channels for team", mlog.String("team_id", team.Id), mlog.Err(resp2.Error))
 					return nil, resp2.Error
 				} else {
 					numRecieved = len(channels)
 					for _, channel := range channels {
 						channelIdMap[team.Name+channel.Name] = channel.Id
 						if channel.Name == "town-square" {
-							cmdlog.Infof("Found town-square for %v", team.Name)
+							mlog.Info("Found town-square", mlog.String("team", team.Name))
 							townSquareIdMap[team.Name] = channel.Id
 						}
 					}
@@ -126,68 +126,62 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 
 func checkConfigForLoadtests(adminClient *model.Client4) error {
 	if serverConfig, resp := adminClient.GetConfig(); serverConfig == nil {
-		cmdlog.Error("Failed to get the server config")
-		cmdlog.AppError(resp.Error)
+		mlog.Error("Failed to get the server config", mlog.Err(resp.Error))
 		return resp.Error
 	} else {
 		if !*serverConfig.TeamSettings.EnableOpenServer {
-			cmdlog.Info("EnableOpenServer is false, attempt to set to true for the load test...")
+			mlog.Info("EnableOpenServer is false, attempt to set to true for the load test...")
 			*serverConfig.TeamSettings.EnableOpenServer = true
 			if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
-				cmdlog.Error("Failed to set EnableOpenServer")
-				cmdlog.AppError(resp.Error)
+				mlog.Error("Failed to set EnableOpenServer", mlog.Err(resp.Error))
 				return resp.Error
 			}
 		}
 
-		cmdlog.Info("EnableOpenServer is true")
+		mlog.Info("EnableOpenServer is true")
 
 		if *serverConfig.TeamSettings.MaxUsersPerTeam < 50000 {
-			cmdlog.Infof("MaxUsersPerTeam is %v, attempt to set to 50000 for the load test...", *serverConfig.TeamSettings.MaxUsersPerTeam)
+			mlog.Info("Attempting to set MaxUsersPerTeam to 50000 for the load test.", mlog.Int("old_max_users_per_team", *serverConfig.TeamSettings.MaxUsersPerTeam))
 			*serverConfig.TeamSettings.MaxUsersPerTeam = 50000
 			if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
-				cmdlog.Error("Failed to set MaxUsersPerTeam")
-				cmdlog.AppError(resp.Error)
+				mlog.Error("Failed to set MaxUsersPerTeam", mlog.Err(resp.Error))
 				return resp.Error
 			}
 		}
 
-		cmdlog.Infof("MaxUsersPerTeam is %v", *serverConfig.TeamSettings.MaxUsersPerTeam)
+		mlog.Info(fmt.Sprintf("MaxUsersPerTeam is %v", *serverConfig.TeamSettings.MaxUsersPerTeam))
 
 		if *serverConfig.TeamSettings.MaxChannelsPerTeam < 50000 {
-			cmdlog.Infof("MaxChannelsPerTeam is %v, attempt to set to 50000 for the load test...", *serverConfig.TeamSettings.MaxChannelsPerTeam)
+			mlog.Info("Attempting to set MaxChannelsPerTeam to 50000 for the load test.", mlog.Int64("old_max_channels_per_team", *serverConfig.TeamSettings.MaxChannelsPerTeam))
 			*serverConfig.TeamSettings.MaxChannelsPerTeam = 50000
 			if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
-				cmdlog.Error("Failed to set MaxChannelsPerTeam")
-				cmdlog.AppError(resp.Error)
+				mlog.Error("Failed to set MaxChannelsPerTeam", mlog.Err(resp.Error))
 				return resp.Error
 			}
 		}
 
-		cmdlog.Infof("MaxChannelsPerTeam is %v", *serverConfig.TeamSettings.MaxChannelsPerTeam)
+		mlog.Info(fmt.Sprintf("MaxChannelsPerTeam is %v", *serverConfig.TeamSettings.MaxChannelsPerTeam))
 
 		if !serverConfig.ServiceSettings.EnableIncomingWebhooks {
-			cmdlog.Info("Enabing incoming webhooks for the load test...")
+			mlog.Info("Enabing incoming webhooks for the load test...")
 			serverConfig.ServiceSettings.EnableIncomingWebhooks = true
 			if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
-				cmdlog.Error("Failed to set EnableIncomingWebhooks")
-				cmdlog.AppError(resp.Error)
+				mlog.Error("Failed to set EnableIncomingWebhooks", mlog.Err(resp.Error))
 				return resp.Error
 			}
 		}
 
-		cmdlog.Info("EnableIncomingWebhooks is true")
+		mlog.Info("EnableIncomingWebhooks is true")
 
 		if *serverConfig.ServiceSettings.EnableOnlyAdminIntegrations {
-			cmdlog.Info("Disabling only admin integrations for loadtest.")
+			mlog.Info("Disabling only admin integrations for loadtest.")
 			*serverConfig.ServiceSettings.EnableOnlyAdminIntegrations = false
 			if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
-				cmdlog.Error("Failed to set EnableOnlyAdminIntegrations")
-				cmdlog.AppError(resp.Error)
+				mlog.Error("Failed to set EnableOnlyAdminIntegrations", mlog.Err(resp.Error))
 				return resp.Error
 			}
 		}
-		cmdlog.Info("EnableOnlyAdminIntegrations is false")
+		mlog.Info("EnableOnlyAdminIntegrations is false")
 
 	}
 
@@ -200,32 +194,32 @@ func WaitForServer(serverURL string) {
 	for numSuccess < 5 {
 		for success, resp := waitClient.GetPing(); resp.Error != nil || success != "OK"; success, resp = waitClient.GetPing() {
 			numSuccess = 0
-			cmdlog.Info("Waiting for server to be up")
+			mlog.Info("Waiting for server to be up")
 			time.Sleep(5 * time.Second)
 		}
-		cmdlog.Infof("Success %v", numSuccess)
+		mlog.Info(fmt.Sprintf("Success %v", numSuccess))
 		numSuccess++
 	}
 }
 
 func getBulkloadLock(adminClient *model.Client4) bool {
 	if user, resp := adminClient.GetMe(""); resp.Error != nil {
-		cmdlog.Errorf("Unable to get admin user while trying to get lock 1: %v", resp.Error.Error())
+		mlog.Error("Unable to get admin user while trying to get lock 1", mlog.Err(resp.Error))
 		return false
 	} else if user.Nickname == "" {
 		myId := model.NewId()
 		user.Nickname = myId
 		if _, resp := adminClient.UpdateUser(user); resp.Error != nil {
-			cmdlog.Errorf("Unable to update admin user while trying to get lock 1: %v", resp.Error.Error())
+			mlog.Error("Unable to update admin user while trying to get lock 1", mlog.Err(resp.Error))
 			return false
 		}
 		time.Sleep(2 * time.Second)
 		if updatedUser, resp := adminClient.GetMe(""); resp.Error != nil {
-			cmdlog.Errorf("Unable to get admin user while trying to get lock 2: %v", resp.Error.Error())
+			mlog.Error("Unable to get admin user while trying to get lock 2: %v", mlog.Err(resp.Error))
 			return false
 		} else if updatedUser.Nickname == myId {
 			// We got the lock!
-			cmdlog.Info("Acquired bulkload lock")
+			mlog.Info("Acquired bulkload lock")
 			return true
 		}
 	}
@@ -233,28 +227,28 @@ func getBulkloadLock(adminClient *model.Client4) bool {
 	// If we didn't get the lock, wait for it to clear
 	for {
 		time.Sleep(2 * time.Second)
-		cmdlog.Info("Polling for lock release: " + time.Now().Format(time.UnixDate))
+		mlog.Info("Polling for lock release: " + time.Now().Format(time.UnixDate))
 		if updatedUser, resp := adminClient.GetMe(""); resp.Error != nil {
-			cmdlog.Errorf("Unable to get admin user while trying to wait for lock 3: %v", resp.Error.Error())
+			mlog.Error("Unable to get admin user while trying to wait for lock 3", mlog.Err(resp.Error))
 			return false
 		} else if updatedUser.Nickname == "" {
 			// Lock has been released
-			cmdlog.Info("Lock Released: " + time.Now().Format(time.UnixDate))
+			mlog.Info("Lock Released: " + time.Now().Format(time.UnixDate))
 			return false
 		}
 	}
 }
 
 func releaseBulkloadLock(adminClient *model.Client4) {
-	cmdlog.Info("Releasing bulkload lock")
+	mlog.Info("Releasing bulkload lock")
 	if user, resp := adminClient.GetMe(""); resp.Error != nil {
-		cmdlog.Errorf("Unable to get admin user while trying to release lock. Note that system will be in a bad state. You need to change the system admin user's nickname to blank to fix things. Error: %v", resp.Error.Error())
+		mlog.Error("Unable to get admin user while trying to release lock. Note that system will be in a bad state. You need to change the system admin user's nickname to blank to fix things.", mlog.Err(resp.Error))
 	} else if user.Nickname == "" {
-		cmdlog.Errorf("Unable to get admin user while trying to get lock 1: %v", resp.Error.Error())
+		mlog.Error("Unable to get admin user while trying to get lock 1", mlog.Err(resp.Error))
 	} else {
 		user.Nickname = ""
 		if _, resp := adminClient.UpdateUser(user); resp.Error != nil {
-			cmdlog.Errorf("Unable to update admin user while trying to release lock 1: %v", resp.Error.Error())
+			mlog.Error("Unable to update admin user while trying to release lock 1", mlog.Err(resp.Error))
 		}
 	}
 }

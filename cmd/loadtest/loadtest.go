@@ -4,11 +4,10 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 
-	"github.com/mattermost/mattermost-load-test/cmdlog"
 	"github.com/mattermost/mattermost-load-test/loadtest"
+	"github.com/mattermost/mattermost-server/mlog"
 	"github.com/spf13/cobra"
 )
 
@@ -60,6 +59,19 @@ var tests []TestItem = []TestItem{
 }
 
 func main() {
+	// Initalize logging
+	log := mlog.NewLogger(&mlog.LoggerConfiguration{
+		EnableConsole: true,
+		ConsoleJson:   true,
+		ConsoleLevel:  mlog.LevelDebug,
+	})
+
+	// Redirect default golang logger to this logger
+	mlog.RedirectStdLog(log)
+
+	// Use this app logger as the global logger
+	mlog.InitGlobalLogger(log)
+
 	cmdLoad := &cobra.Command{
 		Use:   "loadposts",
 		Short: "Load posts onto server",
@@ -87,9 +99,9 @@ func main() {
 			Use:   currentTest.Name,
 			Short: currentTest.ShortDesc,
 			Run: func(cmd *cobra.Command, args []string) {
-				fmt.Println("Running test: " + currentTest.Name)
+				mlog.Info("Running test", mlog.String("test", currentTest.Name))
 				if err := loadtest.RunTest(currentTest.Test); err != nil {
-					fmt.Println("Run Test Failed: " + err.Error())
+					mlog.Error("Run Test Failed", mlog.String("test", currentTest.Name), mlog.Err(err))
 				}
 			},
 		})
@@ -102,16 +114,15 @@ func main() {
 func pprofCmd(cmd *cobra.Command, args []string) {
 	cfg, err := loadtest.GetConfig()
 	if err != nil {
-		fmt.Println("Unable to find configuration file: " + err.Error())
+		mlog.Error("Unable to find configuration file", mlog.Err(err))
 	}
 	loadtest.RunProfile(cfg.ConnectionConfiguration.PProfURL, cfg.ResultsConfiguration.PProfLength)
 }
 
 func loadCmd(cmd *cobra.Command, args []string) {
-	cmdlog.SetConsoleLog()
 	cfg, err := loadtest.GetConfig()
 	if err != nil {
-		fmt.Println("Unable to find configuration file: " + err.Error())
+		mlog.Error("Unable to find configuration file", mlog.Err(err))
 	}
 
 	driverName := cfg.ConnectionConfiguration.DriverName
@@ -131,7 +142,7 @@ func loadCmd(cmd *cobra.Command, args []string) {
 func genBulkLoadCmd(cmd *cobra.Command, args []string) {
 	cfg, err := loadtest.GetConfig()
 	if err != nil {
-		fmt.Println("Unable to find configuration file: " + err.Error())
+		mlog.Error("Unable to find configuration file", mlog.Err(err))
 	}
 	results := loadtest.GenerateBulkloadFile(&cfg.LoadtestEnviromentConfig)
 	ioutil.WriteFile("loadtestbulkload.json", results.File.Bytes(), 0644)

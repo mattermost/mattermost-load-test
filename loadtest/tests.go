@@ -5,6 +5,7 @@ package loadtest
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -16,8 +17,8 @@ import (
 	"bytes"
 
 	"github.com/icrowley/fake"
-	"github.com/mattermost/mattermost-load-test/cmdlog"
 	"github.com/mattermost/mattermost-load-test/randutil"
+	"github.com/mattermost/mattermost-server/mlog"
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/mattermost/mattermost-server/utils"
 )
@@ -81,13 +82,13 @@ func actionGetStatuses(c *EntityConfig) {
 		channelId := c.ChannelMap[team.Name+channel.Name]
 
 		if channelId == "" {
-			cmdlog.Error("Unable to get channel from map")
+			mlog.Error("Unable to get channel from map")
 			return
 		}
 
 		members, resp := c.Client.GetChannelMembers(channelId, 0, 60, "")
 		if resp.Error != nil {
-			cmdlog.Errorf("Unable to get members for channel %v to seed action get status. Error: %v", channelId, resp.Error.Error())
+			mlog.Error("Unable to get members for channel to seed action get status.", mlog.String("channel_id", channelId), mlog.Err(resp.Error))
 			return
 		}
 
@@ -102,7 +103,7 @@ func actionGetStatuses(c *EntityConfig) {
 	}
 
 	if _, resp := c.Client.GetUsersStatusesByIds(ids); resp.Error != nil {
-		cmdlog.Error("Unable to get user statuses by Ids. Error: " + resp.Error.Error())
+		mlog.Error("Unable to get user statuses by Ids. Error: " + resp.Error.Error())
 	}
 }
 
@@ -114,13 +115,13 @@ func actionLeaveJoinTeam(c *EntityConfig) {
 
 	teamId := c.TeamMap[importTeam.Name]
 	if teamId == "" {
-		cmdlog.Error("Unable to get team from map")
+		mlog.Error("Unable to get team from map")
 		return
 	}
 
 	userId := ""
 	if user, resp := c.Client.GetMe(""); resp.Error != nil {
-		cmdlog.Errorf("Failed to get me, err=%v", resp.Error.Error())
+		mlog.Error("Failed to get me", mlog.Err(resp.Error))
 		return
 	} else {
 		userId = user.Id
@@ -128,21 +129,21 @@ func actionLeaveJoinTeam(c *EntityConfig) {
 
 	inviteId := ""
 	if team, resp := c.Client.GetTeam(teamId, ""); resp.Error != nil {
-		cmdlog.Errorf("Failed to get team, err=%v", resp.Error.Error())
+		mlog.Error("Failed to get team", mlog.Err(resp.Error))
 		return
 	} else {
 		inviteId = team.InviteId
 	}
 
 	if _, resp := c.Client.RemoveTeamMember(teamId, userId); resp.Error != nil {
-		cmdlog.Errorf("Failed to leave team %v, err=%v", teamId, resp.Error.Error())
+		mlog.Error("Failed to leave team", mlog.String("team_id", teamId), mlog.Err(resp.Error))
 		return
 	}
 
 	time.Sleep(time.Second * 1)
 
 	if _, resp := c.Client.AddTeamMemberFromInvite("", "", inviteId); resp.Error != nil {
-		cmdlog.Errorf("Failed to join team %v with invite_id %v, err=%v", teamId, inviteId, resp.Error.Error())
+		mlog.Error("Failed to join team with invite_id", mlog.String("team_id", teamId), mlog.String("invite_id", inviteId), mlog.Err(resp.Error))
 		return
 	}
 }
@@ -150,18 +151,18 @@ func actionLeaveJoinTeam(c *EntityConfig) {
 func actionPostToTownSquare(c *EntityConfig) {
 	team := c.UserData.PickTeam()
 	if team == nil {
-		cmdlog.Error("Unable to get team for town-square")
+		mlog.Error("Unable to get team for town-square")
 		return
 	}
 
 	channelId := c.TownSquareMap[team.Name]
 
 	if channelId == "" {
-		cmdlog.Error("Unable to get town-square from map")
+		mlog.Error("Unable to get town-square from map")
 		return
 	}
 
-	cmdlog.Info("Posted to town-square")
+	mlog.Info("Posted to town-square")
 	createPost(c, team, channelId)
 }
 
@@ -173,7 +174,7 @@ func actionPost(c *EntityConfig) {
 	channelId := c.ChannelMap[team.Name+channel.Name]
 
 	if channelId == "" {
-		cmdlog.Error("Unable to get channel from map")
+		mlog.Error("Unable to get channel from map")
 		return
 	}
 
@@ -197,10 +198,10 @@ func createPost(c *EntityConfig, team *UserTeamImportData, channelId string) {
 		fileIds := make([]string, numFiles, numFiles)
 		for i := 0; i < numFiles; i++ {
 			if data, err, filename := readRandomTestFile(); err != nil {
-				cmdlog.Errorf("Problem reading test file. Error %v", err.Error())
+				mlog.Error("Problem reading test file.", mlog.Err(err))
 			} else {
 				if file, resp := c.Client.UploadFile(data, channelId, filename); resp.Error != nil {
-					cmdlog.Error("Unable to upload file. Error: " + resp.Error.Error())
+					mlog.Error("Unable to upload file. Error: " + resp.Error.Error())
 					return
 				} else {
 					fileIds[i] = file.FileInfos[0].Id
@@ -212,7 +213,7 @@ func createPost(c *EntityConfig, team *UserTeamImportData, channelId string) {
 
 	_, resp := c.Client.CreatePost(post)
 	if resp.Error != nil {
-		cmdlog.Infof("Failed to post to team %v on channel %v as user %v with token %v. Error: %v", team.Name, channelId, c.UserData.Username, c.Client.AuthToken, resp.Error.Error())
+		mlog.Info("Failed to post", mlog.String("team_name", team.Name), mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.String("auth_token", c.Client.AuthToken), mlog.Err(resp.Error))
 	}
 }
 
@@ -227,42 +228,42 @@ func actionGetChannel(c *EntityConfig) {
 		ChannelId:     channelId,
 		PrevChannelId: "",
 	}); resp.Error != nil {
-		cmdlog.Errorf("Unable to view channel. Channel: %v, User: %v", channelId, c.UserData.Username)
+		mlog.Error("Unable to view channel.", mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username))
 	}
 
 	if _, resp := c.Client.GetChannelMember(channelId, "me", ""); resp.Error != nil {
-		cmdlog.Errorf("Unable to get channel member. Channel: %v, User: %v, Error: %v", channelId, c.UserData.Username, resp.Error.Error())
+		mlog.Error("Unable to get channel member.", mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.Err(resp.Error))
 	}
 
 	if _, resp := c.Client.GetChannelMembers(channelId, 0, 60, ""); resp.Error != nil {
-		cmdlog.Errorf("Unable to get channel member. Channel: %v, User: %v, Error: %v", channelId, c.UserData.Username, resp.Error.Error())
+		mlog.Error("Unable to get channel member.", mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.Err(resp.Error))
 	}
 
 	if _, resp := c.Client.GetChannelStats(channelId, ""); resp.Error != nil {
-		cmdlog.Errorf("Unable to get channel stats. Channel: %v, User: %v, Error: %v", channelId, c.UserData.Username, resp.Error.Error())
+		mlog.Error("Unable to get channel member.", mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.Err(resp.Error))
 	}
 
 	if posts, resp := c.Client.GetPostsForChannel(channelId, 0, 60, ""); resp.Error != nil {
-		cmdlog.Errorf("Unable to get posts for channel Channel: %v, User: %v, Error: %v", channelId, c.UserData.Username, resp.Error.Error())
+		mlog.Error("Unable to get channel member.", mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.Err(resp.Error))
 	} else {
 		if posts == nil {
-			cmdlog.Errorf("Got nil posts for get posts for channel. Resp was: %#v", resp)
+			mlog.Error(fmt.Sprintf("Got nil posts for get posts for channel. Resp was: %#v", resp))
 			return
 		}
 		for _, post := range posts.Posts {
 			if post.HasReactions {
 				if _, resp := c.Client.GetReactions(post.Id); resp.Error != nil {
-					cmdlog.Errorf("Unable to get reactions for post. Channel: %v, User: %v, Post: %v, Error: %v", channelId, c.UserData.Username, post.Id, resp.Error.Error())
+					mlog.Error("Unable to get reactions for post.", mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.String("post_id", post.Id), mlog.Err(resp.Error))
 				}
 			}
 			if len(post.FileIds) > 0 {
 				if files, resp := c.Client.GetFileInfosForPost(post.Id, ""); resp.Error != nil {
-					cmdlog.Errorf("Unable to get file infos for post. Channel: %v, User: %v, Post: %v, Error: %v", channelId, c.UserData.Username, post.Id, resp.Error.Error())
+					mlog.Error("Unable to get file infos for post.", mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.String("post_id", post.Id), mlog.Err(resp.Error))
 				} else {
 					for _, file := range files {
 						if file.IsImage() {
 							if _, resp := c.Client.GetFileThumbnail(file.Id); resp.Error != nil {
-								cmdlog.Errorf("Unable to get file thumbnail for file. Channel: %v, User: %v, Post: %v, File: %v, Error: %v", channelId, c.UserData.Username, post.Id, file.Id, resp.Error.Error())
+								mlog.Error("Unable to get file thumbnail for file.", mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.String("post_id", post.Id), mlog.String("file_id", file.Id), mlog.Err(resp.Error))
 							}
 						}
 					}
@@ -281,7 +282,7 @@ func actionPerformSearch(c *EntityConfig) {
 
 	_, resp := c.Client.SearchPosts(teamId, fake.Words(), false)
 	if resp.Error != nil {
-		cmdlog.Errorf("Failed to search: %v", resp.Error.Error())
+		mlog.Error("Failed to search", mlog.Err(resp.Error))
 	}
 }
 
@@ -306,7 +307,7 @@ func actionPostWebhook(c *EntityConfig) {
 			Description: model.NewId(),
 		})
 		if resp.Error != nil {
-			cmdlog.Error("Unable to create incoming webhook. Error: " + resp.Error.Error())
+			mlog.Error("Unable to create incoming webhook. Error: " + resp.Error.Error())
 			return
 		}
 		c.Info[infokey] = webhook.Id
@@ -322,7 +323,7 @@ func actionPostWebhook(c *EntityConfig) {
 	}
 	b, err := json.Marshal(webhookRequest)
 	if err != nil {
-		cmdlog.Error("Unable to marshal json for webhook request")
+		mlog.Error("Unable to marshal json for webhook request")
 		return
 	}
 
@@ -330,7 +331,7 @@ func actionPostWebhook(c *EntityConfig) {
 	buf.WriteString(string(b))
 
 	if resp, err := http.Post(c.LoadTestConfig.ConnectionConfiguration.ServerURL+"/hooks/"+hookId, "application/json", &buf); err != nil {
-		cmdlog.Error("Failed to post by webhook. Error: " + err.Error())
+		mlog.Error("Failed to post by webhook. Error: " + err.Error())
 	} else if resp != nil {
 		resp.Body.Close()
 	}
@@ -518,29 +519,29 @@ var TestLeaveJoinTeam TestRun = TestRun{
 func actionDeactivateReactivate(c *EntityConfig) {
 	user, resp := c.Client.GetMe("")
 	if resp.Error != nil {
-		cmdlog.Errorf("Failed to get me, err=%v", resp.Error.Error())
+		mlog.Error("Failed to get me", mlog.Err(resp.Error))
 		return
 	}
 
 	if ok, resp := c.AdminClient.UpdateUserActive(user.Id, false); !ok {
-		cmdlog.Errorf("Failed to deactivate user %v: %v", user.Id, resp.Error.Error())
+		mlog.Error("Failed to deactivate user", mlog.String("user_id", user.Id), mlog.Err(resp.Error))
 	} else {
-		cmdlog.Infof("Deactivated user %v", user.Id)
+		mlog.Info("Deactivated user", mlog.String("user_id", user.Id))
 	}
 
 	time.Sleep(time.Second * 1)
 
 	if ok, resp := c.AdminClient.UpdateUserActive(user.Id, true); !ok {
-		cmdlog.Errorf("Failed to reactivate user: %v", resp.Error.Error())
+		mlog.Error("Failed to reactivate user", mlog.String("user_id", user.Id), mlog.Err(resp.Error))
 	} else {
-		cmdlog.Infof("Reactivated user %v", user.Id)
+		mlog.Info("Reactivated user", mlog.String("user_id", user.Id))
 	}
 
 	// Login again since the token will have been invalidated.
 	if _, response := c.Client.Login(user.Email, "Loadtestpassword1"); response != nil && response.Error != nil {
-		cmdlog.Errorf("Failed to recreate client as user %s: %s", user.Email, response.Error)
+		mlog.Error("Failed to recreate client as user %s: %s", mlog.String("email", user.Email), mlog.Err(response.Error))
 	} else {
-		cmdlog.Infof("Recreated client as user %s", user.Email)
+		mlog.Info("Recreated client as user", mlog.String("email", user.Email))
 	}
 }
 

@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mattermost/mattermost-load-test/cmdlog"
 	"github.com/mattermost/mattermost-load-test/randutil"
+	"github.com/mattermost/mattermost-server/mlog"
 	"github.com/mattermost/mattermost-server/model"
 )
 
@@ -36,7 +36,7 @@ type EntityConfig struct {
 func runEntity(ec *EntityConfig) {
 	defer func() {
 		if r := recover(); r != nil {
-			cmdlog.Errorf("Recovered: %s: %s", r, debug.Stack())
+			mlog.Error("Recovered", mlog.Any("recover", r), mlog.String("stack", string(debug.Stack())))
 			ec.StopWaitGroup.Add(1)
 			go runEntity(ec)
 		}
@@ -62,7 +62,7 @@ func runEntity(ec *EntityConfig) {
 		case <-timer.C:
 			action, err := randutil.WeightedChoice(ec.EntityActions)
 			if err != nil {
-				cmdlog.Error("Failed to pick weighted choice")
+				mlog.Error("Failed to pick weighted choice", mlog.Err(err))
 				return
 			}
 			action.Item.(func(*EntityConfig))(ec)
@@ -76,7 +76,7 @@ func runEntity(ec *EntityConfig) {
 func doStatusPolling(ec *EntityConfig) {
 	defer func() {
 		if r := recover(); r != nil {
-			cmdlog.Errorf("%s: %s", r, debug.Stack())
+			mlog.Error("Recovered", mlog.Any("recover", r), mlog.String("stack", string(debug.Stack())))
 			ec.StopWaitGroup.Add(1)
 			go doStatusPolling(ec)
 		}
@@ -115,11 +115,11 @@ func websocketListen(ec *EntityConfig) {
 				for {
 					if websocketRetryCount > 5 {
 						if ec.WebSocketClient.ListenError != nil {
-							cmdlog.Errorf("Websocket Error: %v", ec.WebSocketClient.ListenError.Error())
+							mlog.Error("Websocket Error", mlog.Err(ec.WebSocketClient.ListenError))
 						} else {
-							cmdlog.Error("Server closed websocket")
+							mlog.Error("Server closed websocket")
 						}
-						cmdlog.Error("Websocket disconneced. Max retries reached.")
+						mlog.Error("Websocket disconneced. Max retries reached.")
 						return
 					}
 					time.Sleep(time.Duration(websocketRetryCount) * time.Second)
