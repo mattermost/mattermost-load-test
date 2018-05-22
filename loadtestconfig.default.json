@@ -63,5 +63,14 @@
         "ResultsPassword": "",
         "PProfDelayMinutes": 15,
         "PProfLength": 240
+    },
+    "LogSettings": {
+        "EnableConsole": true,
+        "ConsoleLevel": "INFO",
+        "ConsoleJson": true,
+        "EnableFile": true,
+        "FileLevel": "INFO",
+        "FileJson": true,
+        "FileLocation": "loadtest.log"
     }
 }

@@ -4,10 +4,9 @@
 package loadtest
 
 import (
-	"reflect"
 	"strings"
 
-	"github.com/spf13/pflag"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -16,6 +15,7 @@ type LoadTestConfig struct {
 	ConnectionConfiguration   ConnectionConfiguration
 	UserEntitiesConfiguration UserEntitiesConfiguration
 	ResultsConfiguration      ResultsConfiguration
+	LogSettings               LoggerSettings
 }
 
 type UserEntitiesConfiguration struct {
@@ -61,7 +61,17 @@ type ResultsConfiguration struct {
 	PProfLength          int
 }
 
-func GetConfig() (*LoadTestConfig, error) {
+type LoggerSettings struct {
+	EnableConsole bool
+	ConsoleJson   bool
+	ConsoleLevel  string
+	EnableFile    bool
+	FileJson      bool
+	FileLevel     string
+	FileLocation  string
+}
+
+func ReadConfig() error {
 	viper.SetConfigName("loadtestconfig")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("./config/")
@@ -69,36 +79,27 @@ func GetConfig() (*LoadTestConfig, error) {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
-	err := viper.ReadInConfig()
-	if err != nil {
-		return nil, err
+	viper.SetDefault("LogSettings.EnableConsole", true)
+	viper.SetDefault("LogSettings.ConsoleLevel", "INFO")
+	viper.SetDefault("LogSettings.ConsoleJson", true)
+	viper.SetDefault("LogSettings.EnableFile", true)
+	viper.SetDefault("LogSettings.FileLevel", "INFO")
+	viper.SetDefault("LogSettings.FileJson", true)
+	viper.SetDefault("LogSettings.FileLocation", "loadtest.log")
+
+	if err := viper.ReadInConfig(); err != nil {
+		return errors.Wrap(err, "unable to read configuration file")
 	}
 
+	return nil
+}
+
+func GetConfig() (*LoadTestConfig, error) {
 	var cfg *LoadTestConfig
 
-	if err := unmarshalConfigStruct(&cfg); err != nil {
+	if err := viper.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
 
 	return cfg, nil
-}
-
-func unmarshalConfigStruct(configStruct interface{}) error {
-	return viper.Unmarshal(configStruct)
-}
-
-func unmarshalConfigSubStruct(configStruct interface{}) error {
-	return viper.Sub(reflect.ValueOf(configStruct).Elem().Type().Name()).Unmarshal(configStruct)
-}
-
-func SetIntFlag(flags *pflag.FlagSet, full, short, helpText, configFileSetting string, defaultValue int) {
-	flags.IntP(full, short, defaultValue, helpText)
-	viper.SetDefault(configFileSetting, defaultValue)
-	viper.BindPFlag(configFileSetting, flags.Lookup(full))
-}
-
-func SetBoolFlag(flags *pflag.FlagSet, full, short, helpText, configFileSetting string, defaultValue bool) {
-	flags.BoolP(full, short, defaultValue, helpText)
-	viper.SetDefault(configFileSetting, defaultValue)
-	viper.BindPFlag(configFileSetting, flags.Lookup(full))
 }

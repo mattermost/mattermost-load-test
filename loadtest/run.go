@@ -14,8 +14,10 @@ import (
 	"strconv"
 	"sync"
 	"syscall"
-
 	"time"
+
+	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 
 	"github.com/mattermost/mattermost-load-test/randutil"
 	"github.com/mattermost/mattermost-server/mlog"
@@ -26,16 +28,16 @@ func RunTest(test *TestRun) error {
 	interruptChannel := make(chan os.Signal)
 	signal.Notify(interruptChannel, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	cfg, err := GetConfig()
-	if err != nil {
-		return fmt.Errorf("Unable to find configuration file: " + err.Error())
-	}
-
 	clientTimingStats := NewClientTimingStats()
+
+	cfg := &LoadTestConfig{}
+	if err := viper.Unmarshal(cfg); err != nil {
+		return errors.Wrap(err, "failed to read loadtest configuration")
+	}
 
 	db := ConnectToDB(cfg.ConnectionConfiguration.DriverName, cfg.ConnectionConfiguration.DataSource)
 	if db == nil {
-		return fmt.Errorf("Failed to connect to database")
+		return fmt.Errorf("failed to connect to database")
 	}
 
 	loadtestInstance, err := NewInstance(db, cfg.UserEntitiesConfiguration.NumActiveEntities)

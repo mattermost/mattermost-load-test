@@ -24,9 +24,10 @@ func ParseResults(config *ResultsConfig) error {
 		}
 	}
 
+	allTimings := []*Timings{}
+
 	decoder := json.NewDecoder(file)
 	foundStructuredLogs := false
-	foundResults := false
 	for decoder.More() {
 		log := map[string]interface{}{}
 		if err := decoder.Decode(&log); err != nil {
@@ -42,18 +43,21 @@ func ParseResults(config *ResultsConfig) error {
 				continue
 			}
 
-			foundResults = true
-			if err := dumpTimingsText(timings); err != nil {
-				return errors.Wrap(err, "failed to dump timings")
-			}
+			allTimings = append(allTimings, timings)
 		}
 	}
 
 	if !foundStructuredLogs {
 		return errors.Wrap(err, "failed to find structured logs")
 	}
-	if !foundResults {
+
+	if len(allTimings) == 0 {
 		return errors.Wrap(err, "failed to find results")
+	}
+
+	// Default to showing the last timings.
+	if err := dumpTimingsText(allTimings[len(allTimings)-1]); err != nil {
+		return errors.Wrap(err, "failed to dump timings")
 	}
 
 	return nil
