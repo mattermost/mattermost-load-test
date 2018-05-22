@@ -71,9 +71,8 @@ type UserEntityStatistics struct {
 	UserEntityRatesPerMinute UserEntityRates
 	UserEntityRatesPerHour   UserEntityRates
 
-	RouteTimings        map[string]ewma.MovingAverage
-	RouteTimingsBuffers map[string]*UIBuffer
-	Routes              []string
+	RouteTimings map[string]ewma.MovingAverage
+	Routes       []string
 }
 
 func NewUserEntityStatistics() *UserEntityStatistics {
@@ -89,7 +88,6 @@ func NewUserEntityStatistics() *UserEntityStatistics {
 		UserEntityRatesPerMinute:  NewUserEntityRates(time.Minute, "per minute"),
 		UserEntityRatesPerHour:    NewUserEntityRates(time.Hour, "per hour"),
 		RouteTimings:              make(map[string]ewma.MovingAverage),
-		RouteTimingsBuffers:       make(map[string]*UIBuffer),
 	}
 }
 

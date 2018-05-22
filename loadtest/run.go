@@ -17,7 +17,6 @@ import (
 
 	"time"
 
-	"github.com/gizak/termui"
 	"github.com/mattermost/mattermost-load-test/cmdlog"
 	"github.com/mattermost/mattermost-load-test/randutil"
 	"github.com/mattermost/mattermost-server/model"
@@ -36,20 +35,7 @@ func RunTest(test *TestRun) error {
 
 	clientTimingStats := NewClientTimingStats()
 
-	strchanbe := cmdlog.GetStringChannelBackend()
-	logbuf := NewUIBuffer(10)
-	go func() {
-		for {
-			select {
-			case str := <-strchanbe:
-				logbuf.Add(str)
-			}
-		}
-	}()
-
-	if cfg.DisplayConfiguration.ShowUI {
-		go CreateLoadtestUI(clientTimingStats, logbuf)
-	} else if cfg.DisplayConfiguration.LogToConsole {
+	if cfg.DisplayConfiguration.LogToConsole {
 		cmdlog.SetConsoleLog()
 	}
 
@@ -217,7 +203,6 @@ func RunTest(test *TestRun) error {
 		cmdlog.Info("Test finished normally")
 	}
 	close(stopEntity)
-	termui.StopLoop()
 
 	cmdlog.Info("Waiting for user entities. Timout is 10 seconds.")
 	waitWithTimeout(&waitEntity, 10*time.Second)

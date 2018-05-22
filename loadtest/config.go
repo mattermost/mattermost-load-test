@@ -67,7 +67,6 @@ type ResultsConfiguration struct {
 }
 
 type DisplayConfiguration struct {
-	ShowUI       bool
 	LogToConsole bool
 }
 

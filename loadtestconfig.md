@@ -82,10 +82,6 @@ Set this to true
 
 ## Display Configuration
 
-### ShowUI
-
-Show the fancy UI with graphs.
-
 ### LogToConsole
 
-If not showing the fancy UI, enable to disable output to the console. 
+Enable to disable output to the console. 
