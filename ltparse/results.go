@@ -84,6 +84,11 @@ func ParseResults(config *ResultsConfig) error {
 		}
 	}
 
+	timings.CalcResults()
+	if baselineTimings != nil {
+		baselineTimings.CalcResults()
+	}
+
 	switch config.Display {
 	case "markdown":
 		if err := dumpTimingsMarkdown(timings, baselineTimings, config.Output); err != nil {

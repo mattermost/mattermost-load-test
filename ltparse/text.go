@@ -17,6 +17,8 @@ Max Response Time: {{.Max}}ms
 Min Response Time: {{.Min}}ms
 Mean Response Time: {{printf "%.2f" .Mean}}ms
 Median Response Time: {{printf "%.2f" .Median}}ms
+90th Percentile: {{printf "%.2f" .Percentile90}}ms
+95th Percentile: {{printf "%.2f" .Percentile95}}ms
 Inter Quartile Range: {{.InterQuartileRange}}
 
 `

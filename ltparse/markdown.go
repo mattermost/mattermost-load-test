@@ -70,6 +70,8 @@ The score is the the average of the mean reponse times below.
 | Min Response Time | {{.Min}}ms |
 | Mean Response Time | {{printf "%.2f" .Mean}}ms |
 | Median Response Time | {{printf "%.2f" .Median}}ms |
+| 90th Percentile | {{printf "%.2f" .Percentile90}}ms |
+| 95th Percentile | {{printf "%.2f" .Percentile95}}ms |
 | Inter Quartile Range | {{.InterQuartileRange}} |
 `,
 	))
@@ -84,6 +86,8 @@ The score is the the average of the mean reponse times below.
 | Min Response Time | {{.Baseline.Min}}ms | {{.Actual.Min}}ms | {{compareFloat64 .Actual.Min .Baseline.Min}}ms | {{comparePercentageFloat64 .Actual.Min .Baseline.Min}} |
 | Mean Response Time | {{printf "%.2f" .Baseline.Mean}}ms | {{printf "%.2f" .Actual.Mean}}ms | {{compareFloat64 .Actual.Mean .Baseline.Mean}}ms | {{comparePercentageFloat64 .Actual.Mean .Baseline.Mean}} |
 | Median Response Time | {{printf "%.2f" .Baseline.Median}}ms | {{printf "%.2f" .Actual.Median}}ms | {{compareFloat64 .Actual.Median .Baseline.Median}}ms | {{comparePercentageFloat64 .Actual.Median .Baseline.Median}} |
+| 90th Percentile | {{printf "%.2f" .Baseline.Percentile90}}ms | {{printf "%.2f" .Actual.Percentile90}}ms | {{compareFloat64 .Actual.Percentile90 .Baseline.Percentile90}}ms | {{comparePercentageFloat64 .Actual.Percentile90 .Baseline.Percentile90}} |
+| 95th Percentile | {{printf "%.2f" .Baseline.Percentile95}}ms | {{printf "%.2f" .Actual.Percentile95}}ms | {{compareFloat64 .Actual.Percentile95 .Baseline.Percentile95}}ms | {{comparePercentageFloat64 .Actual.Percentile95 .Baseline.Percentile95}} |
 | Inter Quartile Range | {{.Baseline.InterQuartileRange}} | {{.Actual.InterQuartileRange}} | {{compareFloat64 .Actual.InterQuartileRange .Baseline.InterQuartileRange}}ms | {{comparePercentageFloat64 .Actual.InterQuartileRange .Baseline.InterQuartileRange}} |
 `,
 	))
@@ -98,6 +102,8 @@ The score is the the average of the mean reponse times below.
 | Min Response Time | - | {{.Min}}ms | - |
 | Mean Response Time | - | {{printf "%.2f" .Mean}}ms | - |
 | Median Response Time | - | {{printf "%.2f" .Median}}ms | - |
+| 90th Percentile | - | {{printf "%.2f" .Percentile90}}ms | - |
+| 95th Percentile | - | {{printf "%.2f" .Percentile95}}ms | - |
 | Inter Quartile Range | - | {{.InterQuartileRange}} | - |
 `,
 	))
