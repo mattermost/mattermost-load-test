@@ -5,6 +5,7 @@ package loadtest
 
 import (
 	"fmt"
+	"net/http"
 
 	"time"
 
@@ -53,7 +54,7 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 		defer cmdrun.Close()
 	}
 
-	adminClient := getAdminClient(cfg.ConnectionConfiguration.ServerURL, cfg.ConnectionConfiguration.AdminEmail, cfg.ConnectionConfiguration.AdminPassword, cmdrun)
+	adminClient := getAdminClient(&http.Client{}, cfg.ConnectionConfiguration.ServerURL, cfg.ConnectionConfiguration.AdminEmail, cfg.ConnectionConfiguration.AdminPassword, cmdrun)
 	if adminClient == nil {
 		return nil, fmt.Errorf("Unable create admin client.")
 	}

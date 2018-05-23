@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -89,7 +91,24 @@ func RunTest(test *TestRun) error {
 	waitMonitors.Add(1)
 	go ProcessClientRoundTripReports(clientTimingStats, clientTimingChannel3, clientTimingChannel, stopMonitors, &waitMonitors)
 
-	adminClient := getAdminClient(cfg.ConnectionConfiguration.ServerURL, cfg.ConnectionConfiguration.AdminEmail, cfg.ConnectionConfiguration.AdminPassword, nil)
+	// Mirror http.DefaultTransport to start
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+			DualStack: true,
+		}).DialContext,
+		MaxIdleConns:          cfg.ConnectionConfiguration.MaxIdleConns,
+		MaxIdleConnsPerHost:   cfg.ConnectionConfiguration.MaxIdleConnsPerHost,
+		IdleConnTimeout:       time.Duration(cfg.ConnectionConfiguration.IdleConnTimeoutMilliseconds) * time.Millisecond,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+
+	httpClient := &http.Client{Transport: transport}
+
+	adminClient := getAdminClient(httpClient, cfg.ConnectionConfiguration.ServerURL, cfg.ConnectionConfiguration.AdminEmail, cfg.ConnectionConfiguration.AdminPassword, nil)
 	if adminClient == nil {
 		return fmt.Errorf("Unable create admin client.")
 	}
@@ -123,7 +142,7 @@ func RunTest(test *TestRun) error {
 		mlog.Info("Starting entity", mlog.Int("entity_num", entityNum), mlog.String("entity_name", usertype.Entity.Name))
 
 		// Create some clients
-		userClient := newClientFromToken(entityToken, cfg.ConnectionConfiguration.ServerURL)
+		userClient := newClientFromToken(httpClient, entityToken, cfg.ConnectionConfiguration.ServerURL)
 		if cfg.UserEntitiesConfiguration.EnableRequestTiming {
 			userClient.HttpClient.Transport = NewTimedRoundTripper(clientTimingChannel)
 		}

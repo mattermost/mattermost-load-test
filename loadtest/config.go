@@ -31,23 +31,26 @@ type UserEntitiesConfiguration struct {
 }
 
 type ConnectionConfiguration struct {
-	ServerURL            string
-	WebsocketURL         string
-	PProfURL             string
-	DriverName           string
-	DataSource           string
-	DBEndpoint           string // deprecated
-	LocalCommands        bool
-	SSHHostnamePort      string
-	SSHUsername          string
-	SSHPassword          string
-	SSHKey               string
-	MattermostInstallDir string
-	ConfigFileLoc        string
-	AdminEmail           string
-	AdminPassword        string
-	SkipBulkload         bool
-	WaitForServerStart   bool
+	ServerURL                   string
+	WebsocketURL                string
+	PProfURL                    string
+	DriverName                  string
+	DataSource                  string
+	DBEndpoint                  string // deprecated
+	LocalCommands               bool
+	SSHHostnamePort             string
+	SSHUsername                 string
+	SSHPassword                 string
+	SSHKey                      string
+	MattermostInstallDir        string
+	ConfigFileLoc               string
+	AdminEmail                  string
+	AdminPassword               string
+	SkipBulkload                bool
+	WaitForServerStart          bool
+	MaxIdleConns                int
+	MaxIdleConnsPerHost         int
+	IdleConnTimeoutMilliseconds int
 }
 
 type ResultsConfiguration struct {
@@ -86,6 +89,9 @@ func ReadConfig() error {
 	viper.SetDefault("LogSettings.FileLevel", "INFO")
 	viper.SetDefault("LogSettings.FileJson", true)
 	viper.SetDefault("LogSettings.FileLocation", "loadtest.log")
+	viper.SetDefault("ConnectionConfiguration.MaxIdleConns", 100)
+	viper.SetDefault("ConnectionConfiguration.MaxIdleConnsPerHost", 128)
+	viper.SetDefault("ConnectionConfiguration.IdleConnTimeoutMilliseconds", 90000)
 
 	if err := viper.ReadInConfig(); err != nil {
 		return errors.Wrap(err, "unable to read configuration file")
