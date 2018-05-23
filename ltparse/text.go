@@ -6,9 +6,11 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
+
+	"github.com/mattermost/mattermost-load-test/loadtest"
 )
 
-func dumpTimingsText(timings *Timings) error {
+func dumpTimingsText(timings *loadtest.ClientTimingStats) error {
 	const rates = `Total Hits: {{.NumHits}}
 Error Rate: {{percent .NumErrors .NumHits}}%
 Max Response Time: {{.Max}}ms

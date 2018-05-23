@@ -6,10 +6,13 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
+
+	"github.com/mattermost/mattermost-load-test/loadtest"
 )
 
 type ResultsConfig struct {
-	File string
+	File      string
+	Aggregate bool
 }
 
 func ParseResults(config *ResultsConfig) error {
@@ -24,7 +27,7 @@ func ParseResults(config *ResultsConfig) error {
 		}
 	}
 
-	allTimings := []*Timings{}
+	allTimings := []*loadtest.ClientTimingStats{}
 
 	decoder := json.NewDecoder(file)
 	foundStructuredLogs := false
@@ -37,7 +40,7 @@ func ParseResults(config *ResultsConfig) error {
 
 		// Look for result logs
 		if log["tag"] == "timings" {
-			timings := &Timings{}
+			timings := &loadtest.ClientTimingStats{}
 			err = mapstructure.Decode(log["timings"], timings)
 			if err != nil {
 				continue
@@ -55,8 +58,16 @@ func ParseResults(config *ResultsConfig) error {
 		return errors.Wrap(err, "failed to find results")
 	}
 
-	// Default to showing the last timings.
-	if err := dumpTimingsText(allTimings[len(allTimings)-1]); err != nil {
+	var timings *loadtest.ClientTimingStats
+	if !config.Aggregate {
+		timings = allTimings[len(allTimings)-1]
+	} else {
+		for _, t := range allTimings {
+			timings = timings.Merge(t)
+		}
+	}
+
+	if err := dumpTimingsText(timings); err != nil {
 		return errors.Wrap(err, "failed to dump timings")
 	}
 

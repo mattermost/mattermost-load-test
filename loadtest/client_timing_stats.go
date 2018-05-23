@@ -25,7 +25,7 @@ type RouteStatResults struct {
 type RouteStats struct {
 	NumHits            int64
 	NumErrors          int64
-	Duration           []float64                   `json:"-"`
+	Duration           []float64
 	DurationLastMinute *ratecounter.AvgRateCounter `json:"-"`
 	Max                float64
 	Min                float64
@@ -56,6 +56,26 @@ func (s *RouteStats) AddSample(duration int64, status int) {
 	}
 }
 
+func (s *RouteStats) Merge(other *RouteStats) *RouteStats {
+	newRouteStats := &RouteStats{}
+	if s != nil {
+		newRouteStats.Name = s.Name
+		newRouteStats.NumHits = newRouteStats.NumHits + s.NumHits
+		newRouteStats.NumErrors = newRouteStats.NumErrors + s.NumErrors
+		newRouteStats.Duration = append(newRouteStats.Duration, s.Duration...)
+	}
+	if other != nil {
+		newRouteStats.Name = other.Name
+		newRouteStats.NumHits = newRouteStats.NumHits + other.NumHits
+		newRouteStats.NumErrors = newRouteStats.NumErrors + other.NumErrors
+		newRouteStats.Duration = append(newRouteStats.Duration, other.Duration...)
+	}
+
+	newRouteStats.CalcResults()
+
+	return newRouteStats
+}
+
 func (s *RouteStats) CalcResults() {
 	s.Max, _ = stats.Max(s.Duration)
 	s.Min, _ = stats.Min(s.Duration)
@@ -78,6 +98,23 @@ func (ts *ClientTimingStats) AddRouteSample(route string, duration int64, status
 		newroutestats.AddSample(duration, status)
 		ts.Routes[route] = newroutestats
 	}
+}
+
+func (ts *ClientTimingStats) Merge(timings *ClientTimingStats) *ClientTimingStats {
+	newStats := NewClientTimingStats()
+
+	if ts != nil {
+		for routeName, route := range ts.Routes {
+			newStats.Routes[routeName] = newStats.Routes[routeName].Merge(route)
+		}
+	}
+	if timings != nil {
+		for routeName, route := range timings.Routes {
+			newStats.Routes[routeName] = newStats.Routes[routeName].Merge(route)
+		}
+	}
+
+	return newStats
 }
 
 var teamPathRegex *regexp.Regexp = regexp.MustCompile("/teams/[a-z0-9]{26}/")
