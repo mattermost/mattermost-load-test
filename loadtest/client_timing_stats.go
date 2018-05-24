@@ -26,6 +26,7 @@ type RouteStats struct {
 	Name               string
 	NumHits            int64
 	NumErrors          int64
+	ErrorRate          float64
 	Duration           []float64
 	DurationLastMinute *ratecounter.AvgRateCounter `json:"-"`
 	Max                float64
@@ -79,6 +80,7 @@ func (s *RouteStats) Merge(other *RouteStats) *RouteStats {
 }
 
 func (s *RouteStats) CalcResults() {
+	s.ErrorRate = float64(s.NumErrors) / float64(s.NumHits)
 	s.Max, _ = stats.Max(s.Duration)
 	s.Min, _ = stats.Min(s.Duration)
 	s.Mean, _ = stats.Mean(s.Duration)

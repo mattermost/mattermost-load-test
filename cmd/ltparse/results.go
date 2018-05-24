@@ -16,6 +16,7 @@ var results = &cobra.Command{
 func resultsCmd(cmd *cobra.Command, args []string) error {
 	var config ltparse.ResultsConfig
 	config.File, _ = cmd.Flags().GetString("file")
+	config.BaselineFile, _ = cmd.Flags().GetString("baseline")
 	config.Display, _ = cmd.Flags().GetString("display")
 	config.Aggregate, _ = cmd.Flags().GetBool("aggregate")
 
@@ -37,6 +38,7 @@ func init() {
 	results.Flags().StringP("file", "f", "", "a file containing structured logs from a loadtest")
 	results.Flags().StringP("display", "d", "text", "one of 'text' or 'markdown'")
 	results.Flags().BoolP("aggregate", "a", false, "aggregate all results found instead of just picking the last")
+	results.Flags().StringP("baseline", "b", "", "a file containing structured logs to which to compare results")
 
 	rootCmd.AddCommand(results)
 }
