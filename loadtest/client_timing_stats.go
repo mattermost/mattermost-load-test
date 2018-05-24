@@ -23,6 +23,7 @@ type RouteStatResults struct {
 }
 
 type RouteStats struct {
+	Name               string
 	NumHits            int64
 	NumErrors          int64
 	Duration           []float64
@@ -38,8 +39,9 @@ type ClientTimingStats struct {
 	Routes map[string]*RouteStats
 }
 
-func NewRouteStats() *RouteStats {
+func NewRouteStats(name string) *RouteStats {
 	return &RouteStats{
+		Name:               name,
 		NumErrors:          0,
 		Duration:           make([]float64, 0, 100000),
 		DurationLastMinute: ratecounter.NewAvgRateCounter(time.Minute),
@@ -94,7 +96,7 @@ func (ts *ClientTimingStats) AddRouteSample(route string, duration int64, status
 	if routestats, ok := ts.Routes[route]; ok {
 		routestats.AddSample(duration, status)
 	} else {
-		newroutestats := NewRouteStats()
+		newroutestats := NewRouteStats(route)
 		newroutestats.AddSample(duration, status)
 		ts.Routes[route] = newroutestats
 	}

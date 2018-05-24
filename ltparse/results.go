@@ -12,6 +12,7 @@ import (
 
 type ResultsConfig struct {
 	File      string
+	Display   string
 	Aggregate bool
 }
 
@@ -67,8 +68,17 @@ func ParseResults(config *ResultsConfig) error {
 		}
 	}
 
-	if err := dumpTimingsText(timings); err != nil {
-		return errors.Wrap(err, "failed to dump timings")
+	switch config.Display {
+	case "markdown":
+		if err := dumpTimingsMarkdown(timings); err != nil {
+			return errors.Wrap(err, "failed to dump timings")
+		}
+	case "text":
+		fallthrough
+	default:
+		if err := dumpTimingsText(timings); err != nil {
+			return errors.Wrap(err, "failed to dump timings")
+		}
 	}
 
 	return nil

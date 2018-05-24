@@ -36,18 +36,7 @@ Inter Quartile Range: {{.InterQuartileRange}}
 		}
 	}
 
-	total := 0.0
-	num := 0.0
-	for _, stats := range timings.Routes {
-		total += stats.Mean
-		total += stats.Median
-		total += stats.InterQuartileRange
-		num += 1.0
-	}
-
-	score := total / num
-
-	fmt.Printf("Score: %.2f", score)
+	fmt.Printf("Score: %.2f", timings.GetScore())
 	fmt.Println("")
 
 	return nil
