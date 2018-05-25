@@ -52,8 +52,27 @@ ltops deploy -c myloadtestcluster -m https://releases.mattermost.com/4.9.2/matte
 ltops loadtest -c myloadtestcluster
 ```
 
-4. Results will show up in ~/.mattermost-load-test-ops/myloadtestcluster/results
+4. Logs, including loadtest results will show up in ~/.mattermost-load-test-ops/myloadtestcluster/results
 
+To generate a textual summary:
+```
+ltparse results --file ~/.mattermost-load-test-ops/myloadtestcluster/results --display text
+```
+
+To generate a markdown summary:
+```
+ltparse results --file ~/.mattermost-load-test-ops/myloadtestcluster/results --display markdown
+```
+
+To aggregate results from multiple test runs:
+```
+cat /path/to/results/1 /path/to/results/2 /path/to/results/3 | ltparse results --aggregate --display markdown
+```
+
+To generate a markdown summary comparing the results with a previous results file representing a baseline:
+```
+ltparse results --file ~/.mattermost-load-test-ops/myloadtestcluster/results --display markdown --baseline /path/to/other/results
+```
 
 5. Delete cluster when done
 ```
