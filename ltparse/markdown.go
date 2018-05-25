@@ -52,16 +52,16 @@ var (
 	}
 
 	timingSummaryMarkdown = template.Must(template.New("timingSummaryMarkdown").Parse(
-		`### Loadtest Results
-#### Score: {{printf "%.2f" .GetScore}}
+		`## Loadtest Results
+### Score: {{printf "%.2f" .GetScore}}
 The score is the the average of the mean reponse times below.
 
-#### Routes
+### Routes
 `,
 	))
 
 	singleTimingTemplate = template.Must(template.New("singleTimingTemplate").Funcs(funcMap).Parse(
-		`##### {{.Name}}
+		`#### {{.Name}}
 | Metric | Actual |
 | --- | --- |
 | Hits | {{.NumHits}} |
@@ -75,7 +75,7 @@ The score is the the average of the mean reponse times below.
 	))
 
 	comparisonTimingTemplate = template.Must(template.New("comparisonTimingTemplate").Funcs(funcMap).Parse(
-		`##### {{.Actual.Name}}
+		`#### {{.Actual.Name}}
 | Metric | Baseline | Actual | Delta | Delta % |
 | --- | --- | --- | --- | --- |
 | Hits | {{.Baseline.NumHits}} | {{.Actual.NumHits}} | {{compareInt64 .Actual.NumHits .Baseline.NumHits}} | {{comparePercentageInt64 .Actual.NumHits .Baseline.NumHits}}
@@ -89,7 +89,7 @@ The score is the the average of the mean reponse times below.
 	))
 
 	comparisonTimingWithoutBaselineTemplate = template.Must(template.New("comparisonTimingWithoutBaselineTemplate").Funcs(funcMap).Parse(
-		`##### {{.Name}}
+		`#### {{.Name}}
 | Metric | Baseline | Actual | Delta |
 | --- | --- | --- | --- |
 | Hits | - | {{.NumHits}} | - |
