@@ -77,7 +77,7 @@ The score is the the average of the mean reponse times below.
 	comparisonTimingTemplate = template.Must(template.New("comparisonTimingTemplate").Funcs(funcMap).Parse(
 		`##### {{.Actual.Name}}
 | Metric | Baseline | Actual | Delta | Delta % |
-| --- | --- | --- |
+| --- | --- | --- | --- | --- |
 | Hits | {{.Baseline.NumHits}} | {{.Actual.NumHits}} | {{compareInt64 .Actual.NumHits .Baseline.NumHits}} | {{comparePercentageInt64 .Actual.NumHits .Baseline.NumHits}}
 | Error Rate | {{printf "%.2f%%" .Baseline.ErrorRate }} | {{printf "%.2f%%" .Actual.ErrorRate}} | {{comparePercentageFloat64 .Actual.ErrorRate .Baseline.ErrorRate}} | {{comparePercentageFloat64 .Actual.ErrorRate .Baseline.ErrorRate}} |
 | Max Response Time | {{.Baseline.Max}}ms | {{.Actual.Max}}ms | {{compareFloat64 .Actual.Max .Baseline.Max}}ms | {{comparePercentageFloat64 .Actual.Max .Baseline.Max}} |
@@ -91,7 +91,7 @@ The score is the the average of the mean reponse times below.
 	comparisonTimingWithoutBaselineTemplate = template.Must(template.New("comparisonTimingWithoutBaselineTemplate").Funcs(funcMap).Parse(
 		`##### {{.Name}}
 | Metric | Baseline | Actual | Delta |
-| --- | --- | --- |
+| --- | --- | --- | --- |
 | Hits | - | {{.NumHits}} | - |
 | Error Rate | - | {{printf "%.2f%%" .ErrorRate}} | - |
 | Max Response Time | - | {{.Max}}ms | - |
