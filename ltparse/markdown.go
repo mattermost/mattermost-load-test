@@ -2,7 +2,7 @@ package ltparse
 
 import (
 	"fmt"
-	"os"
+	"io"
 	"sort"
 	"text/template"
 
@@ -118,13 +118,13 @@ func sortedRoutes(routesMap map[string]*loadtest.RouteStats) []*loadtest.RouteSt
 	return routes
 }
 
-func dumpSingleTimingsMarkdown(timings *loadtest.ClientTimingStats) error {
-	if err := timingSummaryMarkdown.Execute(os.Stdout, timings); err != nil {
+func dumpSingleTimingsMarkdown(timings *loadtest.ClientTimingStats, output io.Writer) error {
+	if err := timingSummaryMarkdown.Execute(output, timings); err != nil {
 		return errors.Wrap(err, "error executing summary template")
 	}
 
 	for _, route := range sortedRoutes(timings.Routes) {
-		if err := singleTimingTemplate.Execute(os.Stdout, route); err != nil {
+		if err := singleTimingTemplate.Execute(output, route); err != nil {
 			return errors.Wrap(err, "error executing route template")
 		}
 	}
@@ -132,15 +132,15 @@ func dumpSingleTimingsMarkdown(timings *loadtest.ClientTimingStats) error {
 	return nil
 }
 
-func dumpComparisonTimingsMarkdown(timings *loadtest.ClientTimingStats, baseline *loadtest.ClientTimingStats) error {
-	if err := timingSummaryMarkdown.Execute(os.Stdout, timings); err != nil {
+func dumpComparisonTimingsMarkdown(timings *loadtest.ClientTimingStats, baseline *loadtest.ClientTimingStats, output io.Writer) error {
+	if err := timingSummaryMarkdown.Execute(output, timings); err != nil {
 		return errors.Wrap(err, "error executing summary template")
 	}
 
 	for _, route := range sortedRoutes(timings.Routes) {
 		baselineRoute, ok := baseline.Routes[route.Name]
 		if !ok {
-			if err := comparisonTimingWithoutBaselineTemplate.Execute(os.Stdout, route); err != nil {
+			if err := comparisonTimingWithoutBaselineTemplate.Execute(output, route); err != nil {
 				return errors.Wrap(err, "error executing route template")
 			}
 		} else {
@@ -151,7 +151,7 @@ func dumpComparisonTimingsMarkdown(timings *loadtest.ClientTimingStats, baseline
 				route,
 				baselineRoute,
 			}
-			if err := comparisonTimingTemplate.Execute(os.Stdout, comparison); err != nil {
+			if err := comparisonTimingTemplate.Execute(output, comparison); err != nil {
 				return errors.Wrap(err, "error executing route template")
 			}
 		}
@@ -160,10 +160,10 @@ func dumpComparisonTimingsMarkdown(timings *loadtest.ClientTimingStats, baseline
 	return nil
 }
 
-func dumpTimingsMarkdown(timings *loadtest.ClientTimingStats, baselineTimings *loadtest.ClientTimingStats) error {
+func dumpTimingsMarkdown(timings *loadtest.ClientTimingStats, baselineTimings *loadtest.ClientTimingStats, output io.Writer) error {
 	if baselineTimings == nil {
-		return dumpSingleTimingsMarkdown(timings)
+		return dumpSingleTimingsMarkdown(timings, output)
 	} else {
-		return dumpComparisonTimingsMarkdown(timings, baselineTimings)
+		return dumpComparisonTimingsMarkdown(timings, baselineTimings, output)
 	}
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/mattermost/mattermost-load-test/ltparse"
@@ -18,10 +17,12 @@ var results = &cobra.Command{
 
 func resultsCmd(cmd *cobra.Command, args []string) error {
 	var config ltparse.ResultsConfig
-	config.File, _ = cmd.Flags().GetString("file")
-	config.BaselineFile, _ = cmd.Flags().GetString("baseline")
 	config.Display, _ = cmd.Flags().GetString("display")
 	config.Aggregate, _ = cmd.Flags().GetBool("aggregate")
+	inputFilename, _ := cmd.Flags().GetString("file")
+	baselineFilename, _ := cmd.Flags().GetString("baseline")
+
+	config.Output = os.Stdout
 
 	switch config.Display {
 	case "text":
@@ -30,19 +31,26 @@ func resultsCmd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("unexpected --display flag: %s", config.Display)
 	}
 
-	var input io.Reader
-	if config.File == "" {
-		input = os.Stdin
+	if inputFilename == "" {
+		config.Input = os.Stdin
 	} else {
-		file, err := os.Open(config.File)
+		file, err := os.Open(inputFilename)
 		if err != nil {
 			return errors.Wrap(err, "failed to open structured log file")
 		}
 		defer file.Close()
-		input = file
+		config.Input = file
 	}
 
-	if err := ltparse.ParseResults(&config, input); err != nil {
+	if baselineFilename != "" {
+		baselineFile, err := os.Open(baselineFilename)
+		if err != nil {
+			return errors.Wrap(err, "failed to open structured log file")
+		}
+		defer baselineFile.Close()
+	}
+
+	if err := ltparse.ParseResults(&config); err != nil {
 		return err
 	}
 

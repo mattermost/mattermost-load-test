@@ -3,7 +3,6 @@ package ltparse
 import (
 	"encoding/json"
 	"io"
-	"os"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
@@ -12,13 +11,14 @@ import (
 )
 
 type ResultsConfig struct {
-	File         string
-	BaselineFile string
-	Display      string
-	Aggregate    bool
+	Input         io.Reader
+	BaselineInput io.Reader
+	Output        io.Writer
+	Display       string
+	Aggregate     bool
 }
 
-func parseTimingsFromFile(input io.Reader) ([]*loadtest.ClientTimingStats, error) {
+func parseTimings(input io.Reader) ([]*loadtest.ClientTimingStats, error) {
 	allTimings := []*loadtest.ClientTimingStats{}
 	decoder := json.NewDecoder(input)
 	foundStructuredLogs := false
@@ -50,21 +50,15 @@ func parseTimingsFromFile(input io.Reader) ([]*loadtest.ClientTimingStats, error
 	return allTimings, nil
 }
 
-func ParseResults(config *ResultsConfig, input io.Reader) error {
-	allTimings, err := parseTimingsFromFile(input)
+func ParseResults(config *ResultsConfig) error {
+	allTimings, err := parseTimings(config.Input)
 	if err != nil {
 		return err
 	}
 
 	allBaselineTimings := []*loadtest.ClientTimingStats{}
-	if config.BaselineFile != "" {
-		baselineFile, err := os.Open(config.BaselineFile)
-		if err != nil {
-			return errors.Wrap(err, "failed to open structured log file")
-		}
-		defer baselineFile.Close()
-
-		allBaselineTimings, err = parseTimingsFromFile(baselineFile)
+	if config.BaselineInput != nil {
+		allBaselineTimings, err = parseTimings(config.BaselineInput)
 		if err != nil {
 			return err
 		}
@@ -92,7 +86,7 @@ func ParseResults(config *ResultsConfig, input io.Reader) error {
 
 	switch config.Display {
 	case "markdown":
-		if err := dumpTimingsMarkdown(timings, baselineTimings); err != nil {
+		if err := dumpTimingsMarkdown(timings, baselineTimings, config.Output); err != nil {
 			return errors.Wrap(err, "failed to dump timings")
 		}
 	case "text":
@@ -101,7 +95,7 @@ func ParseResults(config *ResultsConfig, input io.Reader) error {
 		}
 		fallthrough
 	default:
-		if err := dumpTimingsText(timings); err != nil {
+		if err := dumpTimingsText(timings, config.Output); err != nil {
 			return errors.Wrap(err, "failed to dump timings")
 		}
 	}

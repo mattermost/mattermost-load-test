@@ -3,14 +3,14 @@ package ltparse
 import (
 	"fmt"
 	"html/template"
-	"os"
+	"io"
 
 	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost-load-test/loadtest"
 )
 
-func dumpTimingsText(timings *loadtest.ClientTimingStats) error {
+func dumpTimingsText(timings *loadtest.ClientTimingStats, output io.Writer) error {
 	const rates = `Total Hits: {{.NumHits}}
 Error Rate: {{percent .NumErrors .NumHits}}%
 Max Response Time: {{.Max}}ms
@@ -31,7 +31,7 @@ Inter Quartile Range: {{.InterQuartileRange}}
 
 	for routeName, route := range timings.Routes {
 		fmt.Println("Route: " + routeName)
-		if err := rateTemplate.Execute(os.Stdout, route); err != nil {
+		if err := rateTemplate.Execute(output, route); err != nil {
 			return errors.Wrap(err, "error executing template")
 		}
 	}
