@@ -1,0 +1,32 @@
+package: github.com/mattermost/mattermost-load-test
+import:
+- package: github.com/VividCortex/ewma
+- package: github.com/gizak/termui
+- package: github.com/go-sql-driver/mysql
+- package: github.com/icrowley/fake
+- package: github.com/jmoiron/sqlx
+- package: github.com/lib/pq
+- package: github.com/mattermost/mattermost-server
+  subpackages:
+  - model
+  - utils
+- package: github.com/montanaflynn/stats
+- package: github.com/op/go-logging
+- package: github.com/paulbellamy/ratecounter
+- package: github.com/pkg/errors
+- package: github.com/sirupsen/logrus
+- package: github.com/spf13/cobra
+- package: github.com/spf13/pflag
+  version: v1.0.1
+- package: github.com/spf13/viper
+- package: golang.org/x/crypto
+  subpackages:
+  - ssh
+  - ssh/terminal
+- package: k8s.io/apimachinery
+  subpackages:
+  - pkg/apis/meta/v1
+- package: k8s.io/client-go
+  subpackages:
+  - kubernetes
+  - tools/clientcmd

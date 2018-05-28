@@ -5,9 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -21,31 +19,6 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func getFileOrURL(fileOrUrl string) ([]byte, error) {
-	buffer := bytes.NewBuffer(nil)
-	if strings.HasPrefix(fileOrUrl, "http") {
-		response, err := http.Get(fileOrUrl)
-		if err != nil {
-			return nil, errors.Wrap(err, "Can't get file at URL: "+fileOrUrl)
-		}
-		defer response.Body.Close()
-
-		io.Copy(buffer, response.Body)
-
-		return buffer.Bytes(), nil
-	} else {
-		f, err := os.Open(fileOrUrl)
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to open file "+fileOrUrl)
-		}
-		defer f.Close()
-
-		io.Copy(buffer, f)
-
-		return buffer.Bytes(), nil
-	}
-}
-
 func (c *Cluster) DeployMattermost(mattermostDistLocation string, licenceFileLocation string) error {
 	appInstanceAddrs, err := c.GetAppInstancesAddrs()
 	if err != nil || len(appInstanceAddrs) <= 0 {
@@ -57,12 +30,12 @@ func (c *Cluster) DeployMattermost(mattermostDistLocation string, licenceFileLoc
 		return errors.Wrap(err, "Unable to get app instance addresses")
 	}
 
-	mattermostDist, err := getFileOrURL(mattermostDistLocation)
+	mattermostDist, err := ltops.GetFileOrURL(mattermostDistLocation)
 	if err != nil {
 		return err
 	}
 
-	licenseFile, err := getFileOrURL(licenceFileLocation)
+	licenseFile, err := ltops.GetFileOrURL(licenceFileLocation)
 	if err != nil {
 		return err
 	}
@@ -102,7 +75,7 @@ func (c *Cluster) DeployLoadtests(loadtestsDistLocation string) error {
 		return errors.Wrap(err, "Unable to get loadtest instance addresses")
 	}
 
-	loadtestsDist, err := getFileOrURL(loadtestsDistLocation)
+	loadtestsDist, err := ltops.GetFileOrURL(loadtestsDistLocation)
 	if err != nil {
 		return err
 	}

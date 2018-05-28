@@ -19,6 +19,10 @@ func (c *Cluster) Name() string {
 	return c.Config.Name
 }
 
+func (c *Cluster) Type() string {
+	return c.Config.Type
+}
+
 func (c *Cluster) Configuration() *ltops.ClusterConfig {
 	return c.Config
 }
@@ -92,6 +96,10 @@ func (c *Cluster) DBReaderConnectionStrings() []string {
 	}
 	databaseEndpoint := params.DBReaderEndpoint.Value
 	return []string{"mmuser:" + c.DBPassword + "@tcp(" + databaseEndpoint + ":3306)/mattermost?charset=utf8mb4,utf8&readTimeout=20s&writeTimeout=20s&timeout=20s"}
+}
+
+func (c *Cluster) DBInstanceCount() int {
+	return c.Config.DBInstanceCount
 }
 
 func (c *Cluster) Destroy() error {

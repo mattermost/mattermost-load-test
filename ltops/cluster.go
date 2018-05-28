@@ -4,6 +4,7 @@ import "io"
 
 type ClusterConfig struct {
 	Name                  string
+	Type                  string
 	AppInstanceType       string
 	AppInstanceCount      int
 	DBInstanceType        string
@@ -16,6 +17,9 @@ type ClusterConfig struct {
 type Cluster interface {
 	// Returns the name of the cluster
 	Name() string
+
+	// Returns the type of the cluster
+	Type() string
 
 	// Returns the current configuration of the cluster
 	Configuration() *ClusterConfig
@@ -43,6 +47,9 @@ type Cluster interface {
 
 	// Returns a list of all the read-replica database connection strings
 	DBReaderConnectionStrings() []string
+
+	// Returns a count of DB instances
+	DBInstanceCount() int
 
 	// Deploys a mattermost package to the cluster. mattermostFile can be disk file or URL.
 	DeployMattermost(mattermostFile string, licenceFile string) error
