@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"os"
 
 	"github.com/mattermost/mattermost-load-test/ltparse"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +30,19 @@ func resultsCmd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("unexpected --display flag: %s", config.Display)
 	}
 
-	if err := ltparse.ParseResults(&config); err != nil {
+	var input io.Reader
+	if config.File == "" {
+		input = os.Stdin
+	} else {
+		file, err := os.Open(config.File)
+		if err != nil {
+			return errors.Wrap(err, "failed to open structured log file")
+		}
+		defer file.Close()
+		input = file
+	}
+
+	if err := ltparse.ParseResults(&config, input); err != nil {
 		return err
 	}
 

@@ -2,6 +2,7 @@ package ltparse
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 
 	"github.com/mitchellh/mapstructure"
@@ -17,9 +18,9 @@ type ResultsConfig struct {
 	Aggregate    bool
 }
 
-func parseTimingsFromFile(file *os.File) ([]*loadtest.ClientTimingStats, error) {
+func parseTimingsFromFile(input io.Reader) ([]*loadtest.ClientTimingStats, error) {
 	allTimings := []*loadtest.ClientTimingStats{}
-	decoder := json.NewDecoder(file)
+	decoder := json.NewDecoder(input)
 	foundStructuredLogs := false
 	for decoder.More() {
 		log := map[string]interface{}{}
@@ -49,20 +50,8 @@ func parseTimingsFromFile(file *os.File) ([]*loadtest.ClientTimingStats, error) 
 	return allTimings, nil
 }
 
-func ParseResults(config *ResultsConfig) error {
-	var file *os.File
-	var err error
-	if config.File == "" {
-		file = os.Stdin
-	} else {
-		file, err = os.Open(config.File)
-		if err != nil {
-			return errors.Wrap(err, "failed to open structured log file")
-		}
-	}
-	defer file.Close()
-
-	allTimings, err := parseTimingsFromFile(file)
+func ParseResults(config *ResultsConfig, input io.Reader) error {
+	allTimings, err := parseTimingsFromFile(input)
 	if err != nil {
 		return err
 	}
