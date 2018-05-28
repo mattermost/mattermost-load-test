@@ -4,14 +4,9 @@
 package loadtest
 
 import (
-	"bytes"
-	"fmt"
-	"html/template"
-	"reflect"
 	"strings"
 
-	"github.com/mattermost/mattermost-load-test/cmdlog"
-	"github.com/spf13/pflag"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -19,8 +14,8 @@ type LoadTestConfig struct {
 	LoadtestEnviromentConfig  LoadtestEnviromentConfig
 	ConnectionConfiguration   ConnectionConfiguration
 	UserEntitiesConfiguration UserEntitiesConfiguration
-	DisplayConfiguration      DisplayConfiguration
 	ResultsConfiguration      ResultsConfiguration
+	LogSettings               LoggerSettings
 }
 
 type UserEntitiesConfiguration struct {
@@ -66,12 +61,17 @@ type ResultsConfiguration struct {
 	PProfLength          int
 }
 
-type DisplayConfiguration struct {
-	ShowUI       bool
-	LogToConsole bool
+type LoggerSettings struct {
+	EnableConsole bool
+	ConsoleJson   bool
+	ConsoleLevel  string
+	EnableFile    bool
+	FileJson      bool
+	FileLevel     string
+	FileLocation  string
 }
 
-func GetConfig() (*LoadTestConfig, error) {
+func ReadConfig() error {
 	viper.SetConfigName("loadtestconfig")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("./config/")
@@ -79,59 +79,27 @@ func GetConfig() (*LoadTestConfig, error) {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
-	err := viper.ReadInConfig()
-	if err != nil {
-		return nil, err
+	viper.SetDefault("LogSettings.EnableConsole", true)
+	viper.SetDefault("LogSettings.ConsoleLevel", "INFO")
+	viper.SetDefault("LogSettings.ConsoleJson", true)
+	viper.SetDefault("LogSettings.EnableFile", true)
+	viper.SetDefault("LogSettings.FileLevel", "INFO")
+	viper.SetDefault("LogSettings.FileJson", true)
+	viper.SetDefault("LogSettings.FileLocation", "loadtest.log")
+
+	if err := viper.ReadInConfig(); err != nil {
+		return errors.Wrap(err, "unable to read configuration file")
 	}
 
+	return nil
+}
+
+func GetConfig() (*LoadTestConfig, error) {
 	var cfg *LoadTestConfig
 
-	if err := unmarshalConfigStruct(&cfg); err != nil {
+	if err := viper.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
 
 	return cfg, nil
-}
-
-func (cfg *LoadTestConfig) PrintReport() string {
-	const settingsTemplateString = `Test Length: {{.UserEntitiesConfiguration.TestLengthMinutes}} minutes
-Number of Active Entities: {{.UserEntitiesConfiguration.NumActiveEntities}}
-Action Rate: {{.UserEntitiesConfiguration.ActionRateMilliseconds}} ms
-Action Rate Max Variance: {{.UserEntitiesConfiguration.ActionRateMaxVarianceMilliseconds}} ms
-Server: {{.ConnectionConfiguration.ServerURL}}
-{{.DisplayConfiguration.CustomReportText}}
-`
-	settingsTemplate := template.Must(template.New("settings").Parse(settingsTemplateString))
-
-	var buf bytes.Buffer
-	fmt.Fprintln(&buf, "")
-	fmt.Fprintln(&buf, "--------- Settings Report ------------")
-
-	if err := settingsTemplate.Execute(&buf, cfg); err != nil {
-		cmdlog.Error("Error executing template: " + err.Error())
-	}
-
-	fmt.Fprintln(&buf, "")
-
-	return buf.String()
-}
-
-func unmarshalConfigStruct(configStruct interface{}) error {
-	return viper.Unmarshal(configStruct)
-}
-
-func unmarshalConfigSubStruct(configStruct interface{}) error {
-	return viper.Sub(reflect.ValueOf(configStruct).Elem().Type().Name()).Unmarshal(configStruct)
-}
-
-func SetIntFlag(flags *pflag.FlagSet, full, short, helpText, configFileSetting string, defaultValue int) {
-	flags.IntP(full, short, defaultValue, helpText)
-	viper.SetDefault(configFileSetting, defaultValue)
-	viper.BindPFlag(configFileSetting, flags.Lookup(full))
-}
-
-func SetBoolFlag(flags *pflag.FlagSet, full, short, helpText, configFileSetting string, defaultValue bool) {
-	flags.BoolP(full, short, defaultValue, helpText)
-	viper.SetDefault(configFileSetting, defaultValue)
-	viper.BindPFlag(configFileSetting, flags.Lookup(full))
 }

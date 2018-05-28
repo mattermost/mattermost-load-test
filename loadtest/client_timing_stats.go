@@ -4,16 +4,11 @@
 package loadtest
 
 import (
-	"fmt"
-	"html/template"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
 
-	"bytes"
-
-	"github.com/mattermost/mattermost-load-test/cmdlog"
 	"github.com/mattermost/mattermost-server/model"
 	"github.com/montanaflynn/stats"
 	"github.com/paulbellamy/ratecounter"
@@ -28,10 +23,12 @@ type RouteStatResults struct {
 }
 
 type RouteStats struct {
+	Name               string
 	NumHits            int64
 	NumErrors          int64
+	ErrorRate          float64
 	Duration           []float64
-	DurationLastMinute *ratecounter.AvgRateCounter
+	DurationLastMinute *ratecounter.AvgRateCounter `json:"-"`
 	Max                float64
 	Min                float64
 	Mean               float64
@@ -40,12 +37,12 @@ type RouteStats struct {
 }
 
 type ClientTimingStats struct {
-	Routes     map[string]*RouteStats
-	RouteNames []string
+	Routes map[string]*RouteStats
 }
 
-func NewRouteStats() *RouteStats {
+func NewRouteStats(name string) *RouteStats {
 	return &RouteStats{
+		Name:               name,
 		NumErrors:          0,
 		Duration:           make([]float64, 0, 100000),
 		DurationLastMinute: ratecounter.NewAvgRateCounter(time.Minute),
@@ -62,7 +59,28 @@ func (s *RouteStats) AddSample(duration int64, status int) {
 	}
 }
 
+func (s *RouteStats) Merge(other *RouteStats) *RouteStats {
+	newRouteStats := &RouteStats{}
+	if s != nil {
+		newRouteStats.Name = s.Name
+		newRouteStats.NumHits = newRouteStats.NumHits + s.NumHits
+		newRouteStats.NumErrors = newRouteStats.NumErrors + s.NumErrors
+		newRouteStats.Duration = append(newRouteStats.Duration, s.Duration...)
+	}
+	if other != nil {
+		newRouteStats.Name = other.Name
+		newRouteStats.NumHits = newRouteStats.NumHits + other.NumHits
+		newRouteStats.NumErrors = newRouteStats.NumErrors + other.NumErrors
+		newRouteStats.Duration = append(newRouteStats.Duration, other.Duration...)
+	}
+
+	newRouteStats.CalcResults()
+
+	return newRouteStats
+}
+
 func (s *RouteStats) CalcResults() {
+	s.ErrorRate = float64(s.NumErrors) / float64(s.NumHits)
 	s.Max, _ = stats.Max(s.Duration)
 	s.Min, _ = stats.Min(s.Duration)
 	s.Mean, _ = stats.Mean(s.Duration)
@@ -80,11 +98,27 @@ func (ts *ClientTimingStats) AddRouteSample(route string, duration int64, status
 	if routestats, ok := ts.Routes[route]; ok {
 		routestats.AddSample(duration, status)
 	} else {
-		newroutestats := NewRouteStats()
+		newroutestats := NewRouteStats(route)
 		newroutestats.AddSample(duration, status)
 		ts.Routes[route] = newroutestats
-		ts.RouteNames = append(ts.RouteNames, route)
 	}
+}
+
+func (ts *ClientTimingStats) Merge(timings *ClientTimingStats) *ClientTimingStats {
+	newStats := NewClientTimingStats()
+
+	if ts != nil {
+		for routeName, route := range ts.Routes {
+			newStats.Routes[routeName] = newStats.Routes[routeName].Merge(route)
+		}
+	}
+	if timings != nil {
+		for routeName, route := range timings.Routes {
+			newStats.Routes[routeName] = newStats.Routes[routeName].Merge(route)
+		}
+	}
+
+	return newStats
 }
 
 var teamPathRegex *regexp.Regexp = regexp.MustCompile("/teams/[a-z0-9]{26}/")
@@ -92,6 +126,7 @@ var channelPathRegex *regexp.Regexp = regexp.MustCompile("/channels/[a-z0-9]{26}
 var postPathRegex *regexp.Regexp = regexp.MustCompile("/posts/[a-z0-9]{26}/")
 var filePathRegex *regexp.Regexp = regexp.MustCompile("/files/[a-z0-9]{26}/")
 var userPathRegex *regexp.Regexp = regexp.MustCompile("/users/[a-z0-9]{26}/")
+var userEmailPathRegex *regexp.Regexp = regexp.MustCompile("/users/email/[^/]+")
 var teamMembersForUserPathRegex *regexp.Regexp = regexp.MustCompile("/teams/[a-z0-9]{26}/members/[a-z0-9]{26}")
 
 func processCommonPaths(path string) string {
@@ -102,6 +137,7 @@ func processCommonPaths(path string) string {
 	result = postPathRegex.ReplaceAllString(result, "/posts/PID/")
 	result = filePathRegex.ReplaceAllString(result, "/files/PID/")
 	result = userPathRegex.ReplaceAllString(result, "/users/UID/")
+	result = userEmailPathRegex.ReplaceAllString(result, "/users/email/UID")
 	return result
 }
 
@@ -114,8 +150,7 @@ func (ts *ClientTimingStats) AddTimingReport(timingReport TimedRoundTripperRepor
 func (ts *ClientTimingStats) GetScore() float64 {
 	total := 0.0
 	num := 0.0
-	for _, route := range ts.RouteNames {
-		stats := ts.Routes[route]
+	for _, stats := range ts.Routes {
 		total += stats.Mean
 		total += stats.Median
 		total += stats.InterQuartileRange
@@ -125,42 +160,10 @@ func (ts *ClientTimingStats) GetScore() float64 {
 	return total / num
 }
 
-func (ts *ClientTimingStats) PrintReport() string {
-	const rates = `Total Hits: {{.NumHits}}
-Error Rate: {{percent .NumErrors .NumHits}}%
-Max Response Time: {{.Max}}ms
-Min Response Time: {{.Min}}ms
-Mean Response Time: {{printf "%.2f" .Mean}}ms
-Median Response Time: {{printf "%.2f" .Median}}ms
-Inter Quartile Range: {{.InterQuartileRange}}
-
-`
+func (ts *ClientTimingStats) CalcResults() {
 	for _, route := range ts.Routes {
 		route.CalcResults()
 	}
-
-	funcMap := template.FuncMap{
-		"percent": func(x, y int64) string {
-			return fmt.Sprintf("%.2f", float64(x)/float64(y)*100.0)
-		},
-	}
-	rateTemplate := template.Must(template.New("rates").Funcs(funcMap).Parse(rates))
-
-	var buf bytes.Buffer
-	fmt.Fprintln(&buf, "")
-	fmt.Fprintln(&buf, "--------- Timings Report ------------")
-
-	for _, route := range ts.RouteNames {
-		fmt.Fprintln(&buf, "Route: "+route)
-		if err := rateTemplate.Execute(&buf, ts.Routes[route]); err != nil {
-			cmdlog.Error("Error executing template: " + err.Error())
-		}
-	}
-
-	fmt.Fprintf(&buf, "Score: %.2f", ts.GetScore())
-	fmt.Fprintln(&buf, "")
-
-	return buf.String()
 }
 
 func ProcessClientRoundTripReports(stats *ClientTimingStats, v3chan <-chan TimedRoundTripperReport, v4chan <-chan TimedRoundTripperReport, stopChan <-chan bool, stopWait *sync.WaitGroup) {

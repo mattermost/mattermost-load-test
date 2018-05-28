@@ -19,8 +19,8 @@ import (
 	_ "github.com/lib/pq"
 
 	"github.com/icrowley/fake"
-	"github.com/mattermost/mattermost-load-test/cmdlog"
 	"github.com/mattermost/mattermost-load-test/randutil"
+	"github.com/mattermost/mattermost-server/mlog"
 	"github.com/mattermost/mattermost-server/model"
 )
 
@@ -393,7 +393,7 @@ func ConnectToDB(driverName, dataSource string) *sqlx.DB {
 }
 
 func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
-	cmdlog.Info("Loading posts")
+	mlog.Info("Loading posts")
 	db := ConnectToDB(driverName, dataSource)
 	if db == nil {
 		return
@@ -401,12 +401,12 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 
 	adminClient := model.NewAPIv4Client(cfg.ConnectionConfiguration.ServerURL)
 	if _, resp := adminClient.Login(cfg.ConnectionConfiguration.AdminEmail, cfg.ConnectionConfiguration.AdminPassword); resp.Error != nil {
-		cmdlog.Errorf("Unable to login as admin for loadposts: " + resp.Error.Error())
+		mlog.Error("Unable to login as admin for loadposts", mlog.Err(resp.Error))
 	}
 
 	teams, resp := adminClient.GetAllTeams("", 0, cfg.LoadtestEnviromentConfig.NumTeams+200)
 	if resp.Error != nil {
-		cmdlog.Errorf("Unable to get all theams")
+		mlog.Error("Unable to get all theams", mlog.Err(resp.Error))
 		return
 	}
 
@@ -419,9 +419,7 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 	statementStr = statementStr[0 : len(statementStr)-1]
 	statement, err := db.Prepare(db.Rebind(statementStr))
 	if err != nil {
-		cmdlog.Error("Unable to prepare statment")
-		cmdlog.Error(statementStr)
-		cmdlog.Error(err)
+		mlog.Error("Unable to prepare statment", mlog.String("statement", statementStr), mlog.Err(err))
 		return
 	}
 
@@ -435,18 +433,18 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 		}
 	}
 
-	cmdlog.Info("Done pre-setup")
+	mlog.Info("Done pre-setup")
 	for _, team := range teams {
 		if !strings.HasPrefix(team.Name, "loadtestteam") {
 			continue
 		}
 
-		cmdlog.Infof("Grabbing channels for: %s", team.Name)
+		mlog.Info("Grabbing channels", mlog.String("team", team.Name))
 		channels := make([]*model.Channel, 0)
 		numReceived := 200
 		for page := 0; numReceived == 200; page++ {
 			if newchannels, resp2 := adminClient.GetPublicChannelsForTeam(team.Id, page, 200, ""); resp2.Error != nil {
-				cmdlog.Errorf("Could not get public channels for team %v. Error: %v", team.Id, resp2.Error.Error())
+				mlog.Error("Could not get public channels.", mlog.String("team_id", team.Id), mlog.Err(resp2.Error))
 				return
 			} else {
 				numReceived = len(newchannels)
@@ -454,18 +452,18 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 			}
 		}
 
-		cmdlog.Infof("Grabbing users for: %s", team.Name)
+		mlog.Info("Grabbing users", mlog.String("team", team.Name))
 		users := make([]*model.User, 0)
 		numReceived = 200
 		total := 0
 		for page := 0; numReceived == 200; page++ {
-			cmdlog.Infof("Page %d", page)
+			mlog.Info(fmt.Sprintf("Page %d", page))
 			if newusers, resp2 := adminClient.GetUsersInTeam(team.Id, page, 200, ""); resp2.Error != nil {
-				cmdlog.Errorf("Could not get users in team %v. Error: %v", team.Id, resp2.Error.Error())
+				mlog.Error("Could not get user.", mlog.String("team_id", team.Id), mlog.Err(resp2.Error))
 				return
 			} else if numReceived = len(newusers); numReceived > 0 {
 				total += numReceived
-				cmdlog.Infof("User %v", newusers[0].Username)
+				mlog.Info(fmt.Sprintf("User %v", newusers[0].Username))
 				users = append(users, newusers...)
 
 				if total >= 10000 {
@@ -474,9 +472,9 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 			}
 		}
 
-		cmdlog.Infof("Thread splitting... %s", team.Name)
+		mlog.Info("Thread splitting", mlog.String("team", team.Name))
 		ThreadSplit(len(channels), 16, PrintCounter, func(channelNum int) {
-			cmdlog.Infof("Thread %d", channelNum)
+			mlog.Info("Thread", mlog.Int("channel_num", channelNum))
 			// Only recognizes multiples of 100
 			type rootPost struct {
 				id      string
@@ -509,7 +507,7 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 				}
 
 				if _, err := statement.Exec(vals...); err != nil {
-					cmdlog.Errorf("Error running statement: " + err.Error())
+					mlog.Error("Error running statement", mlog.Err(err))
 				}
 			}
 		})

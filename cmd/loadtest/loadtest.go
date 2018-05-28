@@ -6,10 +6,15 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
+	"strings"
 
-	"github.com/mattermost/mattermost-load-test/cmdlog"
-	"github.com/mattermost/mattermost-load-test/loadtest"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
+	"github.com/mattermost/mattermost-load-test/loadtest"
+	"github.com/mattermost/mattermost-server/mlog"
 )
 
 type TestItem struct {
@@ -60,22 +65,24 @@ var tests []TestItem = []TestItem{
 }
 
 func main() {
+	cobra.OnInitialize(initConfig)
+
 	cmdLoad := &cobra.Command{
 		Use:   "loadposts",
 		Short: "Load posts onto server",
-		Run:   loadCmd,
+		RunE:  loadCmd,
 	}
 
 	cmdGenerate := &cobra.Command{
 		Use:   "genbulkload",
 		Short: "Generate a bulkload file to be manually loaded onto a Mattermost server.",
-		Run:   genBulkLoadCmd,
+		RunE:  genBulkLoadCmd,
 	}
 
 	cmdPprof := &cobra.Command{
 		Use:   "pprof",
 		Short: "Run a pprof",
-		Run:   pprofCmd,
+		RunE:  pprofCmd,
 	}
 
 	var rootCmd = &cobra.Command{Use: "loadtest"}
@@ -86,11 +93,13 @@ func main() {
 		commands = append(commands, &cobra.Command{
 			Use:   currentTest.Name,
 			Short: currentTest.ShortDesc,
-			Run: func(cmd *cobra.Command, args []string) {
-				fmt.Println("Running test: " + currentTest.Name)
+			RunE: func(cmd *cobra.Command, args []string) error {
+				mlog.Info("Running test", mlog.String("test", currentTest.Name))
 				if err := loadtest.RunTest(currentTest.Test); err != nil {
-					fmt.Println("Run Test Failed: " + err.Error())
+					return errors.Wrap(err, "run test failed")
 				}
+
+				return nil
 			},
 		})
 	}
@@ -99,19 +108,51 @@ func main() {
 	rootCmd.Execute()
 }
 
-func pprofCmd(cmd *cobra.Command, args []string) {
+func initConfig() {
+	if err := loadtest.ReadConfig(); err != nil {
+		fmt.Printf("Failed to initialize config: %s\n", err.Error())
+		os.Exit(1)
+	}
+
 	cfg, err := loadtest.GetConfig()
 	if err != nil {
-		fmt.Println("Unable to find configuration file: " + err.Error())
+		fmt.Printf("Failed to get logging config: %s\n", err.Error())
+		os.Exit(1)
 	}
-	loadtest.RunProfile(cfg.ConnectionConfiguration.PProfURL, cfg.ResultsConfiguration.PProfLength)
+
+	// Initalize logging
+	log := mlog.NewLogger(&mlog.LoggerConfiguration{
+		EnableConsole: cfg.LogSettings.EnableConsole,
+		ConsoleJson:   cfg.LogSettings.ConsoleJson,
+		ConsoleLevel:  strings.ToLower(cfg.LogSettings.ConsoleLevel),
+		EnableFile:    cfg.LogSettings.EnableFile,
+		FileJson:      cfg.LogSettings.FileJson,
+		FileLevel:     strings.ToLower(cfg.LogSettings.FileLevel),
+		FileLocation:  cfg.LogSettings.FileLocation,
+	})
+
+	// Redirect default golang logger to this logger
+	mlog.RedirectStdLog(log)
+
+	// Use this app logger as the global logger
+	mlog.InitGlobalLogger(log)
 }
 
-func loadCmd(cmd *cobra.Command, args []string) {
-	cmdlog.SetConsoleLog()
-	cfg, err := loadtest.GetConfig()
-	if err != nil {
-		fmt.Println("Unable to find configuration file: " + err.Error())
+func pprofCmd(cmd *cobra.Command, args []string) error {
+	cfg := &loadtest.LoadTestConfig{}
+	if err := viper.Unmarshal(cfg); err != nil {
+		return errors.Wrap(err, "failed to read loadtest configuration")
+	}
+
+	loadtest.RunProfile(cfg.ConnectionConfiguration.PProfURL, cfg.ResultsConfiguration.PProfLength)
+
+	return nil
+}
+
+func loadCmd(cmd *cobra.Command, args []string) error {
+	cfg := &loadtest.LoadTestConfig{}
+	if err := viper.Unmarshal(cfg); err != nil {
+		return errors.Wrap(err, "failed to read loadtest configuration")
 	}
 
 	driverName := cfg.ConnectionConfiguration.DriverName
@@ -126,13 +167,18 @@ func loadCmd(cmd *cobra.Command, args []string) {
 	}
 
 	loadtest.LoadPosts(cfg, driverName, dataSource)
+
+	return nil
 }
 
-func genBulkLoadCmd(cmd *cobra.Command, args []string) {
-	cfg, err := loadtest.GetConfig()
-	if err != nil {
-		fmt.Println("Unable to find configuration file: " + err.Error())
+func genBulkLoadCmd(cmd *cobra.Command, args []string) error {
+	cfg := &loadtest.LoadTestConfig{}
+	if err := viper.Unmarshal(cfg); err != nil {
+		return errors.Wrap(err, "failed to read loadtest configuration")
 	}
+
 	results := loadtest.GenerateBulkloadFile(&cfg.LoadtestEnviromentConfig)
 	ioutil.WriteFile("loadtestbulkload.json", results.File.Bytes(), 0644)
+
+	return nil
 }

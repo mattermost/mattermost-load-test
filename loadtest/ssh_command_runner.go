@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mattermost/mattermost-load-test/cmdlog"
+	"github.com/mattermost/mattermost-server/mlog"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -70,7 +70,7 @@ func ConnectSSH(sshHostnamePort, sshKey, sshUsername, sshPassword, mattermostIns
 }
 
 func (c *MattermostSSHConnection) RunCommand(command string) (bool, string) {
-	cmdlog.Info("Running remote command: " + command)
+	mlog.Info("Running remote command: " + command)
 	session, err := c.Client.NewSession()
 	if err != nil {
 		return false, "Failed to open session: " + err.Error()

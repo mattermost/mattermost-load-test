@@ -14,7 +14,7 @@ import (
 
 	"strings"
 
-	"github.com/mattermost/mattermost-load-test/cmdlog"
+	"github.com/mattermost/mattermost-server/mlog"
 )
 
 type MattermostLocalConnection struct {
@@ -28,7 +28,7 @@ func NewLocalConnection(mattermostInstallDir string) (*MattermostLocalConnection
 }
 
 func (c *MattermostLocalConnection) RunCommand(command string) (bool, string) {
-	cmdlog.Info("Running local command: " + command)
+	mlog.Info("Running local command: " + command)
 	split := strings.Fields(command)
 	cmd := exec.Command(split[0], split[1:]...)
 	var b bytes.Buffer
@@ -45,7 +45,7 @@ func (c *MattermostLocalConnection) RunCommand(command string) (bool, string) {
 func (c *MattermostLocalConnection) RunPlatformCommand(args string) (bool, string) {
 	wd, err := os.Getwd()
 	if err != nil {
-		cmdlog.Infof("Unable to get working directory: %v", err.Error())
+		mlog.Warn("Unable to get working directory", mlog.Err(err))
 	}
 	os.Chdir(c.mattermostInstallDir)
 	success, result := c.RunCommand("./bin/platform " + args)
