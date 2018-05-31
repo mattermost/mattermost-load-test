@@ -422,10 +422,6 @@ var standardUserEntity UserEntity = UserEntity{
 			Item:   actionDisconnectWebsocket,
 			Weight: 4,
 		},
-		{
-			Item:   actionDeactivateReactivate,
-			Weight: 1,
-		},
 	},
 }
 
