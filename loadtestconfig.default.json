@@ -21,6 +21,8 @@
         "NumTeams": 1,
         "NumChannelsPerTeam": 400,
         "NumUsers": 1000,
+        "NumChannelSchemes": 1,
+        "NumTeamSchemes": 1,
         "NumPosts": 20000000,
         "PostTimeRange": 2600000,
         "ReplyChance": 0.3,
@@ -41,7 +43,9 @@
         "LowVolumeTeamSelectionWeight": 1,
         "HighVolumeChannelSelectionWeight": 1,
         "MidVolumeChannelSelectionWeight": 3,
-        "LowVolumeChannelSelectionWeight": 1
+        "LowVolumeChannelSelectionWeight": 1,
+        "PercentCustomSchemeTeams": 0.2,
+        "PercentCustomSchemeChannels": 0.1
     },
     "UserEntitiesConfiguration": {
         "TestLengthMinutes": 20,
