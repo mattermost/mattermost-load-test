@@ -54,12 +54,23 @@ type AppConfig struct {
 }
 
 type LoadtestConfig struct {
-	ReplicaCount int `yaml:"replicaCount"`
+	ReplicaCount                      int  `yaml:"replicaCount"`
+	NumTeams                          int  `yaml:"numTeams"`
+	NumChannelsPerTeam                int  `yaml:"numChannelsPerTeam"`
+	NumUsers                          int  `yaml:"numUsers"`
+	SkipBulkLoad                      bool `yaml:"skipBulkLoad"`
+	TestLengthMinutes                 int  `yaml:"testLengthMinutes"`
+	NumActiveEntities                 int  `yaml:"numActiveEntities"`
+	ActionRateMilliseconds            int  `yaml:"actionRateMilliseconds"`
+	ActionRateMaxVarianceMilliseconds int  `yaml:"actionRateMaxVarianceMilliseconds"`
 }
 
 type ImageSetting struct {
 	Tag string `yaml:"tag"`
 }
+
+// TODO: Replace with an argument or config option when load test profiles are added
+const NUM_USERS = 10000
 
 func (c *Cluster) DeployMattermost(mattermostFile string, licenceFileLocation string) error {
 	log.Info("installing mattermost helm chart...")
@@ -96,7 +107,15 @@ func (c *Cluster) DeployMattermost(mattermostFile string, licenceFileLocation st
 			},
 		},
 		Loadtest: &LoadtestConfig{
-			ReplicaCount: c.Configuration().LoadtestInstanceCount,
+			ReplicaCount:                      c.Configuration().LoadtestInstanceCount,
+			NumTeams:                          1,
+			NumChannelsPerTeam:                400,
+			NumUsers:                          NUM_USERS,
+			SkipBulkLoad:                      true,
+			TestLengthMinutes:                 20,
+			NumActiveEntities:                 NUM_USERS / c.Configuration().LoadtestInstanceCount,
+			ActionRateMilliseconds:            60000,
+			ActionRateMaxVarianceMilliseconds: 15000,
 		},
 	}
 
