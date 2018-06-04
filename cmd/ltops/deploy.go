@@ -3,9 +3,10 @@ package main
 import (
 	"path/filepath"
 
-	"github.com/mattermost/mattermost-load-test/terraform"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+
+	"github.com/mattermost/mattermost-load-test/terraform"
 )
 
 var deploy = &cobra.Command{
@@ -23,9 +24,18 @@ var deploy = &cobra.Command{
 			return err
 		}
 
-		cluster, err := terraform.LoadCluster(filepath.Join(workingDir, clusterName))
+		cluster, err := LoadCluster(filepath.Join(workingDir, clusterName))
 		if err != nil {
 			return errors.Wrap(err, "Couldn't load cluster")
+		}
+
+		if cluster.Type() == terraform.CLUSTER_TYPE {
+			if len(mattermostFile) == 0 {
+				return errors.New("required flag \"mattermost\" not set")
+			}
+			if len(loadtestsFile) == 0 {
+				return errors.New("required flag \"loadtests\" not set")
+			}
 		}
 
 		err = cluster.DeployMattermost(mattermostFile, licenseFile)
@@ -46,14 +56,12 @@ func init() {
 	deploy.Flags().StringP("cluster", "c", "", "cluster name (required)")
 	deploy.MarkFlagRequired("cluster")
 
-	deploy.Flags().StringP("mattermost", "m", "", "mattermost distribution to deploy. Can be local file or URL. (required)")
-	deploy.MarkFlagRequired("mattermost")
+	deploy.Flags().StringP("mattermost", "m", "", "mattermost distribution to deploy. Can be local file or URL. (required for terraform)")
 
 	deploy.Flags().StringP("license", "l", "", "the license file to use (required)")
 	deploy.MarkFlagRequired("license")
 
-	deploy.Flags().StringP("loadtests", "t", "", "the loadtests package to use (required)")
-	deploy.MarkFlagRequired("loadtests")
+	deploy.Flags().StringP("loadtests", "t", "", "the loadtests package to use (required for terraform)")
 
 	rootCmd.AddCommand(deploy)
 }

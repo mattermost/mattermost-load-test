@@ -10,6 +10,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	CLUSTER_TYPE = "terraform"
+)
+
 func CreateCluster(cfg *ltops.ClusterConfig) (ltops.Cluster, error) {
 	dbPassword, err := generatePassword()
 	if err != nil {
@@ -32,6 +36,8 @@ func CreateCluster(cfg *ltops.ClusterConfig) (ltops.Cluster, error) {
 	if err := env.apply(); err != nil {
 		return nil, errors.Wrap(err, "Unable to run apply for create cluster")
 	}
+
+	cfg.Type = CLUSTER_TYPE
 
 	cluster := &Cluster{
 		Config:           cfg,

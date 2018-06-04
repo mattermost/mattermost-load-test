@@ -4,7 +4,7 @@ A set of tools for testing/proving Mattermost servers under load.
 
 ## Loadtesting with the ltops (load test ops) tool
 
-The ltops tool allows you to easily spin up and loadtest a cluster of Mattermost servers with all the trimmings. Currently it supports AWS with support for other cloud platforms and Kubernetes planned in the future. It is powered by [Terraform](https://www.terraform.io/)
+The ltops tool allows you to easily spin up and load test a cluster of Mattermost servers with all the trimmings. Currently it supports AWS via [Terraform](https://www.terraform.io/) and Kubernetes.
 
 ### Installation
 
@@ -22,11 +22,50 @@ make install
 
 Type `ltops` to check tool is installed properly. For help with any command, use `ltops help <command>`
 
+### Kubernetes
+
+If you want to run the load test on a Kubernetes cluster, you need to install kubectl and helm.
+
+Install kubectl: https://kubernetes.io/docs/tasks/tools/install-kubectl/
+
+Type `kubectl` to check the tool is installed properly.
+
+Install helm: https://docs.helm.sh/using_helm/#installing-helm
+
+Type `helm` to check the tool is installed properly.
+
+#### Configuration
+
+You need to have an existing Kubernetes cluster configured. To check if you have one set up and configured run: `kubectl cluster-info`.
+
+To set up a Kubernetes cluster, use one of the following guides:
+* AWS - https://github.com/kubernetes/kops/blob/master/docs/aws.md 
+* Azure - https://github.com/Azure/acs-engine/blob/master/docs/kubernetes/deploy.md
+* Google Cloud Engine - https://kubernetes.io/docs/getting-started-guides/gce/
+
+See https://kubernetes.io/docs/setup/pick-right-solution/ for more options.
+
+#### Set up a load test with Kubernetes
+
+1. Set up a cluster:
+```
+ltops create --name myloadtestcluster --type kubernetes --app-count 1 --db-count 1 --loadtest-count 1
+```
+
+2. Deploy and configure the helm chart:
+```
+ltops deploy -c myloadtestcluster --license ~/mylicence.mattermost-license
+```
+
+### Terraform
+
+If you want to run load test clusters on AWS, you need to install terraform.
+
 Install Terraform: https://www.terraform.io/intro/getting-started/install.html
 
 Type `terraform` to check tool is installed properly.
 
-### Configure for AWS
+#### Configure for AWS
 
 Fill in your `~/.aws/credentials` file. The ltops tool will use the profile named `ltops`. You can add a profile using the aws CLI:
 ```
@@ -35,11 +74,11 @@ aws configure --profile ltops
 More info on setting up the credentials file here: https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html
 
 
-### Running a loadtest
+#### Set up a load test with Terraform
 
 1. Create a cluster:
 ```
-ltops create --name myloadtestcluster --app-count 1 --db-count 1 --loadtest-count 1 --app-type m4.large --db-type db.r4.large
+ltops create --name myloadtestcluster --type terraform --app-count 1 --db-count 1 --loadtest-count 1 --app-type m4.large --db-type db.r4.large
 ```
 
 2. Deploy Mattermost, configure proxy, loadtest. Note that the options support local files and URLs.
@@ -47,12 +86,16 @@ ltops create --name myloadtestcluster --app-count 1 --db-count 1 --loadtest-coun
 ltops deploy -c myloadtestcluster -m https://releases.mattermost.com/4.9.2/mattermost-4.9.2-linux-amd64.tar.gz -l ~/mylicence.mattermost-license -t https://releases.mattermost.com/mattermost-load-test/mattermost-load-test.tar.gz
 ```
 
-3. Run loadtests
+### Run a load test
+
+Now that you have a cluster set up in either AWS or Kubernetes, do the following to run a load test:
+
+1. Run load tests:
 ```
 ltops loadtest -c myloadtestcluster
 ```
 
-4. Logs, including loadtest results will show up in ~/.mattermost-load-test-ops/myloadtestcluster/results
+2. Logs, including loadtest results will show up in ~/.mattermost-load-test-ops/myloadtestcluster/results
 
 To generate a textual summary:
 ```
@@ -74,12 +117,11 @@ To generate a markdown summary comparing the results with a previous results fil
 ltparse results --file ~/.mattermost-load-test-ops/myloadtestcluster/results --display markdown --baseline /path/to/other/results
 ```
 
-5. Delete cluster when done
-```
-ltops delete myloadtestcluster
-```
-
 ### SSH into machines
+
+For AWS, this will actually SSH into the EC2 instances.
+
+For Kubernetes, this will open an interactive shell to pods in the cluster.
 
 SSH into app server 0:
 ```
@@ -102,6 +144,11 @@ ltops ssh loadtest myloadtestcluster 0
 ltops status
 ```
 
+### Destroy a cluster
+
+```
+ltops delete myloadtestcluster
+```
 
 ## Using the loadtest agent directly
 

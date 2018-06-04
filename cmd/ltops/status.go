@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/mattermost/mattermost-load-test/kubernetes"
 	"github.com/mattermost/mattermost-load-test/ltops"
-	"github.com/mattermost/mattermost-load-test/terraform"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -32,7 +32,7 @@ func statusCmd(cmd *cobra.Command, args []string) error {
 	for _, file := range files {
 		path := filepath.Join(workingDir, file.Name())
 
-		if cluster, err := terraform.LoadCluster(path); err != nil {
+		if cluster, err := LoadCluster(path); err != nil {
 			logrus.Error(errors.Wrap(err, "Unable to load cluster "+file.Name()))
 		} else {
 			printStatusForCluster(cluster)
@@ -45,6 +45,7 @@ func statusCmd(cmd *cobra.Command, args []string) error {
 const statusFormatString = `
 --------------------------------------
 Name: %v
+Type: %v%v
 SiteURL: %v
 Metrics: %v
 DBConnectionString: %v
@@ -70,14 +71,21 @@ func printStatusForCluster(cluster ltops.Cluster) {
 	}
 	metrics, _ := cluster.GetMetricsAddr()
 
+	release := ""
+	if cluster.Type() == kubernetes.CLUSTER_TYPE {
+		release = "\nRelease: " + cluster.(*kubernetes.Cluster).Release()
+	}
+
 	fmt.Printf(statusFormatString,
 		cluster.Name(),
+		cluster.Type(),
+		release,
 		cluster.SiteURL(),
 		metrics,
 		dbConnectionString,
 		rrConnnectionString,
 		len(app),
-		cluster.Configuration().DBInstanceCount,
+		cluster.DBInstanceCount(),
 		len(proxy),
 		len(loadtest),
 	)

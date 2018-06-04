@@ -40,9 +40,6 @@ bin/*
 !bin/echo_example.sh
 !bin/run_example.sh
 
-# We just want to always use the latest
-glide.lock
-
 # Ignore dist directory
 dist
 
@@ -66,4 +63,3 @@ loadtestconfig.json
 
 /vendor
 /terraformenv
-/ltops

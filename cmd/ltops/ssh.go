@@ -4,8 +4,9 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/mattermost/mattermost-load-test/kubernetes"
+	"github.com/mattermost/mattermost-load-test/ltops"
 	"github.com/mattermost/mattermost-load-test/sshtools"
-	"github.com/mattermost/mattermost-load-test/terraform"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -24,7 +25,7 @@ var sshAppCommand = &cobra.Command{
 		clusterName := args[0]
 		instanceNumber, err := strconv.Atoi(args[1])
 		if err != nil {
-			return errors.Wrap(err, "Instance number must be a number")
+			return errors.Wrap(err, "instance number must be a number")
 		}
 
 		workingDir, err := defaultWorkingDirectory()
@@ -32,24 +33,21 @@ var sshAppCommand = &cobra.Command{
 			return err
 		}
 
-		cluster, err := terraform.LoadCluster(filepath.Join(workingDir, clusterName))
+		cluster, err := LoadCluster(filepath.Join(workingDir, clusterName))
 		if err != nil {
-			return errors.Wrap(err, "Couldn't load cluster")
+			return errors.Wrap(err, "couldn't load cluster")
 		}
 
 		addrs, err := cluster.GetAppInstancesAddrs()
 		if err != nil {
-			return errors.Wrap(err, "Unable to get app instances.")
+			return errors.Wrap(err, "unable to get app instances.")
 		}
 
 		if len(addrs) <= instanceNumber {
-			return errors.New("Invalid instance number.")
+			return errors.New("invalid instance number.")
 		}
 
-		addr := addrs[instanceNumber]
-		logrus.Info("Connecting to " + addr)
-
-		return sshtools.SSHInteractiveTerminal(cluster.SSHKey(), addr)
+		return ssh(cluster, addrs[instanceNumber])
 	},
 }
 
@@ -69,24 +67,21 @@ var sshProxyCommand = &cobra.Command{
 			return err
 		}
 
-		cluster, err := terraform.LoadCluster(filepath.Join(workingDir, clusterName))
+		cluster, err := LoadCluster(filepath.Join(workingDir, clusterName))
 		if err != nil {
-			return errors.Wrap(err, "Couldn't load cluster")
+			return errors.Wrap(err, "couldn't load cluster")
 		}
 
 		addrs, err := cluster.GetProxyInstancesAddrs()
 		if err != nil {
-			return errors.Wrap(err, "Unable to get proxy instances.")
+			return errors.Wrap(err, "unable to get proxy instances.")
 		}
 
 		if len(addrs) <= instanceNumber {
-			return errors.New("Invalid instance number.")
+			return errors.New("invalid instance number.")
 		}
 
-		addr := addrs[instanceNumber]
-		logrus.Info("Connecting to " + addr)
-
-		return sshtools.SSHInteractiveTerminal(cluster.SSHKey(), addr)
+		return ssh(cluster, addrs[instanceNumber])
 	},
 }
 
@@ -98,7 +93,7 @@ var sshLoadtestCommand = &cobra.Command{
 		clusterName := args[0]
 		instanceNumber, err := strconv.Atoi(args[1])
 		if err != nil {
-			return errors.Wrap(err, "Instance number must be a number")
+			return errors.Wrap(err, "instance number must be a number")
 		}
 
 		workingDir, err := defaultWorkingDirectory()
@@ -106,24 +101,21 @@ var sshLoadtestCommand = &cobra.Command{
 			return err
 		}
 
-		cluster, err := terraform.LoadCluster(filepath.Join(workingDir, clusterName))
+		cluster, err := LoadCluster(filepath.Join(workingDir, clusterName))
 		if err != nil {
-			return errors.Wrap(err, "Couldn't load cluster")
+			return errors.Wrap(err, "couldn't load cluster")
 		}
 
 		addrs, err := cluster.GetLoadtestInstancesAddrs()
 		if err != nil {
-			return errors.Wrap(err, "Unable to get loadtest instances.")
+			return errors.Wrap(err, "unable to get loadtest instances.")
 		}
 
 		if len(addrs) <= instanceNumber {
-			return errors.New("Invalid instance number.")
+			return errors.New("invalid instance number.")
 		}
 
-		addr := addrs[instanceNumber]
-		logrus.Info("Connecting to " + addr)
-
-		return sshtools.SSHInteractiveTerminal(cluster.SSHKey(), addr)
+		return ssh(cluster, addrs[instanceNumber])
 	},
 }
 
@@ -139,20 +131,34 @@ var sshMetricsCommand = &cobra.Command{
 			return err
 		}
 
-		cluster, err := terraform.LoadCluster(filepath.Join(workingDir, clusterName))
+		cluster, err := LoadCluster(filepath.Join(workingDir, clusterName))
 		if err != nil {
-			return errors.Wrap(err, "Couldn't load cluster")
+			return errors.Wrap(err, "couldn't load cluster")
 		}
 
-		addr, err := cluster.GetMetricsAddr()
-		if err != nil {
-			return errors.Wrap(err, "Could not get metrics server address.")
+		var addr string
+		if cluster.Type() == kubernetes.CLUSTER_TYPE {
+			addr, err = cluster.(*kubernetes.Cluster).GetMetricsPodName()
+		} else {
+			addr, err = cluster.GetMetricsAddr()
 		}
 
-		logrus.Info("Connecting to " + addr)
+		if err != nil {
+			return errors.Wrap(err, "could not get metrics server address.")
+		}
 
-		return sshtools.SSHInteractiveTerminal(cluster.SSHKey(), addr)
+		return ssh(cluster, addr)
 	},
+}
+
+func ssh(cluster ltops.Cluster, addr string) error {
+	logrus.Info("Connecting to " + addr)
+
+	if cluster.Type() == kubernetes.CLUSTER_TYPE {
+		return sshtools.SSHInteractiveKubesPod(addr)
+	}
+
+	return sshtools.SSHInteractiveTerminal(cluster.SSHKey(), addr)
 }
 
 func init() {

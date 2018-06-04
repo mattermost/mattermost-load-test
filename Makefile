@@ -10,7 +10,7 @@ DIST_PATH=$(DIST_ROOT)/$(DIST_FOLDER_NAME)
 all: install
 
 vendor:
-	dep ensure
+	glide install
 
 install: vendor
 	$(GO) install ./cmd/loadtest

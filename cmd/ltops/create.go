@@ -3,8 +3,10 @@ package main
 import (
 	"path/filepath"
 
+	"github.com/mattermost/mattermost-load-test/kubernetes"
 	"github.com/mattermost/mattermost-load-test/ltops"
 	"github.com/mattermost/mattermost-load-test/terraform"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -22,6 +24,7 @@ func createClusterCmd(cmd *cobra.Command, args []string) error {
 	config.DBInstanceType, _ = cmd.Flags().GetString("db-type")
 	config.DBInstanceCount, _ = cmd.Flags().GetInt("db-count")
 	config.LoadtestInstanceCount, _ = cmd.Flags().GetInt("loadtest-count")
+	clusterType, _ := cmd.Flags().GetString("type")
 
 	workingDir, err := defaultWorkingDirectory()
 	if err != nil {
@@ -29,25 +32,42 @@ func createClusterCmd(cmd *cobra.Command, args []string) error {
 	}
 	config.WorkingDirectory = filepath.Join(workingDir, config.Name)
 
-	_, err = terraform.CreateCluster(&config)
-	if err != nil {
-		return err
+	if clusterType == kubernetes.CLUSTER_TYPE {
+		_, err = kubernetes.CreateCluster(&config)
+		if err != nil {
+			return err
+		}
+	} else if clusterType == terraform.CLUSTER_TYPE {
+		if len(config.AppInstanceType) == 0 {
+			return errors.New("required flag \"app-type\" not set")
+		}
+		if len(config.DBInstanceType) == 0 {
+			return errors.New("required flag \"db-type\" not set")
+		}
+
+		_, err = terraform.CreateCluster(&config)
+		if err != nil {
+			return err
+		}
+	} else {
+		return errors.New("unrecognized type: " + clusterType)
 	}
 
 	return nil
 }
 
 func init() {
-	createCluster.Flags().StringP("name", "", "c", "a unique name for the cluster (required)")
+	createCluster.Flags().StringP("name", "c", "", "a unique name for the cluster (required)")
 	createCluster.MarkFlagRequired("name")
 
-	createCluster.Flags().String("app-type", "", "the app instance type (required)")
-	createCluster.MarkFlagRequired("app-type")
+	createCluster.Flags().StringP("type", "t", "", "the type of cluster, terraform or kubernetes (required)")
+	createCluster.MarkFlagRequired("type")
+
+	createCluster.Flags().String("app-type", "", "the app instance type (required for terraform)")
 
 	createCluster.Flags().Int("app-count", 1, "the number of app instances")
 
-	createCluster.Flags().String("db-type", "", "the db instance type (required)")
-	createCluster.MarkFlagRequired("db-type")
+	createCluster.Flags().String("db-type", "", "the db instance type (required for terraform)")
 
 	createCluster.Flags().Int("db-count", 1, "the number of db instances")
 
