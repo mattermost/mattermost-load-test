@@ -24,10 +24,19 @@ import (
 	"github.com/mattermost/mattermost-server/model"
 )
 
+const (
+	DEFAULT_PERMISSIONS_TEAM_ADMIN = "edit_others_posts remove_user_from_team manage_team import_team manage_team_roles manage_channel_roles manage_others_webhooks manage_slash_commands manage_others_slash_commands manage_webhooks delete_post delete_others_posts"
+	DEFAULT_PERMISSIONS_TEAM_USER = "list_team_channels join_public_channels read_public_channel view_team create_public_channel manage_public_channel_properties delete_public_channel create_private_channel manage_private_channel_properties delete_private_channel invite_user add_user_to_team"
+	DEFAULT_PERMISSIONS_CHANNEL_ADMIN = "manage_channel_roles"
+	DEFAULT_PERMISSIONS_CHANNEL_USER = "read_channel add_reaction remove_reaction manage_public_channel_members upload_file get_public_link create_post use_slash_commands manage_private_channel_members delete_post edit_post"
+)
+
 type LoadtestEnviromentConfig struct {
 	NumTeams           int
 	NumChannelsPerTeam int
 	NumUsers           int
+	NumTeamSchemes     int
+	NumChannelSchemes  int
 
 	PercentHighVolumeChannels float64
 	PercentMidVolumeChannels  float64
@@ -56,10 +65,14 @@ type LoadtestEnviromentConfig struct {
 	NumPosts      int
 	PostTimeRange int64
 	ReplyChance   float64
+
+	PercentCustomSchemeTeams    float64
+	PercentCustomSchemeChannels float64
 }
 
 type LineImportData struct {
 	Type    string             `json:"type"`
+	Scheme  *SchemeImportData  `json:"scheme,omitempty"`
 	Team    *TeamImportData    `json:"team,omitempty"`
 	Channel *ChannelImportData `json:"channel,omitempty"`
 	User    *UserImportData    `json:"user,omitempty"`
@@ -73,6 +86,7 @@ type TeamImportData struct {
 	Type            string `json:"type"`
 	Description     string `json:"description,omitempty"`
 	AllowOpenInvite bool   `json:"allow_open_invite,omitempty"`
+	Scheme          string `json:"scheme"`
 }
 
 type ChannelImportData struct {
@@ -82,6 +96,7 @@ type ChannelImportData struct {
 	Type        string `json:"type"`
 	Header      string `json:"header,omitempty"`
 	Purpose     string `json:"purpose,omitempty"`
+	Scheme      string `json:"scheme"`
 }
 
 type UserImportData struct {
@@ -116,20 +131,6 @@ type UserTeamImportData struct {
 	ChannelChoice []randutil.Choice       `json:"-"`
 }
 
-func (team *UserTeamImportData) PickChannel() *UserChannelImportData {
-	if len(team.ChannelChoice) == 0 {
-		return nil
-	}
-	item2, err2 := randutil.WeightedChoice(team.ChannelChoice)
-	if err2 != nil {
-		panic(err2)
-	}
-	channelIndex := item2.Item.(int)
-	channel := &team.Channels[channelIndex]
-
-	return channel
-}
-
 type UserChannelImportData struct {
 	Name  string `json:"name"`
 	Roles string `json:"roles"`
@@ -151,11 +152,30 @@ type PostImportData struct {
 	FlaggedBy *[]string `json:"flagged_by"`
 }
 
+type SchemeImportData struct {
+	Name                    string          `json:"name"`
+	DisplayName             string          `json:"display_name"`
+	Description             string          `json:"description"`
+	Scope                   string          `json:"scope"`
+	DefaultTeamAdminRole    *RoleImportData `json:"default_team_admin_role"`
+	DefaultTeamUserRole     *RoleImportData `json:"default_team_user_role"`
+	DefaultChannelAdminRole *RoleImportData `json:"default_channel_admin_role"`
+	DefaultChannelUserRole  *RoleImportData `json:"default_channel_user_role"`
+}
+
+type RoleImportData struct {
+	Name        string   `json:"name"`
+	DisplayName string   `json:"display_name"`
+	Description string   `json:"description"`
+	Permissions []string `json:"permissions"`
+}
+
 type GenerateBulkloadFileResult struct {
 	File     bytes.Buffer
 	Users    []UserImportData
 	Teams    []TeamImportData
 	Channels []ChannelImportData
+	Schemes  []SchemeImportData
 }
 
 func (s *UserImportData) PickTeam() *UserTeamImportData {
@@ -181,8 +201,27 @@ func (s *UserImportData) PickTeamChannel() (*UserTeamImportData, *UserChannelImp
 	return team, team.PickChannel()
 }
 
-func generateTeams(numTeams int) []TeamImportData {
+func (team *UserTeamImportData) PickChannel() *UserChannelImportData {
+	if len(team.ChannelChoice) == 0 {
+		return nil
+	}
+	item2, err2 := randutil.WeightedChoice(team.ChannelChoice)
+	if err2 != nil {
+		panic(err2)
+	}
+	channelIndex := item2.Item.(int)
+	channel := &team.Channels[channelIndex]
+
+	return channel
+}
+
+func generateTeams(numTeams int, percentCustomSchemeTeams float64, teamSchemes *[]SchemeImportData) []TeamImportData {
 	teams := make([]TeamImportData, 0, numTeams)
+
+	scheme := ""
+	if rand.Float64() < percentCustomSchemeTeams {
+		scheme = (*teamSchemes)[rand.Intn(len(*teamSchemes))].Name
+	}
 
 	for teamNum := 0; teamNum < numTeams; teamNum++ {
 		teams = append(teams, TeamImportData{
@@ -191,23 +230,90 @@ func generateTeams(numTeams int) []TeamImportData {
 			Type:            "O",
 			Description:     "This is loadtest team " + strconv.Itoa(teamNum),
 			AllowOpenInvite: true,
+			Scheme:          scheme,
 		})
 	}
 
 	return teams
 }
 
+func generateTeamSchemes(numSchemes int) *[]SchemeImportData {
+	teamSchemes := make([]SchemeImportData, 0, numSchemes)
+
+	for schemeNum := 0; schemeNum < numSchemes; schemeNum++ {
+		teamSchemes = append(teamSchemes, SchemeImportData{
+			Name:        "loadtestteamscheme" + strconv.Itoa(schemeNum),
+			DisplayName: "Loadtest Team Scheme " + strconv.Itoa(schemeNum),
+			Scope:       model.PERMISSION_SCOPE_TEAM,
+			DefaultTeamAdminRole: &RoleImportData{
+				Name:        "loadtest-tsta-role-" + strconv.Itoa(schemeNum),
+				DisplayName: "Loadtest Team Scheme DTA Role " + strconv.Itoa(schemeNum),
+				Permissions: strings.Fields(DEFAULT_PERMISSIONS_TEAM_ADMIN),
+			},
+			DefaultTeamUserRole: &RoleImportData{
+				Name:        "loadtest-tstu-role-" + strconv.Itoa(schemeNum),
+				DisplayName: "Loadtest Team Scheme DTU Role " + strconv.Itoa(schemeNum),
+				Permissions: strings.Fields(DEFAULT_PERMISSIONS_TEAM_USER),
+			},
+			DefaultChannelAdminRole: &RoleImportData{
+				Name:        "loadtest-tsca-role-" + strconv.Itoa(schemeNum),
+				DisplayName: "Loadtest Team Scheme DCA Role " + strconv.Itoa(schemeNum),
+				Permissions: strings.Fields(DEFAULT_PERMISSIONS_CHANNEL_ADMIN),
+			},
+			DefaultChannelUserRole: &RoleImportData{
+				Name:        "loadtest-tscu-role-" + strconv.Itoa(schemeNum),
+				DisplayName: "Loadtest Team Scheme DCU Role " + strconv.Itoa(schemeNum),
+				Permissions: strings.Fields(DEFAULT_PERMISSIONS_CHANNEL_USER),
+			},
+		})
+	}
+
+	return &teamSchemes
+}
+
+func generateChannelSchemes(numSchemes int) *[]SchemeImportData {
+	channelSchemes := make([]SchemeImportData, 0, numSchemes)
+
+	for schemeNum := 0; schemeNum < numSchemes; schemeNum++ {
+		channelSchemes = append(channelSchemes, SchemeImportData{
+			Name:        "loadtestchannelscheme" + strconv.Itoa(schemeNum),
+			DisplayName: "Loadtest Channel Scheme " + strconv.Itoa(schemeNum),
+			Scope:       model.PERMISSION_SCOPE_CHANNEL,
+			DefaultChannelAdminRole: &RoleImportData{
+				Name:        "loadtest-csca-role-" + strconv.Itoa(schemeNum),
+				DisplayName: "Loadtest Channel Scheme DCA Role " + strconv.Itoa(schemeNum),
+				Permissions: strings.Fields(DEFAULT_PERMISSIONS_CHANNEL_ADMIN),
+			},
+			DefaultChannelUserRole: &RoleImportData{
+				Name:        "loadtest-cscu-role-" + strconv.Itoa(schemeNum),
+				DisplayName: "Loadtest Channel Scheme DCU Role " + strconv.Itoa(schemeNum),
+				Permissions: strings.Fields(DEFAULT_PERMISSIONS_CHANNEL_USER),
+			},
+		})
+	}
+
+	return &channelSchemes
+}
+
 func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFileResult {
 	users := make([]UserImportData, 0, config.NumUsers)
 	channels := make([]ChannelImportData, 0, config.NumChannelsPerTeam*config.NumTeams)
 
-	teams := generateTeams(config.NumTeams)
+	teamSchemes := generateTeamSchemes(config.NumTeamSchemes)
+	teams := generateTeams(config.NumTeams, config.PercentCustomSchemeTeams, teamSchemes)
+
+	channelSchemes := generateChannelSchemes(config.NumChannelSchemes)
 
 	channelsByTeam := make([][]int, 0, config.NumChannelsPerTeam*config.NumTeams)
 
 	for teamNum := 0; teamNum < config.NumTeams; teamNum++ {
 		channelsByTeam = append(channelsByTeam, make([]int, 0, config.NumChannelsPerTeam))
 		for channelNum := 0; channelNum < config.NumChannelsPerTeam; channelNum++ {
+			scheme := ""
+			if rand.Float64() < config.PercentCustomSchemeChannels {
+				scheme = (*channelSchemes)[rand.Intn(len(*channelSchemes))].Name
+			}
+
 			channels = append(channels, ChannelImportData{
 				Team:        "loadtestteam" + strconv.Itoa(teamNum),
 				Name:        "loadtestchannel" + strconv.Itoa(channelNum),
@@ -215,6 +321,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 				Type:        "O",
 				Header:      "Hea: This is loadtest channel " + strconv.Itoa(teamNum) + " on team " + strconv.Itoa(teamNum),
 				Purpose:     "Pur: This is loadtest channel " + strconv.Itoa(teamNum) + " on team " + strconv.Itoa(teamNum),
+				Scheme: scheme,
 			})
 			channelsByTeam[teamNum] = append(channelsByTeam[teamNum], len(channels)-1)
 		}
@@ -343,6 +450,22 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 	lineObjectsChan <- &version
 
 	// Convert all the objects to line objects
+	for i := range *teamSchemes {
+		lineObjectsChan <- &LineImportData{
+			Type: "scheme",
+			Scheme: &(*teamSchemes)[i],
+			Version: 1,
+		}
+	}
+
+	for i := range *channelSchemes {
+		lineObjectsChan <- &LineImportData{
+			Type: "scheme",
+			Scheme: &(*channelSchemes)[i],
+			Version: 1,
+		}
+	}
+
 	for i := range teams {
 		lineObjectsChan <- &LineImportData{
 			Type:    "team",
