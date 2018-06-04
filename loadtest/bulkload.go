@@ -267,14 +267,6 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 				Weight: selectWeight,
 			})
 			usersInTeam = append(usersInTeam, userPermutation[userNum])
-
-			userTownSquareImportData := &UserChannelImportData{
-				Name:  "town-square",
-				Roles: "channel_user",
-			}
-
-			permutation := userPermutation[userNum]
-			users[permutation].Teams[len(users[permutation].Teams)-1].Channels = append(users[permutation].Teams[len(users[permutation].Teams)-1].Channels, *userTownSquareImportData)
 		}
 
 		numHighVolumeChannels := int(math.Floor(float64(len(channelsInTeam)) * config.PercentHighVolumeChannels))
