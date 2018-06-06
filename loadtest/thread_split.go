@@ -6,6 +6,8 @@ package loadtest
 import (
 	"fmt"
 	"sync"
+
+	"github.com/mattermost/mattermost-server/mlog"
 )
 
 func PrintCounter(counter chan int, total int) {
@@ -20,7 +22,7 @@ func PrintCounter(counter chan int, total int) {
 			}
 
 			i = i + 1
-			print(fmt.Sprintf("\r %v/%v", i, total))
+			mlog.Info(fmt.Sprintf("\r %v/%v", i, total))
 			if i == total {
 				return
 			}
