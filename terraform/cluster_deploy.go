@@ -19,6 +19,14 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+func (c *Cluster) Deploy(options *ltops.DeployOptions) error {
+	if err := c.DeployMattermost(options.MattermostBinaryFile, options.LicenseFile); err != nil {
+		return err
+	}
+
+	return c.DeployLoadtests(options.LoadTestBinaryFile)
+}
+
 func (c *Cluster) DeployMattermost(mattermostDistLocation string, licenceFileLocation string) error {
 	appInstanceAddrs, err := c.GetAppInstancesAddrs()
 	if err != nil || len(appInstanceAddrs) <= 0 {

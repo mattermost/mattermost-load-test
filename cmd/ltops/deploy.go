@@ -6,6 +6,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
+	"github.com/mattermost/mattermost-load-test/kubernetes"
+	"github.com/mattermost/mattermost-load-test/ltops"
 	"github.com/mattermost/mattermost-load-test/terraform"
 )
 
@@ -14,10 +16,13 @@ var deploy = &cobra.Command{
 	Short: "Deploys an app distribution to a load test cluster",
 	Args:  cobra.ExactArgs(0),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		licenseFile, _ := cmd.Flags().GetString("license")
-		mattermostFile, _ := cmd.Flags().GetString("mattermost")
+		deployOptions := &ltops.DeployOptions{}
+
 		clusterName, _ := cmd.Flags().GetString("cluster")
-		loadtestsFile, _ := cmd.Flags().GetString("loadtests")
+		deployOptions.LicenseFile, _ = cmd.Flags().GetString("license")
+		deployOptions.MattermostBinaryFile, _ = cmd.Flags().GetString("mattermost")
+		deployOptions.LoadTestBinaryFile, _ = cmd.Flags().GetString("loadtests")
+		deployOptions.Users, _ = cmd.Flags().GetInt("users")
 
 		workingDir, err := defaultWorkingDirectory()
 		if err != nil {
@@ -30,22 +35,33 @@ var deploy = &cobra.Command{
 		}
 
 		if cluster.Type() == terraform.CLUSTER_TYPE {
-			if len(mattermostFile) == 0 {
+			if len(deployOptions.MattermostBinaryFile) == 0 {
 				return errors.New("required flag \"mattermost\" not set")
 			}
-			if len(loadtestsFile) == 0 {
+			if len(deployOptions.LoadTestBinaryFile) == 0 {
 				return errors.New("required flag \"loadtests\" not set")
+			}
+			if deployOptions.Users > 0 {
+				return errors.New("flag \"users\" not supported for type " + cluster.Type())
+			}
+		} else if cluster.Type() == kubernetes.CLUSTER_TYPE {
+			if len(deployOptions.MattermostBinaryFile) > 0 {
+				return errors.New("flag \"mattermost\" not supported for type " + cluster.Type())
+			}
+			if len(deployOptions.LoadTestBinaryFile) > 0 {
+				return errors.New("flag \"loadtests\" not supported for type " + cluster.Type())
+			}
+			if deployOptions.Users == 0 {
+				return errors.New("required flag \"users\" not set")
 			}
 		}
 
-		err = cluster.DeployMattermost(mattermostFile, licenseFile)
-		if err != nil {
-			return errors.Wrap(err, "Couldn't deploy mattermost")
-		}
+		// TODO: stop hard-coding and add flag when we have multiple profiles
+		deployOptions.Profile = kubernetes.PROFILE_STANDARD
 
-		err = cluster.DeployLoadtests(loadtestsFile)
+		err = cluster.Deploy(deployOptions)
 		if err != nil {
-			return errors.Wrap(err, "Couldn't deploy loadtests")
+			return errors.Wrap(err, "Couldn't deploy load test cluster")
 		}
 
 		return nil
@@ -62,6 +78,8 @@ func init() {
 	deploy.MarkFlagRequired("license")
 
 	deploy.Flags().StringP("loadtests", "t", "", "the loadtests package to use (required for terraform)")
+
+	deploy.Flags().IntP("users", "u", 0, "the number of active users to configure the load test to run with (required for kubernetes)")
 
 	rootCmd.AddCommand(deploy)
 }

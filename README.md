@@ -49,12 +49,12 @@ See https://kubernetes.io/docs/setup/pick-right-solution/ for more options.
 
 1. Set up a cluster:
 ```
-ltops create --name myloadtestcluster --type kubernetes --app-count 1 --db-count 1 --loadtest-count 1
+ltops create --name myloadtestcluster --type kubernetes
 ```
 
 2. Deploy and configure the helm chart:
 ```
-ltops deploy -c myloadtestcluster --license ~/mylicence.mattermost-license
+ltops deploy -c myloadtestcluster --license ~/mylicence.mattermost-license --users 5000
 ```
 
 ### Terraform
