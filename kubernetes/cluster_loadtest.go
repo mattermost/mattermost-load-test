@@ -57,6 +57,10 @@ func (c *Cluster) bulkLoad(loadtestPod string, appPod string) error {
 		return err
 	}
 
+	// If this command fails, assume user was already created
+	cmd = exec.Command("kubectl", "exec", appPod, "--", "./bin/platform", "user", "create", "--email", "success+ltadmin@simulator.amazonses.com", "--username", "ltadmin", "--password", "ltpassword", "--system_admin")
+	cmd.Run()
+
 	cmd = exec.Command("kubectl", "exec", appPod, "--", "./bin/platform", "import", "bulk", "--workers", "64", "--apply", "./loadtestbulkload.json")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return errors.Wrap(err, "bulk import failed: "+string(out))

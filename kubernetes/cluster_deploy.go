@@ -45,7 +45,13 @@ type MySQLHAConfig struct {
 }
 
 type MySQLHAOptions struct {
-	ReplicaCount int `yaml:"replicaCount"`
+	ReplicaCount int               `yaml:"replicaCount"`
+	ConfigFiles  *MySQLConfigFiles `yaml:"configFiles"`
+}
+
+type MySQLConfigFiles struct {
+	Master string `yaml:"master.cnf"`
+	Slave  string `yaml:"slave.cnf"`
 }
 
 type AppConfig struct {
@@ -54,15 +60,16 @@ type AppConfig struct {
 }
 
 type LoadtestConfig struct {
-	ReplicaCount                      int  `yaml:"replicaCount"`
-	NumTeams                          int  `yaml:"numTeams"`
-	NumChannelsPerTeam                int  `yaml:"numChannelsPerTeam"`
-	NumUsers                          int  `yaml:"numUsers"`
-	SkipBulkLoad                      bool `yaml:"skipBulkLoad"`
-	TestLengthMinutes                 int  `yaml:"testLengthMinutes"`
-	NumActiveEntities                 int  `yaml:"numActiveEntities"`
-	ActionRateMilliseconds            int  `yaml:"actionRateMilliseconds"`
-	ActionRateMaxVarianceMilliseconds int  `yaml:"actionRateMaxVarianceMilliseconds"`
+	ReplicaCount                      int           `yaml:"replicaCount"`
+	Image                             *ImageSetting `yaml:"image"`
+	NumTeams                          int           `yaml:"numTeams"`
+	NumChannelsPerTeam                int           `yaml:"numChannelsPerTeam"`
+	NumUsers                          int           `yaml:"numUsers"`
+	SkipBulkLoad                      bool          `yaml:"skipBulkLoad"`
+	TestLengthMinutes                 int           `yaml:"testLengthMinutes"`
+	NumActiveEntities                 int           `yaml:"numActiveEntities"`
+	ActionRateMilliseconds            int           `yaml:"actionRateMilliseconds"`
+	ActionRateMaxVarianceMilliseconds int           `yaml:"actionRateMaxVarianceMilliseconds"`
 }
 
 type ImageSetting struct {
@@ -70,7 +77,23 @@ type ImageSetting struct {
 }
 
 // TODO: Replace with an argument or config option when load test profiles are added
-const NUM_USERS = 10000
+const NUM_USERS = 30000
+
+const masterMySQLConfig = `
+[mysqld]
+log-bin
+skip_name_resolve
+max_connections = 300
+`
+
+const slaveMySQLConfig = `
+[mysqld]
+super-read-only
+skip_name_resolve
+slave_parallel_workers = 100
+slave_parallel_type = LOGICAL_CLOCK
+max_connections = 300
+`
 
 func (c *Cluster) DeployMattermost(mattermostFile string, licenceFileLocation string) error {
 	log.Info("installing mattermost helm chart...")
@@ -98,23 +121,30 @@ func (c *Cluster) DeployMattermost(mattermostFile string, licenceFileLocation st
 			Enabled: true,
 			Options: &MySQLHAOptions{
 				ReplicaCount: c.Configuration().DBInstanceCount,
+				ConfigFiles: &MySQLConfigFiles{
+					Master: masterMySQLConfig,
+					Slave:  slaveMySQLConfig,
+				},
 			},
 		},
 		App: &AppConfig{
 			ReplicaCount: c.Configuration().AppInstanceCount,
 			Image: &ImageSetting{
-				Tag: "4.9.2",
+				Tag: "4.10.1",
 			},
 		},
 		Loadtest: &LoadtestConfig{
-			ReplicaCount:                      c.Configuration().LoadtestInstanceCount,
+			ReplicaCount: c.Configuration().LoadtestInstanceCount,
+			Image: &ImageSetting{
+				Tag: "4.10.1",
+			},
 			NumTeams:                          1,
 			NumChannelsPerTeam:                400,
 			NumUsers:                          NUM_USERS,
 			SkipBulkLoad:                      true,
 			TestLengthMinutes:                 20,
 			NumActiveEntities:                 NUM_USERS / c.Configuration().LoadtestInstanceCount,
-			ActionRateMilliseconds:            60000,
+			ActionRateMilliseconds:            240000,
 			ActionRateMaxVarianceMilliseconds: 15000,
 		},
 	}
