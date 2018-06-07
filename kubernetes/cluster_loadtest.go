@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -59,7 +60,10 @@ func (c *Cluster) bulkLoad(loadtestPod string, appPod string) error {
 
 	// If this command fails, assume user was already created
 	cmd = exec.Command("kubectl", "exec", appPod, "--", "./bin/platform", "user", "create", "--email", "success+ltadmin@simulator.amazonses.com", "--username", "ltadmin", "--password", "ltpassword", "--system_admin")
-	cmd.Run()
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Info(fmt.Sprintf("system admin already created or failed to create err=%v output=%v", err, out))
+	}
 
 	cmd = exec.Command("kubectl", "exec", appPod, "--", "./bin/platform", "import", "bulk", "--workers", "64", "--apply", "./loadtestbulkload.json")
 	if out, err := cmd.CombinedOutput(); err != nil {

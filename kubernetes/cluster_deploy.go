@@ -81,14 +81,14 @@ const NUM_USERS = 30000
 
 const masterMySQLConfig = `
 [mysqld]
-log-bin
+log_bin
 skip_name_resolve
 max_connections = 300
 `
 
 const slaveMySQLConfig = `
 [mysqld]
-super-read-only
+super_read_only
 skip_name_resolve
 slave_parallel_workers = 100
 slave_parallel_type = LOGICAL_CLOCK
