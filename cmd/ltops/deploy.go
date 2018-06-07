@@ -57,7 +57,7 @@ var deploy = &cobra.Command{
 		}
 
 		// TODO: stop hard-coding and add flag when we have multiple profiles
-		deployOptions.Profile = kubernetes.PROFILE_STANDARD
+		deployOptions.Profile = ltops.PROFILE_STANDARD
 
 		err = cluster.Deploy(deployOptions)
 		if err != nil {

@@ -3,14 +3,11 @@ package kubernetes
 import (
 	"fmt"
 
+	"github.com/mattermost/mattermost-load-test/ltops"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-const (
-	PROFILE_STANDARD = "profile"
 )
 
 const masterMySQLConfig = `[mysqld]
@@ -158,7 +155,7 @@ func (c *Cluster) GetHelmConfigFromProfile(profile string, users int, license st
 	var getConfigFunc func(int) *ChartConfig
 
 	switch profile {
-	case PROFILE_STANDARD:
+	case ltops.PROFILE_STANDARD:
 		getConfigFunc = getStandardConfig
 		break
 	default:
