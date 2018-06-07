@@ -79,7 +79,7 @@ func init() {
 
 	deploy.Flags().StringP("loadtests", "t", "", "the loadtests package to use (required for terraform)")
 
-	deploy.Flags().IntP("users", "u", 0, "the number of active users to configure the load test to run with (required for kubernetes)")
+	deploy.Flags().IntP("users", "u", 0, "number of active users in the load test (required for kubernetes)")
 
 	rootCmd.AddCommand(deploy)
 }
