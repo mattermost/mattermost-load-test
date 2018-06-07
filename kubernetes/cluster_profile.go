@@ -162,8 +162,7 @@ func (c *Cluster) GetHelmConfigFromProfile(profile string, users int, license st
 		getConfigFunc = getStandardConfig
 		break
 	default:
-		getConfigFunc = getStandardConfig
-		break
+		return nil, errors.New("unrecognized profile " + profile)
 	}
 
 	config := getConfigFunc(users)
