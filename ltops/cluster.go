@@ -51,11 +51,8 @@ type Cluster interface {
 	// Returns a count of DB instances
 	DBInstanceCount() int
 
-	// Deploys a mattermost package to the cluster. mattermostFile can be disk file or URL.
-	DeployMattermost(mattermostFile string, licenceFile string) error
-
-	// Deploys a loadtest package to the cluster. loadtestsFile can be disk file or URL.
-	DeployLoadtests(loadtestsFile string) error
+	// Deploys a load test cluster.
+	Deploy(options *DeployOptions) error
 
 	// Runs a loadtest
 	Loadtest(resultsOutput io.Writer) error

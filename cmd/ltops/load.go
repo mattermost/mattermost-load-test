@@ -62,11 +62,9 @@ func (c *ClusterJson) GetCluster() (ltops.Cluster, error) {
 			return nil, err
 		}
 
-		if len(cluster.Release()) > 0 {
-			err = cluster.Connect()
-			if err != nil {
-				return nil, err
-			}
+		err = cluster.Connect()
+		if err != nil {
+			return nil, err
 		}
 
 		return cluster, nil

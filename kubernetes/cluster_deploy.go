@@ -8,94 +8,12 @@ import (
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 
 	"github.com/mattermost/mattermost-load-test/ltops"
 )
 
-type ChartConfig struct {
-	Global   *GlobalConfig   `yaml:"global"`
-	MySQLHA  *MySQLHAConfig  `yaml:"mysqlha"`
-	App      *AppConfig      `yaml:"mattermost-app"`
-	Loadtest *LoadtestConfig `yaml:"mattermost-loadtest"`
-}
-
-type GlobalConfig struct {
-	SiteURL           string          `yaml:"siteUrl"`
-	MattermostLicense string          `yaml:"mattermostLicense"`
-	Features          *FeaturesConfig `yaml:"features"`
-}
-
-type FeaturesConfig struct {
-	LoadTest *LoadTestFeature `yaml:"loadTest"`
-	Grafana  *GrafanFeature   `yaml:"grafana"`
-}
-
-type LoadTestFeature struct {
-	Enabled bool `yaml:"enabled"`
-}
-
-type GrafanFeature struct {
-	Enabled bool `yaml:"enabled"`
-}
-
-type MySQLHAConfig struct {
-	Enabled bool            `yaml:"enabled"`
-	Options *MySQLHAOptions `yaml:"mysqlha"`
-}
-
-type MySQLHAOptions struct {
-	ReplicaCount int               `yaml:"replicaCount"`
-	ConfigFiles  *MySQLConfigFiles `yaml:"configFiles"`
-}
-
-type MySQLConfigFiles struct {
-	Master string `yaml:"master.cnf"`
-	Slave  string `yaml:"slave.cnf"`
-}
-
-type AppConfig struct {
-	ReplicaCount int           `yaml:"replicaCount"`
-	Image        *ImageSetting `yaml:"image"`
-}
-
-type LoadtestConfig struct {
-	ReplicaCount                      int           `yaml:"replicaCount"`
-	Image                             *ImageSetting `yaml:"image"`
-	NumTeams                          int           `yaml:"numTeams"`
-	NumChannelsPerTeam                int           `yaml:"numChannelsPerTeam"`
-	NumUsers                          int           `yaml:"numUsers"`
-	SkipBulkLoad                      bool          `yaml:"skipBulkLoad"`
-	TestLengthMinutes                 int           `yaml:"testLengthMinutes"`
-	NumActiveEntities                 int           `yaml:"numActiveEntities"`
-	ActionRateMilliseconds            int           `yaml:"actionRateMilliseconds"`
-	ActionRateMaxVarianceMilliseconds int           `yaml:"actionRateMaxVarianceMilliseconds"`
-}
-
-type ImageSetting struct {
-	Tag string `yaml:"tag"`
-}
-
-// TODO: Replace with an argument or config option when load test profiles are added
-const NUM_USERS = 30000
-
-const masterMySQLConfig = `
-[mysqld]
-log_bin
-skip_name_resolve
-max_connections = 300
-`
-
-const slaveMySQLConfig = `
-[mysqld]
-super_read_only
-skip_name_resolve
-slave_parallel_workers = 100
-slave_parallel_type = LOGICAL_CLOCK
-max_connections = 300
-`
-
-func (c *Cluster) DeployMattermost(mattermostFile string, licenceFileLocation string) error {
+func (c *Cluster) Deploy(options *ltops.DeployOptions) error {
 	log.Info("installing mattermost helm chart...")
 
 	if len(c.ReleaseName) > 0 {
@@ -103,50 +21,14 @@ func (c *Cluster) DeployMattermost(mattermostFile string, licenceFileLocation st
 		return nil
 	}
 
-	license, err := ltops.GetFileOrURL(licenceFileLocation)
+	license, err := ltops.GetFileOrURL(options.LicenseFile)
 	if err != nil {
 		return err
 	}
 
-	config := &ChartConfig{
-		Global: &GlobalConfig{
-			SiteURL:           "http://localhost:8065",
-			MattermostLicense: string(license),
-			Features: &FeaturesConfig{
-				&LoadTestFeature{Enabled: true},
-				&GrafanFeature{Enabled: true},
-			},
-		},
-		MySQLHA: &MySQLHAConfig{
-			Enabled: true,
-			Options: &MySQLHAOptions{
-				ReplicaCount: c.Configuration().DBInstanceCount,
-				ConfigFiles: &MySQLConfigFiles{
-					Master: masterMySQLConfig,
-					Slave:  slaveMySQLConfig,
-				},
-			},
-		},
-		App: &AppConfig{
-			ReplicaCount: c.Configuration().AppInstanceCount,
-			Image: &ImageSetting{
-				Tag: "4.10.1",
-			},
-		},
-		Loadtest: &LoadtestConfig{
-			ReplicaCount: c.Configuration().LoadtestInstanceCount,
-			Image: &ImageSetting{
-				Tag: "4.10.1",
-			},
-			NumTeams:                          1,
-			NumChannelsPerTeam:                400,
-			NumUsers:                          NUM_USERS,
-			SkipBulkLoad:                      true,
-			TestLengthMinutes:                 20,
-			NumActiveEntities:                 NUM_USERS / c.Configuration().LoadtestInstanceCount,
-			ActionRateMilliseconds:            240000,
-			ActionRateMaxVarianceMilliseconds: 15000,
-		},
+	config, err := c.GetHelmConfigFromProfile(options.Profile, options.Users, string(license))
+	if err != nil {
+		return err
 	}
 
 	err = saveChartConfig(config, c.Config.WorkingDirectory)
@@ -188,10 +70,5 @@ func saveChartConfig(config *ChartConfig, dir string) error {
 		return errors.Wrap(err, "unable to write chart config")
 	}
 
-	return nil
-}
-
-// Not applicable to kubernetes
-func (c *Cluster) DeployLoadtests(loadtestsDistLocation string) error {
 	return nil
 }
