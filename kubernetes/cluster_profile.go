@@ -64,6 +64,7 @@ func getStandardConfig(users int) *ChartConfig {
 			NumTeams:                          1,
 			NumChannelsPerTeam:                400,
 			NumUsers:                          users,
+			ReplyChance:                       0.3,
 			SkipBulkLoad:                      true,
 			TestLengthMinutes:                 20,
 			ActionRateMilliseconds:            240000,
@@ -92,6 +93,7 @@ func getStandardConfig(users int) *ChartConfig {
 		config.Loadtest.ReplicaCount = 1
 		config.Loadtest.Resources.Requests.CPU = cpu(2)
 		config.Loadtest.Resources.Requests.Memory = memory(4)
+		config.Loadtest.NumPosts = 5000000
 	} else if users <= 10000 {
 		config.App.ReplicaCount = 2
 		config.App.Resources.Requests.CPU = cpu(4)
@@ -105,6 +107,7 @@ func getStandardConfig(users int) *ChartConfig {
 		config.Loadtest.ReplicaCount = 2
 		config.Loadtest.Resources.Requests.CPU = cpu(2)
 		config.Loadtest.Resources.Requests.Memory = memory(4)
+		config.Loadtest.NumPosts = 10000000
 	} else if users <= 20000 {
 		config.App.ReplicaCount = 4
 		config.App.Resources.Requests.CPU = cpu(4)
@@ -118,6 +121,7 @@ func getStandardConfig(users int) *ChartConfig {
 		config.Loadtest.ReplicaCount = 3
 		config.Loadtest.Resources.Requests.CPU = cpu(2)
 		config.Loadtest.Resources.Requests.Memory = memory(4)
+		config.Loadtest.NumPosts = 20000000
 	} else if users <= 30000 {
 		config.App.ReplicaCount = 4
 		config.App.Resources.Requests.CPU = cpu(4)
@@ -131,6 +135,7 @@ func getStandardConfig(users int) *ChartConfig {
 		config.Loadtest.ReplicaCount = 4
 		config.Loadtest.Resources.Requests.CPU = cpu(2)
 		config.Loadtest.Resources.Requests.Memory = memory(4)
+		config.Loadtest.NumPosts = 30000000
 	} else {
 		config.App.ReplicaCount = 5
 		config.App.Resources.Requests.CPU = cpu(4)
@@ -144,6 +149,7 @@ func getStandardConfig(users int) *ChartConfig {
 		config.Loadtest.ReplicaCount = 6
 		config.Loadtest.Resources.Requests.CPU = cpu(4)
 		config.Loadtest.Resources.Requests.Memory = memory(8)
+		config.Loadtest.NumPosts = 60000000
 	}
 
 	config.Loadtest.NumActiveEntities = users / config.Loadtest.ReplicaCount
@@ -187,7 +193,7 @@ func (c *Cluster) GetHelmConfigFromProfile(profile string, users int, license st
 		return nil, errors.New(fmt.Sprintf("not enough memory capacity in kubernetes cluster, capacity=%v, required=%v", totalMemoryCapacity, totalMemoryRequests))
 	}
 
-	log.Info(fmt.Sprintf("profile %v with %v users requests %v cores and %v memory on the cluster", profile, users, totalCPURequests, totalMemoryRequests))
+	log.Info(fmt.Sprintf("%v profile with %v users requests %v cores and %v memory on the cluster", profile, users, totalCPURequests, totalMemoryRequests))
 
 	return config, nil
 }

@@ -7,4 +7,5 @@ type DeployOptions struct {
 	LoadTestBinaryFile   string // file path or URL to load test agent binary
 	Profile              string // the profile to load test
 	Users                int    // the number of active users to simulate
+	HelmConfigFile       string // path to helm chart config file
 }

@@ -23,6 +23,7 @@ var deploy = &cobra.Command{
 		deployOptions.MattermostBinaryFile, _ = cmd.Flags().GetString("mattermost")
 		deployOptions.LoadTestBinaryFile, _ = cmd.Flags().GetString("loadtests")
 		deployOptions.Users, _ = cmd.Flags().GetInt("users")
+		deployOptions.HelmConfigFile, _ = cmd.Flags().GetString("helm-config")
 
 		workingDir, err := defaultWorkingDirectory()
 		if err != nil {
@@ -51,8 +52,8 @@ var deploy = &cobra.Command{
 			if len(deployOptions.LoadTestBinaryFile) > 0 {
 				return errors.New("flag \"loadtests\" not supported for type " + cluster.Type())
 			}
-			if deployOptions.Users == 0 {
-				return errors.New("required flag \"users\" not set")
+			if deployOptions.Users == 0 && len(deployOptions.HelmConfigFile) == 0 {
+				return errors.New("one of flags \"users\" or \"helm-config\" must be set")
 			}
 		}
 
@@ -79,7 +80,9 @@ func init() {
 
 	deploy.Flags().StringP("loadtests", "t", "", "the loadtests package to use (required for terraform)")
 
-	deploy.Flags().IntP("users", "u", 0, "number of active users in the load test (required for kubernetes)")
+	deploy.Flags().IntP("users", "u", 0, "number of active users in the load test (used for kubernetes)")
+
+	deploy.Flags().StringP("helm-config", "f", "", "custom helm configuration to use (used for kubernetes)")
 
 	rootCmd.AddCommand(deploy)
 }

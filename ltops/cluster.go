@@ -1,7 +1,5 @@
 package ltops
 
-import "io"
-
 type ClusterConfig struct {
 	Name                  string
 	Type                  string
@@ -11,9 +9,12 @@ type ClusterConfig struct {
 	DBInstanceCount       int
 	LoadtestInstanceCount int
 	WorkingDirectory      string
+	Profile               string
+	Users                 int
+	BulkLoadComplete      bool
 }
 
-// Represents an active cluster
+// Cluster represents an active cluster
 type Cluster interface {
 	// Returns the name of the cluster
 	Name() string
@@ -51,11 +52,11 @@ type Cluster interface {
 	// Returns a count of DB instances
 	DBInstanceCount() int
 
-	// Deploys a load test cluster.
+	// Deploys a load test cluster
 	Deploy(options *DeployOptions) error
 
 	// Runs a loadtest
-	Loadtest(resultsOutput io.Writer) error
+	Loadtest(options *LoadTestOptions) error
 
 	// Destroys the cluster
 	Destroy() error

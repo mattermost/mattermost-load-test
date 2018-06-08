@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mattermost/mattermost-load-test/ltops"
+
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -40,7 +42,12 @@ func (c *Cluster) loadtestPod(pod string, resultsOutput io.Writer) error {
 	return nil
 }
 
-func (c *Cluster) bulkLoad(loadtestPod string, appPod string) error {
+func (c *Cluster) bulkLoad(loadtestPod string, appPod string, force bool) error {
+	if c.Configuration().BulkLoadComplete && !force {
+		log.Info("Bulk loading previously completed, skipping (use --force-bulk-load to force)")
+		return nil
+	}
+
 	log.Info("Bulk importing data, this may take some time")
 	cmd := exec.Command("kubectl", "exec", loadtestPod, "./bin/loadtest", "genbulkload")
 	if err := cmd.Run(); err != nil {
@@ -62,7 +69,7 @@ func (c *Cluster) bulkLoad(loadtestPod string, appPod string) error {
 	cmd = exec.Command("kubectl", "exec", appPod, "--", "./bin/platform", "user", "create", "--email", "success+ltadmin@simulator.amazonses.com", "--username", "ltadmin", "--password", "ltpassword", "--system_admin")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		log.Info(fmt.Sprintf("system admin already created or failed to create err=%v output=%v", err, out))
+		log.Info(fmt.Sprintf("system admin already created or failed to create err=%v output=%v", err, string(out)))
 	}
 
 	cmd = exec.Command("kubectl", "exec", appPod, "--", "./bin/platform", "import", "bulk", "--workers", "64", "--apply", "./loadtestbulkload.json")
@@ -70,10 +77,21 @@ func (c *Cluster) bulkLoad(loadtestPod string, appPod string) error {
 		return errors.Wrap(err, "bulk import failed: "+string(out))
 	}
 
+	cmd = exec.Command("kubectl", "exec", loadtestPod, "./bin/loadtest", "loadposts")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return errors.Wrap(err, "loading posts failed: "+string(out))
+	}
+
+	c.Config.BulkLoadComplete = true
+	err = saveCluster(c, c.Config.WorkingDirectory)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (c *Cluster) Loadtest(resultsOutput io.Writer) error {
+func (c *Cluster) Loadtest(options *ltops.LoadTestOptions) error {
 	loadtestPods, err := c.GetLoadtestInstancesAddrs()
 	if err != nil || len(loadtestPods) <= 0 {
 		return errors.Wrap(err, "unable to get loadtest pods")
@@ -84,7 +102,7 @@ func (c *Cluster) Loadtest(resultsOutput io.Writer) error {
 		return errors.Wrap(err, "unable to get app pods")
 	}
 
-	err = c.bulkLoad(loadtestPods[0], appPods[0])
+	err = c.bulkLoad(loadtestPods[0], appPods[0], options.ForceBulkLoad)
 	if err != nil {
 		return err
 	}
@@ -97,7 +115,7 @@ func (c *Cluster) Loadtest(resultsOutput io.Writer) error {
 		go func() {
 			var err error
 			if i == 0 {
-				err = c.loadtestPod(pod, resultsOutput)
+				err = c.loadtestPod(pod, options.ResultsWriter)
 			} else {
 				err = c.loadtestPod(pod, nil)
 			}
