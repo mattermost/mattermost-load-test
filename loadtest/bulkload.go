@@ -25,10 +25,10 @@ import (
 )
 
 const (
-	DEFAULT_PERMISSIONS_TEAM_ADMIN = "edit_others_posts remove_user_from_team manage_team import_team manage_team_roles manage_channel_roles manage_others_webhooks manage_slash_commands manage_others_slash_commands manage_webhooks delete_post delete_others_posts"
-	DEFAULT_PERMISSIONS_TEAM_USER = "list_team_channels join_public_channels read_public_channel view_team create_public_channel manage_public_channel_properties delete_public_channel create_private_channel manage_private_channel_properties delete_private_channel invite_user add_user_to_team"
+	DEFAULT_PERMISSIONS_TEAM_ADMIN    = "edit_others_posts remove_user_from_team manage_team import_team manage_team_roles manage_channel_roles manage_others_webhooks manage_slash_commands manage_others_slash_commands manage_webhooks delete_post delete_others_posts"
+	DEFAULT_PERMISSIONS_TEAM_USER     = "list_team_channels join_public_channels read_public_channel view_team create_public_channel manage_public_channel_properties delete_public_channel create_private_channel manage_private_channel_properties delete_private_channel invite_user add_user_to_team"
 	DEFAULT_PERMISSIONS_CHANNEL_ADMIN = "manage_channel_roles"
-	DEFAULT_PERMISSIONS_CHANNEL_USER = "read_channel add_reaction remove_reaction manage_public_channel_members upload_file get_public_link create_post use_slash_commands manage_private_channel_members delete_post edit_post"
+	DEFAULT_PERMISSIONS_CHANNEL_USER  = "read_channel add_reaction remove_reaction manage_public_channel_members upload_file get_public_link create_post use_slash_commands manage_private_channel_members delete_post edit_post"
 )
 
 type LoadtestEnviromentConfig struct {
@@ -321,7 +321,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 				Type:        "O",
 				Header:      "Hea: This is loadtest channel " + strconv.Itoa(teamNum) + " on team " + strconv.Itoa(teamNum),
 				Purpose:     "Pur: This is loadtest channel " + strconv.Itoa(teamNum) + " on team " + strconv.Itoa(teamNum),
-				Scheme: scheme,
+				Scheme:      scheme,
 			})
 			channelsByTeam[teamNum] = append(channelsByTeam[teamNum], len(channels)-1)
 		}
@@ -444,16 +444,16 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 	// Convert all the objects to line objects
 	for i := range *teamSchemes {
 		lineObjectsChan <- &LineImportData{
-			Type: "scheme",
-			Scheme: &(*teamSchemes)[i],
+			Type:    "scheme",
+			Scheme:  &(*teamSchemes)[i],
 			Version: 1,
 		}
 	}
 
 	for i := range *channelSchemes {
 		lineObjectsChan <- &LineImportData{
-			Type: "scheme",
-			Scheme: &(*channelSchemes)[i],
+			Type:    "scheme",
+			Scheme:  &(*channelSchemes)[i],
 			Version: 1,
 		}
 	}
@@ -507,6 +507,8 @@ func ConnectToDB(driverName, dataSource string) *sqlx.DB {
 	return db
 }
 
+const POSTS_PER_INSERT = 10000
+
 func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 	mlog.Info("Loading posts")
 	db := ConnectToDB(driverName, dataSource)
@@ -528,7 +530,7 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 	numPostsPerChannel := int(math.Floor(float64(cfg.LoadtestEnviromentConfig.NumPosts) / float64(cfg.LoadtestEnviromentConfig.NumTeams*cfg.LoadtestEnviromentConfig.NumChannelsPerTeam)))
 
 	statementStr := "INSERT INTO Posts (Id, CreateAt, UpdateAt, EditAt, DeleteAt, IsPinned, UserId, ChannelId, RootId, ParentId, OriginalId, Message, Type, Props, Hashtags, Filenames, FileIds, HasReactions) VALUES "
-	for i := 0; i < 100; i++ {
+	for i := 0; i < POSTS_PER_INSERT; i++ {
 		statementStr += "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?),"
 	}
 	statementStr = statementStr[0 : len(statementStr)-1]
@@ -599,7 +601,7 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 			for i := 0; i < numPostsPerChannel; i += 100 {
 				vals := []interface{}{}
 
-				for j := 0; j < 100; j++ {
+				for j := 0; j < POSTS_PER_INSERT; j++ {
 					message := "PL" + fake.SentencesN(1)
 					now := randomTime(nil)
 					id := model.NewId()
@@ -608,7 +610,7 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 					emptyarray := "[]"
 
 					parentRoot := ""
-					if j == 0 {
+					if j%100 == 0 {
 						rootPosts = append(rootPosts, rootPost{id, now})
 					} else {
 						if rand.Float64() < cfg.LoadtestEnviromentConfig.ReplyChance {
