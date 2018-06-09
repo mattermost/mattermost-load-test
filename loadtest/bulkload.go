@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"math/rand"
 	"strconv"
@@ -15,7 +16,7 @@ import (
 
 	sqlx "github.com/jmoiron/sqlx"
 
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 
 	"github.com/icrowley/fake"
@@ -507,7 +508,7 @@ func ConnectToDB(driverName, dataSource string) *sqlx.DB {
 	return db
 }
 
-const POSTS_PER_INSERT = 3500
+const POSTS_PER_INSERT = 1000
 
 func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 	mlog.Info("Loading posts")
@@ -523,31 +524,19 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 
 	teams, resp := adminClient.GetAllTeams("", 0, cfg.LoadtestEnviromentConfig.NumTeams+200)
 	if resp.Error != nil {
-		mlog.Error("Unable to get all theams", mlog.Err(resp.Error))
+		mlog.Error("Unable to get all teams", mlog.Err(resp.Error))
 		return
 	}
 
 	numPostsPerChannel := int(math.Floor(float64(cfg.LoadtestEnviromentConfig.NumPosts) / float64(cfg.LoadtestEnviromentConfig.NumTeams*cfg.LoadtestEnviromentConfig.NumChannelsPerTeam)))
-
-	statementStr := "INSERT INTO Posts (Id, CreateAt, UpdateAt, EditAt, DeleteAt, IsPinned, UserId, ChannelId, RootId, ParentId, OriginalId, Message, Type, Props, Hashtags, Filenames, FileIds, HasReactions) VALUES "
-	for i := 0; i < POSTS_PER_INSERT; i++ {
-		statementStr += "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?),"
-	}
-	statementStr = statementStr[0 : len(statementStr)-1]
-	statement, err := db.Prepare(db.Rebind(statementStr))
-	if err != nil {
-		mlog.Error("Unable to prepare statment", mlog.String("statement", statementStr), mlog.Err(err))
-		return
-	}
 
 	// Generate a random time before now, either within the configured post time range or after the given time.
 	randomTime := func(after *time.Time) time.Time {
 		now := time.Now()
 		if after == nil {
 			return now.Add(-1 * time.Duration(rand.Int63n(cfg.LoadtestEnviromentConfig.PostTimeRange)) * time.Second)
-		} else {
-			return after.Add(time.Duration(rand.Int63n(int64(now.Sub(*after)))))
 		}
+		return after.Add(time.Duration(rand.Int63n(int64(now.Sub(*after)))))
 	}
 
 	mlog.Info("Done pre-setup")
@@ -592,16 +581,15 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 		mlog.Info("Thread splitting", mlog.String("team", team.Name))
 		ThreadSplit(len(channels), 16, PrintCounter, func(channelNum int) {
 			mlog.Info("Thread", mlog.Int("channel_num", channelNum))
-			// Only recognizes multiples of 100
 			type rootPost struct {
 				id      string
 				created time.Time
 			}
 			rootPosts := make([]rootPost, 0)
-			for i := 0; i < numPostsPerChannel; i += 100 {
-				vals := []interface{}{}
+			for i := 0; i < numPostsPerChannel; i += POSTS_PER_INSERT {
+				csv := ""
 
-				for j := 0; j < POSTS_PER_INSERT; j++ {
+				for j := 0; j < POSTS_PER_INSERT && j < numPostsPerChannel; j++ {
 					message := "PL" + fake.SentencesN(1)
 					now := randomTime(nil)
 					id := model.NewId()
@@ -620,14 +608,21 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 						}
 					}
 
-					vals = append(vals, id, now.Unix()*1000, now.Unix()*1000, zero, zero, zero, users[(j+i+channelNum)%len(users)].Id, channels[channelNum].Id, parentRoot, parentRoot, "", message, "", emptyobject, "", emptyarray, emptyarray, zero)
+					csv += fmt.Sprintf("\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\"\n", id, now.Unix()*1000, now.Unix()*1000, zero, zero, zero, users[(j+i+channelNum)%len(users)].Id, channels[channelNum].Id, parentRoot, parentRoot, "", message, "", emptyobject, "", emptyarray, emptyarray, zero)
 				}
 
-				if _, err := statement.Exec(vals...); err != nil {
-					mlog.Error("Error running statement", mlog.Err(err))
+				readerName := fmt.Sprintf("data%v", channelNum)
+
+				mysql.RegisterReaderHandler(readerName, func() io.Reader {
+					return strings.NewReader(csv)
+				})
+
+				if _, err := db.Exec(fmt.Sprintf("LOAD DATA LOCAL INFILE 'Reader::%s' INTO TABLE Posts FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n'", readerName)); err != nil {
+					mlog.Error("Error running loading data", mlog.Err(err))
 				}
+
+				mysql.DeregisterReaderHandler(readerName)
 			}
 		})
 	}
-	statement.Close()
 }
