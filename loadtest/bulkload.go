@@ -507,7 +507,7 @@ func ConnectToDB(driverName, dataSource string) *sqlx.DB {
 	return db
 }
 
-const POSTS_PER_INSERT = 10000
+const POSTS_PER_INSERT = 3500
 
 func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 	mlog.Info("Loading posts")
