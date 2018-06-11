@@ -50,6 +50,8 @@ SiteURL: %v
 Metrics: %v
 DBConnectionString: %v
 RR0ConnectionString: %v
+Load Test Profile: %v w/ %v users
+Bulk Loaded Data: %v
 Instances:
 	APP:    %v
 	DB:     %v
@@ -84,6 +86,9 @@ func printStatusForCluster(cluster ltops.Cluster) {
 		metrics,
 		dbConnectionString,
 		rrConnnectionString,
+		cluster.Configuration().Profile,
+		cluster.Configuration().Users,
+		cluster.Configuration().BulkLoadComplete,
 		len(app),
 		cluster.DBInstanceCount(),
 		len(proxy),

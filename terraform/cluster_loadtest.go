@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mattermost/mattermost-load-test/ltops"
+
 	"github.com/mattermost/mattermost-load-test/sshtools"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -49,7 +51,7 @@ func (c *Cluster) loadtestInstance(addr string, resultsOutput io.Writer) error {
 	return nil
 }
 
-func (c *Cluster) Loadtest(resultsOutput io.Writer) error {
+func (c *Cluster) Loadtest(options *ltops.LoadTestOptions) error {
 	loadtestInstancesAddrs, err := c.GetLoadtestInstancesAddrs()
 	if err != nil || len(loadtestInstancesAddrs) <= 0 {
 		return errors.Wrap(err, "Unable to get loadtest instance addresses")
@@ -63,7 +65,7 @@ func (c *Cluster) Loadtest(resultsOutput io.Writer) error {
 		go func() {
 			var err error
 			if i == 0 {
-				err = c.loadtestInstance(addr, resultsOutput)
+				err = c.loadtestInstance(addr, options.ResultsWriter)
 			} else {
 				err = c.loadtestInstance(addr, nil)
 			}

@@ -20,7 +20,7 @@ type GlobalConfig struct {
 
 type FeaturesConfig struct {
 	LoadTest *LoadTestFeature `yaml:"loadTest"`
-	Grafanaa *GrafanaFeature  `yaml:"grafana"`
+	Grafana  *GrafanaFeature  `yaml:"grafana"`
 }
 
 type LoadTestFeature struct {
@@ -60,6 +60,8 @@ type LoadtestConfig struct {
 	NumTeams                          int               `yaml:"numTeams"`
 	NumChannelsPerTeam                int               `yaml:"numChannelsPerTeam"`
 	NumUsers                          int               `yaml:"numUsers"`
+	NumPosts                          int               `yaml:"numPosts"`
+	ReplyChance                       float32           `yaml:"replyChance"`
 	SkipBulkLoad                      bool              `yaml:"skipBulkLoad"`
 	TestLengthMinutes                 int               `yaml:"testLengthMinutes"`
 	NumActiveEntities                 int               `yaml:"numActiveEntities"`
@@ -81,7 +83,7 @@ type ImageSetting struct {
 }
 
 type ResourcesSetting struct {
-	Limits   *ResourceSetting `yaml:"limits"`
+	Limits   *ResourceSetting `yaml:"limits,omitempty"`
 	Requests *ResourceSetting `yaml:"requests"`
 }
 

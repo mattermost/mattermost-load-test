@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os/exec"
 	"path/filepath"
@@ -14,11 +15,11 @@ import (
 )
 
 func (c *Cluster) Deploy(options *ltops.DeployOptions) error {
-	log.Info("installing mattermost helm chart...")
-
-	if len(c.ReleaseName) > 0 {
-		log.Info("already installed as release '" + c.ReleaseName + "'")
-		return nil
+	previouslyDeployed := len(c.Release()) > 0
+	if previouslyDeployed {
+		log.Info("upgrading mattermost helm chart...")
+	} else {
+		log.Info("installing mattermost helm chart...")
 	}
 
 	license, err := ltops.GetFileOrURL(options.LicenseFile)
@@ -26,26 +27,65 @@ func (c *Cluster) Deploy(options *ltops.DeployOptions) error {
 		return err
 	}
 
-	config, err := c.GetHelmConfigFromProfile(options.Profile, options.Users, string(license))
-	if err != nil {
-		return err
+	configFileLocation := ""
+
+	if len(options.HelmConfigFile) == 0 {
+		config, err := c.GetHelmConfigFromProfile(options.Profile, options.Users, string(license))
+		if err != nil {
+			return err
+		}
+
+		err = saveChartConfig(config, c.Config.WorkingDirectory)
+		if err != nil {
+			return err
+		}
+
+		configFileLocation = filepath.Join(c.Config.WorkingDirectory, chartFilename)
+	} else {
+		configFileLocation = options.HelmConfigFile
 	}
 
-	err = saveChartConfig(config, c.Config.WorkingDirectory)
-	if err != nil {
-		return err
+	if previouslyDeployed {
+		cmd := exec.Command("helm", "upgrade", "-f", configFileLocation, c.Release(), "mattermost/mattermost-helm")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return errors.Wrap(err, "unable to install mattermost chart, error from helm: "+string(out))
+		}
+
+		// Delete the pods so they are recreated with any config changes
+		cmd = exec.Command("kubectl", "delete", "po", "-l", fmt.Sprintf("release=%v", c.Release()))
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return errors.Wrap(err, "unable to restart release pods, error from kubectl: "+string(out))
+		}
+
+		cmd = exec.Command("kubectl", "delete", "po", "-l", fmt.Sprintf("app=%v-mysqlha", c.Release()))
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return errors.Wrap(err, "unable to restart mysqlha pods, error from kubectl: "+string(out))
+		}
+
+		log.Info("upgraded release '" + c.ReleaseName + "'")
+	} else {
+		cmd := exec.Command("helm", "install", "-f", configFileLocation, "mattermost/mattermost-helm")
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			return errors.Wrap(err, "unable to install mattermost chart, error from helm: "+string(out))
+		}
+
+		fields := strings.Fields(strings.Split(string(out), "\n")[0])
+		c.ReleaseName = fields[1]
+
+		log.Info("created release '" + c.Release() + "'")
 	}
 
-	cmd := exec.Command("helm", "install", "-f", filepath.Join(c.Config.WorkingDirectory, chartFilename), "mattermost/mattermost-helm")
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return errors.Wrap(err, "unable to install mattermost chart, error from helm: "+string(out))
+	if c.Configuration().Profile != options.Profile || c.Configuration().Users != options.Users {
+		c.Config.BulkLoadComplete = false
 	}
 
-	fields := strings.Fields(strings.Split(string(out), "\n")[0])
-	c.ReleaseName = fields[1]
-
-	log.Info("created release '" + c.ReleaseName + "'")
+	if len(options.HelmConfigFile) == 0 {
+		c.Config.Profile = options.Profile
+	} else {
+		c.Config.Profile = "custom helm config"
+	}
+	c.Config.Users = options.Users
 
 	err = saveCluster(c, c.Config.WorkingDirectory)
 	if err != nil {
