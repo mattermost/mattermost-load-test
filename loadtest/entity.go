@@ -83,7 +83,7 @@ func doStatusPolling(ec *EntityConfig) {
 	}()
 	defer ec.StopWaitGroup.Done()
 
-	ticker := time.NewTicker(60 * time.Second)
+	ticker := time.NewTicker(45 * time.Second)
 	for {
 		select {
 		case <-ec.StopChannel:
