@@ -77,10 +77,13 @@ func (c *Cluster) bulkLoad(loadtestPod string, appPod string, force bool) error 
 		return errors.Wrap(err, "bulk import failed: "+string(out))
 	}
 
-	cmd = exec.Command("kubectl", "exec", loadtestPod, "./bin/loadtest", "loadposts")
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return errors.Wrap(err, "loading posts failed: "+string(out))
-	}
+	// TODO: uncomment when post loading is sped up
+	/*
+		cmd = exec.Command("kubectl", "exec", loadtestPod, "./bin/loadtest", "loadposts")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return errors.Wrap(err, "loading posts failed: "+string(out))
+		}
+	*/
 
 	c.Config.BulkLoadComplete = true
 	err = saveCluster(c, c.Config.WorkingDirectory)
