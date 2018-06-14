@@ -30,7 +30,20 @@ Type `ltops` to check tool is installed properly. For help with any command, use
 
 ### Kubernetes
 
-If you want to run the load test on a Kubernetes cluster, you need to install kubectl and helm.
+We recommend running load tests on Kubernetes as it's platform agnostic and makes set up simpler.
+
+#### Configuration
+
+You need to have an existing Kubernetes cluster configured. If you're not sure if you have one, then you probably don't.
+
+To set up a Kubernetes cluster, use one of the following guides:
+* AWS - https://github.com/kubernetes/kops/blob/master/docs/aws.md 
+* Azure - https://github.com/Azure/acs-engine/blob/master/docs/kubernetes/deploy.md
+* Google Cloud Engine - https://kubernetes.io/docs/getting-started-guides/gce/
+
+See https://kubernetes.io/docs/setup/pick-right-solution/ for more options.
+
+You'll also need to install kubectl and helm.
 
 Install kubectl: https://kubernetes.io/docs/tasks/tools/install-kubectl/
 
@@ -39,17 +52,6 @@ Type `kubectl` to check the tool is installed properly.
 Install helm: https://docs.helm.sh/using_helm/#installing-helm
 
 Type `helm` to check the tool is installed properly.
-
-#### Configuration
-
-You need to have an existing Kubernetes cluster configured. To check if you have one set up and configured run: `kubectl cluster-info`.
-
-To set up a Kubernetes cluster, use one of the following guides:
-* AWS - https://github.com/kubernetes/kops/blob/master/docs/aws.md 
-* Azure - https://github.com/Azure/acs-engine/blob/master/docs/kubernetes/deploy.md
-* Google Cloud Engine - https://kubernetes.io/docs/getting-started-guides/gce/
-
-See https://kubernetes.io/docs/setup/pick-right-solution/ for more options.
 
 #### Set up a load test with Kubernetes
 
@@ -67,6 +69,8 @@ ltops deploy -c myloadtestcluster --license ~/mylicence.mattermost-license --use
 ```
 ltops status
 ```
+
+4. [Go here to run a load test](https://github.com/mattermost/mattermost-load-test#run-a-load-test)
 
 ### Terraform
 
@@ -96,6 +100,7 @@ ltops create --name myloadtestcluster --type terraform --app-count 1 --db-count 
 ```
 ltops deploy -c myloadtestcluster -m https://releases.mattermost.com/4.9.2/mattermost-4.9.2-linux-amd64.tar.gz -l ~/mylicence.mattermost-license -t https://releases.mattermost.com/mattermost-load-test/mattermost-load-test.tar.gz
 ```
+3. [Go here to run a load test](https://github.com/mattermost/mattermost-load-test#run-a-load-test)
 
 ### Run a load test
 
