@@ -8,12 +8,18 @@ The ltops tool allows you to easily spin up and load test a cluster of Mattermos
 
 ### Installation
 
+Download the binaries from the latest release https://github.com/mattermost/mattermost-load-test/releases.
+
+or
+
 Install with go get
 ```
 go get github.com/mattermost/mattermost-load-test/cmd/ltops
 ```
 
-or clone the repository and build for yourself.
+or
+
+Clone the repository and build for yourself.
 
 ```
 git clone https://github.com/mattermost/mattermost-load-test
