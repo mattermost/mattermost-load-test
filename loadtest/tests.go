@@ -286,6 +286,48 @@ func actionPerformSearch(c *EntityConfig) {
 	}
 }
 
+func actionAutocompleteChannel(c *EntityConfig) {
+	team, channel := c.UserData.PickTeamChannel()
+	if team == nil || channel == nil {
+		return
+	}
+	teamId := c.TeamMap[team.Name]
+
+	// Select a random fraction of the channel name to actually type
+	typedName := channel.Name[:rand.Intn(len(channel.Name))]
+
+	for i := 1; i <= len(typedName); i++ {
+		currentSubstring := typedName[:i]
+		go func() {
+			if _, resp := c.Client.AutocompleteChannelsForTeam(teamId, currentSubstring); resp.Error != nil {
+				mlog.Error("Unable to autocomplete channel", mlog.String("team_name", team.Name), mlog.String("channel_name", channel.Name), mlog.String("fragment", currentSubstring))
+			}
+		}()
+		time.Sleep(time.Millisecond * 150)
+	}
+}
+
+func actionSearchChannel(c *EntityConfig) {
+	team, channel := c.UserData.PickTeamChannel()
+	if team == nil || channel == nil {
+		return
+	}
+	teamId := c.TeamMap[team.Name]
+
+	// Select a random fraction of the channel name to actually type
+	typedName := channel.Name[:rand.Intn(len(channel.Name))]
+
+	for i := 1; i <= len(typedName); i++ {
+		currentSubstring := typedName[:i]
+		go func() {
+			if _, resp := c.Client.SearchChannels(teamId, &model.ChannelSearch{Term: currentSubstring}); resp.Error != nil {
+				mlog.Error("Unable to search channel", mlog.String("team_name", team.Name), mlog.String("channel_name", channel.Name), mlog.String("fragment", currentSubstring))
+			}
+		}()
+		time.Sleep(time.Millisecond * 150)
+	}
+}
+
 func actionDisconnectWebsocket(c *EntityConfig) {
 	c.WebSocketClient.Close()
 }
@@ -417,6 +459,14 @@ var standardUserEntity UserEntity = UserEntity{
 		{
 			Item:   actionGetChannel,
 			Weight: 56,
+		},
+		{
+			Item:   actionAutocompleteChannel,
+			Weight: 1,
+		},
+		{
+			Item:   actionSearchChannel,
+			Weight: 10,
 		},
 		{
 			Item:   actionDisconnectWebsocket,
@@ -632,6 +682,40 @@ var TestMoreChannelsBrowser TestRun = TestRun{
 				RateMultiplier: 1.0,
 			},
 			Weight: 30,
+		},
+	},
+}
+
+var autocompleterUserEntity UserEntity = UserEntity{
+	Name: "AutocompleterUserEntity",
+	Actions: []randutil.Choice{
+		{
+			Item:   actionSearchChannel,
+			Weight: 5,
+		},
+		{
+			Item:   actionAutocompleteChannel,
+			Weight: 1,
+		},
+	},
+}
+
+var TestAutocomplete TestRun = TestRun{
+	UserEntities: []randutil.Choice{
+		{
+			Item: UserEntityWithRateMultiplier{
+				RateMultiplier: 1.0,
+				Entity:         standardUserEntity,
+			},
+			Weight: 10.0,
+		},
+		{
+			Item: UserEntityWithRateMultiplier{
+				RateMultiplier: 1.0,
+				Entity:         autocompleterUserEntity,
+			},
+
+			Weight: 90.0,
 		},
 	},
 }
