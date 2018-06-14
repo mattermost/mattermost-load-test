@@ -57,6 +57,11 @@ ltops create --name myloadtestcluster --type kubernetes
 ltops deploy -c myloadtestcluster --license ~/mylicence.mattermost-license --users 5000
 ```
 
+3. Wait 5-10 minutes for the helm release to spin up. It should be ready when the following command shows `SiteURL` and `Metrics` wit h an IP address or URL:
+```
+ltops status
+```
+
 ### Terraform
 
 If you want to run load test clusters on AWS, you need to install terraform.
@@ -91,11 +96,33 @@ ltops deploy -c myloadtestcluster -m https://releases.mattermost.com/4.9.2/matte
 Now that you have a cluster set up in either AWS or Kubernetes, do the following to run a load test:
 
 1. Run load tests:
-```
-ltops loadtest -c myloadtestcluster
-```
+    ```
+    ltops loadtest -c myloadtestcluster
+    ```
+    - This command will do two things:
+        1. Bulk load the data needed for the tests. Depending on how many users you're running with this could take anywhere from a few minutes to an hour.
+        2. Runs a load test, coordinating between all the load test agents. By default the load test will run for 20 minutes.
 
-2. Logs, including loadtest results will show up in ~/.mattermost-load-test-ops/myloadtestcluster/results
+2. To view the metrics and evaluate system performance while the tests are running, use `ltops status` to get the metrics URL.
+    - At that URL, login with `admin/admin`
+    - Import these three dashboards, selecting ${DS_MATTERMOST} as the source
+        - https://grafana.com/dashboards/2539
+        - https://grafana.com/dashboards/2542
+        - https://grafana.com/dashboards/2545
+    - Signs of system health depend greatly on the load you're running but the key metrics to watch are:
+        - `API Errors per Second` should be low. 5-10 is normal but if there is many more than that there may be an issue
+        - `Mean API Request Time` should generally be under 200ms. Some spikes are OK but a rising mean request time could be indicative of a problem. This may spike at the start-up of load tests because logging in of users is not rate limited. This is normal.
+        - `Mean Cluster Request Time` should generally be under 10ms
+        - `Goroutines` should be rise and then plateau. If it's continuously rising, there may be an issue
+        - `CPU Usage` will depend greatly on the load and the hardware specs of your cluster. Generally if it's maxing out, the load is too much for the hardware. Note that it's 100% per core, so a machine with 4 cores could hit 400% usage
+    - Peformance of the system in regards to how any actions the system is completing can be viewed by:
+        - `API Requests per Second` will let you know how many API requests the system is handling
+        - `Number of Messages per Second` tells the number of posts being sent in Mattermost per second
+        - `Number of Broadcasts per Second` tells the number of events being delivered from the server to a client using the WebSocket
+
+3. Logs, including loadtest results will show up in ~/.mattermost-load-test-ops/myloadtestcluster/results
+    - To view them as the test is running, run `tail -f` on any of the files in that directory
+    - Some errors are OK but if you're seeing pages and pages of errors you likely have an issue
 
 To generate a textual summary:
 ```
