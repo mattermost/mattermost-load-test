@@ -219,7 +219,7 @@ func generateTeams(numTeams int, percentCustomSchemeTeams float64, teamSchemes *
 	teams := make([]TeamImportData, 0, numTeams)
 
 	scheme := ""
-	if rand.Float64() < percentCustomSchemeTeams {
+	if len(*teamSchemes) > 0 && rand.Float64() < percentCustomSchemeTeams {
 		scheme = (*teamSchemes)[rand.Intn(len(*teamSchemes))].Name
 	}
 
@@ -310,7 +310,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 		channelsByTeam = append(channelsByTeam, make([]int, 0, config.NumChannelsPerTeam))
 		for channelNum := 0; channelNum < config.NumChannelsPerTeam; channelNum++ {
 			scheme := ""
-			if rand.Float64() < config.PercentCustomSchemeChannels {
+			if len(*channelSchemes) > 0 && rand.Float64() < config.PercentCustomSchemeChannels {
 				scheme = (*channelSchemes)[rand.Intn(len(*channelSchemes))].Name
 			}
 
