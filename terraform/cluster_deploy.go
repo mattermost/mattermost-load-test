@@ -366,6 +366,7 @@ func deployToAppInstance(mattermostDistribution, license io.Reader, instanceAddr
 
 	for _, cmd := range []string{
 		"sudo setcap cap_net_bind_service=+ep /opt/mattermost/bin/platform",
+		"[[ -f /opt/mattermost/bin/mattermost ]] && sudo setcap cap_net_bind_service=+ep /opt/mattermost/bin/mattermost",
 		"sudo systemctl daemon-reload",
 		"sudo systemctl restart mattermost.service",
 		"sudo systemctl enable mattermost.service",
