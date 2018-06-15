@@ -48,6 +48,7 @@ func resultsCmd(cmd *cobra.Command, args []string) error {
 			return errors.Wrap(err, "failed to open structured log file")
 		}
 		defer baselineFile.Close()
+		config.BaselineInput = baselineFile
 	}
 
 	if err := ltparse.ParseResults(&config); err != nil {
