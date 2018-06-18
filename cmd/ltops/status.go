@@ -14,7 +14,7 @@ import (
 
 var status = &cobra.Command{
 	Use:   "status",
-	Short: "Prints some status infomation on clusters you have running.",
+	Short: "Prints some status information on clusters you have running.",
 	RunE:  statusCmd,
 }
 
