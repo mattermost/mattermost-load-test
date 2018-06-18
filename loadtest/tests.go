@@ -79,7 +79,7 @@ func actionGetStatuses(c *EntityConfig) {
 		if team == nil || channel == nil {
 			return
 		}
-		channelId := c.ChannelMap[team.Name+channel.Name]
+		channelId := c.ChannelMap[team.Name][channel.Name]
 
 		if channelId == "" {
 			mlog.Error("Unable to get channel from map")
@@ -171,7 +171,7 @@ func actionPost(c *EntityConfig) {
 	if team == nil || channel == nil {
 		return
 	}
-	channelId := c.ChannelMap[team.Name+channel.Name]
+	channelId := c.ChannelMap[team.Name][channel.Name]
 
 	if channelId == "" {
 		mlog.Error("Unable to get channel from map")
@@ -222,7 +222,7 @@ func actionGetChannel(c *EntityConfig) {
 	if team == nil || channel == nil {
 		return
 	}
-	channelId := c.ChannelMap[team.Name+channel.Name]
+	channelId := c.ChannelMap[team.Name][channel.Name]
 
 	if _, resp := c.Client.ViewChannel("me", &model.ChannelView{
 		ChannelId:     channelId,
@@ -299,7 +299,7 @@ func actionPostWebhook(c *EntityConfig) {
 		if team == nil || channel == nil {
 			return
 		}
-		channelId := c.ChannelMap[team.Name+channel.Name]
+		channelId := c.ChannelMap[team.Name][channel.Name]
 
 		webhook, resp := c.Client.CreateIncomingWebhook(&model.IncomingWebhook{
 			ChannelId:   channelId,

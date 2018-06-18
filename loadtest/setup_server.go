@@ -13,10 +13,14 @@ import (
 )
 
 type ServerSetupData struct {
-	TeamIdMap       map[string]string
-	ChannelIdMap    map[string]string
+	// TeamIdMap maps team name to team id
+	TeamIdMap map[string]string
+	// ChannelIdMap maps team name and channel name to channel id
+	ChannelIdMap map[string]map[string]string
+	// TownSquareIdMap maps team name to the channel id of the corresponding default channel.
 	TownSquareIdMap map[string]string
-	BulkloadResult  GenerateBulkloadFileResult
+
+	BulkloadResult GenerateBulkloadFileResult
 }
 
 func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
@@ -90,12 +94,14 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 	}
 
 	teamIdMap := make(map[string]string)
-	channelIdMap := make(map[string]string)
+	channelIdMap := make(map[string]map[string]string)
 	townSquareIdMap := make(map[string]string)
 	if teams, resp := adminClient.GetAllTeams("", 0, cfg.LoadtestEnviromentConfig.NumTeams+200); resp.Error != nil {
 		return nil, resp.Error
 	} else {
 		for _, team := range teams {
+			channelIdMap[team.Name] = make(map[string]string)
+
 			teamIdMap[team.Name] = team.Id
 			numRecieved := 200
 			for page := 0; numRecieved == 200; page++ {
@@ -105,7 +111,7 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 				} else {
 					numRecieved = len(channels)
 					for _, channel := range channels {
-						channelIdMap[team.Name+channel.Name] = channel.Id
+						channelIdMap[team.Name][channel.Name] = channel.Id
 						if channel.Name == "town-square" {
 							mlog.Info("Found town-square", mlog.String("team", team.Name))
 							townSquareIdMap[team.Name] = channel.Id
