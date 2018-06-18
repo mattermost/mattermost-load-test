@@ -62,6 +62,11 @@ var tests []TestItem = []TestItem{
 		ShortDesc: "Test deactivating and reactivating users while under load",
 		Test:      &loadtest.TestDeactivation,
 	},
+	{
+		Name:      "more-channels-browser",
+		ShortDesc: "Test browsing more channels while under load",
+		Test:      &loadtest.TestMoreChannelsBrowser,
+	},
 }
 
 func main() {
