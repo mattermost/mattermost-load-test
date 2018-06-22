@@ -53,6 +53,8 @@ Install helm: https://docs.helm.sh/using_helm/#installing-helm
 
 Type `helm` to check the tool is installed properly.
 
+Make sure helm is configured on your cluster and locally by running `helm init --upgrade`
+
 #### Set up a load test with Kubernetes
 
 1. Set up a cluster:

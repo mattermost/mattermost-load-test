@@ -51,7 +51,7 @@ func (c *Cluster) bulkLoad(loadtestPod string, appPod string, force bool) error 
 	log.Info("Bulk importing data, this may take some time")
 	cmd := exec.Command("kubectl", "exec", loadtestPod, "./bin/loadtest", "genbulkload")
 	if err := cmd.Run(); err != nil {
-		return err
+		return errors.Wrap(err, "unable to run genbulkload")
 	}
 
 	// Unfortunately kubectl cp doesn't work directly between pods
