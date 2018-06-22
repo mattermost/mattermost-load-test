@@ -86,7 +86,7 @@ type TeamImportData struct {
 	Type            string `json:"type"`
 	Description     string `json:"description,omitempty"`
 	AllowOpenInvite bool   `json:"allow_open_invite,omitempty"`
-	Scheme          string `json:"scheme"`
+	Scheme          string `json:"scheme,omitempty"`
 }
 
 type ChannelImportData struct {
@@ -96,7 +96,7 @@ type ChannelImportData struct {
 	Type        string `json:"type"`
 	Header      string `json:"header,omitempty"`
 	Purpose     string `json:"purpose,omitempty"`
-	Scheme      string `json:"scheme"`
+	Scheme      string `json:"scheme,omitempty"`
 }
 
 type UserImportData struct {
