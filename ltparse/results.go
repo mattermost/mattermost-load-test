@@ -91,7 +91,7 @@ func ParseResults(config *ResultsConfig) error {
 		}
 	case "text":
 		if len(allBaselineTimings) > 0 {
-			return errors.Wrap(err, "cannot compare to baseline using text display")
+			return errors.New("cannot compare to baseline using text display")
 		}
 		fallthrough
 	default:
