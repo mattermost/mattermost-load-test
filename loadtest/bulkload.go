@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"math/rand"
 	"strconv"
@@ -15,7 +16,7 @@ import (
 
 	sqlx "github.com/jmoiron/sqlx"
 
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 
 	"github.com/icrowley/fake"
@@ -25,10 +26,10 @@ import (
 )
 
 const (
-	DEFAULT_PERMISSIONS_TEAM_ADMIN = "edit_others_posts remove_user_from_team manage_team import_team manage_team_roles manage_channel_roles manage_others_webhooks manage_slash_commands manage_others_slash_commands manage_webhooks delete_post delete_others_posts"
-	DEFAULT_PERMISSIONS_TEAM_USER = "list_team_channels join_public_channels read_public_channel view_team create_public_channel manage_public_channel_properties delete_public_channel create_private_channel manage_private_channel_properties delete_private_channel invite_user add_user_to_team"
+	DEFAULT_PERMISSIONS_TEAM_ADMIN    = "edit_others_posts remove_user_from_team manage_team import_team manage_team_roles manage_channel_roles manage_others_webhooks manage_slash_commands manage_others_slash_commands manage_webhooks delete_post delete_others_posts"
+	DEFAULT_PERMISSIONS_TEAM_USER     = "list_team_channels join_public_channels read_public_channel view_team create_public_channel manage_public_channel_properties delete_public_channel create_private_channel manage_private_channel_properties delete_private_channel invite_user add_user_to_team"
 	DEFAULT_PERMISSIONS_CHANNEL_ADMIN = "manage_channel_roles"
-	DEFAULT_PERMISSIONS_CHANNEL_USER = "read_channel add_reaction remove_reaction manage_public_channel_members upload_file get_public_link create_post use_slash_commands manage_private_channel_members delete_post edit_post"
+	DEFAULT_PERMISSIONS_CHANNEL_USER  = "read_channel add_reaction remove_reaction manage_public_channel_members upload_file get_public_link create_post use_slash_commands manage_private_channel_members delete_post edit_post"
 )
 
 type LoadtestEnviromentConfig struct {
@@ -321,7 +322,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 				Type:        "O",
 				Header:      "Hea: This is loadtest channel " + strconv.Itoa(teamNum) + " on team " + strconv.Itoa(teamNum),
 				Purpose:     "Pur: This is loadtest channel " + strconv.Itoa(teamNum) + " on team " + strconv.Itoa(teamNum),
-				Scheme: scheme,
+				Scheme:      scheme,
 			})
 			channelsByTeam[teamNum] = append(channelsByTeam[teamNum], len(channels)-1)
 		}
@@ -444,16 +445,16 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 	// Convert all the objects to line objects
 	for i := range *teamSchemes {
 		lineObjectsChan <- &LineImportData{
-			Type: "scheme",
-			Scheme: &(*teamSchemes)[i],
+			Type:    "scheme",
+			Scheme:  &(*teamSchemes)[i],
 			Version: 1,
 		}
 	}
 
 	for i := range *channelSchemes {
 		lineObjectsChan <- &LineImportData{
-			Type: "scheme",
-			Scheme: &(*channelSchemes)[i],
+			Type:    "scheme",
+			Scheme:  &(*channelSchemes)[i],
 			Version: 1,
 		}
 	}
@@ -507,6 +508,8 @@ func ConnectToDB(driverName, dataSource string) *sqlx.DB {
 	return db
 }
 
+const POSTS_PER_INSERT = 5000
+
 func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 	mlog.Info("Loading posts")
 	db := ConnectToDB(driverName, dataSource)
@@ -521,31 +524,19 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 
 	teams, resp := adminClient.GetAllTeams("", 0, cfg.LoadtestEnviromentConfig.NumTeams+200)
 	if resp.Error != nil {
-		mlog.Error("Unable to get all theams", mlog.Err(resp.Error))
+		mlog.Error("Unable to get all teams", mlog.Err(resp.Error))
 		return
 	}
 
 	numPostsPerChannel := int(math.Floor(float64(cfg.LoadtestEnviromentConfig.NumPosts) / float64(cfg.LoadtestEnviromentConfig.NumTeams*cfg.LoadtestEnviromentConfig.NumChannelsPerTeam)))
-
-	statementStr := "INSERT INTO Posts (Id, CreateAt, UpdateAt, EditAt, DeleteAt, IsPinned, UserId, ChannelId, RootId, ParentId, OriginalId, Message, Type, Props, Hashtags, Filenames, FileIds, HasReactions) VALUES "
-	for i := 0; i < 100; i++ {
-		statementStr += "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?),"
-	}
-	statementStr = statementStr[0 : len(statementStr)-1]
-	statement, err := db.Prepare(db.Rebind(statementStr))
-	if err != nil {
-		mlog.Error("Unable to prepare statment", mlog.String("statement", statementStr), mlog.Err(err))
-		return
-	}
 
 	// Generate a random time before now, either within the configured post time range or after the given time.
 	randomTime := func(after *time.Time) time.Time {
 		now := time.Now()
 		if after == nil {
 			return now.Add(-1 * time.Duration(rand.Int63n(cfg.LoadtestEnviromentConfig.PostTimeRange)) * time.Second)
-		} else {
-			return after.Add(time.Duration(rand.Int63n(int64(now.Sub(*after)))))
 		}
+		return after.Add(time.Duration(rand.Int63n(int64(now.Sub(*after)))))
 	}
 
 	mlog.Info("Done pre-setup")
@@ -590,16 +581,15 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 		mlog.Info("Thread splitting", mlog.String("team", team.Name))
 		ThreadSplit(len(channels), 16, PrintCounter, func(channelNum int) {
 			mlog.Info("Thread", mlog.Int("channel_num", channelNum))
-			// Only recognizes multiples of 100
 			type rootPost struct {
 				id      string
 				created time.Time
 			}
 			rootPosts := make([]rootPost, 0)
-			for i := 0; i < numPostsPerChannel; i += 100 {
-				vals := []interface{}{}
+			for i := 0; i < numPostsPerChannel; i += POSTS_PER_INSERT {
+				csv := ""
 
-				for j := 0; j < 100; j++ {
+				for j := 0; j < POSTS_PER_INSERT && j < numPostsPerChannel; j++ {
 					message := "PL" + fake.SentencesN(1)
 					now := randomTime(nil)
 					id := model.NewId()
@@ -608,7 +598,7 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 					emptyarray := "[]"
 
 					parentRoot := ""
-					if j == 0 {
+					if j%100 == 0 {
 						rootPosts = append(rootPosts, rootPost{id, now})
 					} else {
 						if rand.Float64() < cfg.LoadtestEnviromentConfig.ReplyChance {
@@ -618,14 +608,21 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 						}
 					}
 
-					vals = append(vals, id, now.Unix()*1000, now.Unix()*1000, zero, zero, zero, users[(j+i+channelNum)%len(users)].Id, channels[channelNum].Id, parentRoot, parentRoot, "", message, "", emptyobject, "", emptyarray, emptyarray, zero)
+					csv += fmt.Sprintf("\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\",\"%v\"\n", id, now.Unix()*1000, now.Unix()*1000, zero, zero, zero, users[(j+i+channelNum)%len(users)].Id, channels[channelNum].Id, parentRoot, parentRoot, "", message, "", emptyobject, "", emptyarray, emptyarray, zero)
 				}
 
-				if _, err := statement.Exec(vals...); err != nil {
-					mlog.Error("Error running statement", mlog.Err(err))
+				readerName := fmt.Sprintf("data%v", channelNum)
+
+				mysql.RegisterReaderHandler(readerName, func() io.Reader {
+					return strings.NewReader(csv)
+				})
+
+				if _, err := db.Exec(fmt.Sprintf("LOAD DATA LOCAL INFILE 'Reader::%s' INTO TABLE Posts FIELDS TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\n'", readerName)); err != nil {
+					mlog.Error("Error running loading data", mlog.Err(err))
 				}
+
+				mysql.DeregisterReaderHandler(readerName)
 			}
 		})
 	}
-	statement.Close()
 }
