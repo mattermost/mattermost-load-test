@@ -1,8 +1,6 @@
 package kubernetes
 
 import (
-	"path/filepath"
-
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -12,9 +10,9 @@ func (c *Cluster) Connect() error {
 		return nil
 	}
 
-	kubeconfig := filepath.Join(homeDir(), ".kube", "config")
+	loader := clientcmd.NewDefaultClientConfigLoadingRules()
 
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	config, err := clientcmd.BuildConfigFromKubeconfigGetter("", loader.Load)
 	if err != nil {
 		return err
 	}
