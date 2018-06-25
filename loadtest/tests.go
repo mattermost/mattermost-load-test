@@ -602,6 +602,8 @@ func actionMoreChannels(c *EntityConfig) {
 		if rand.Float64() > 0.30 {
 			return
 		}
+
+		time.Sleep(time.Millisecond * 1000)
 	}
 }
 
