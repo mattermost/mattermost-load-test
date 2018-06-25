@@ -25,10 +25,10 @@ import (
 )
 
 const (
-	DEFAULT_PERMISSIONS_TEAM_ADMIN = "edit_others_posts remove_user_from_team manage_team import_team manage_team_roles manage_channel_roles manage_others_webhooks manage_slash_commands manage_others_slash_commands manage_webhooks delete_post delete_others_posts"
-	DEFAULT_PERMISSIONS_TEAM_USER = "list_team_channels join_public_channels read_public_channel view_team create_public_channel manage_public_channel_properties delete_public_channel create_private_channel manage_private_channel_properties delete_private_channel invite_user add_user_to_team"
+	DEFAULT_PERMISSIONS_TEAM_ADMIN    = "edit_others_posts remove_user_from_team manage_team import_team manage_team_roles manage_channel_roles manage_others_webhooks manage_slash_commands manage_others_slash_commands manage_webhooks delete_post delete_others_posts"
+	DEFAULT_PERMISSIONS_TEAM_USER     = "list_team_channels join_public_channels read_public_channel view_team create_public_channel manage_public_channel_properties delete_public_channel create_private_channel manage_private_channel_properties delete_private_channel invite_user add_user_to_team"
 	DEFAULT_PERMISSIONS_CHANNEL_ADMIN = "manage_channel_roles"
-	DEFAULT_PERMISSIONS_CHANNEL_USER = "read_channel add_reaction remove_reaction manage_public_channel_members upload_file get_public_link create_post use_slash_commands manage_private_channel_members delete_post edit_post"
+	DEFAULT_PERMISSIONS_CHANNEL_USER  = "read_channel add_reaction remove_reaction manage_public_channel_members upload_file get_public_link create_post use_slash_commands manage_private_channel_members delete_post edit_post"
 )
 
 type LoadtestEnviromentConfig struct {
@@ -244,7 +244,7 @@ func generateTeamSchemes(numSchemes int) *[]SchemeImportData {
 		teamSchemes = append(teamSchemes, SchemeImportData{
 			Name:        "loadtestteamscheme" + strconv.Itoa(schemeNum),
 			DisplayName: "Loadtest Team Scheme " + strconv.Itoa(schemeNum),
-			Scope:       model.PERMISSION_SCOPE_TEAM,
+			Scope:       "team", // model.SCHEME_SCOPE_TEAM
 			DefaultTeamAdminRole: &RoleImportData{
 				Name:        "loadtest-tsta-role-" + strconv.Itoa(schemeNum),
 				DisplayName: "Loadtest Team Scheme DTA Role " + strconv.Itoa(schemeNum),
@@ -278,7 +278,7 @@ func generateChannelSchemes(numSchemes int) *[]SchemeImportData {
 		channelSchemes = append(channelSchemes, SchemeImportData{
 			Name:        "loadtestchannelscheme" + strconv.Itoa(schemeNum),
 			DisplayName: "Loadtest Channel Scheme " + strconv.Itoa(schemeNum),
-			Scope:       model.PERMISSION_SCOPE_CHANNEL,
+			Scope:       "channel", // model.SCHEME_SCOPE_CHANNEL
 			DefaultChannelAdminRole: &RoleImportData{
 				Name:        "loadtest-csca-role-" + strconv.Itoa(schemeNum),
 				DisplayName: "Loadtest Channel Scheme DCA Role " + strconv.Itoa(schemeNum),
@@ -321,7 +321,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 				Type:        "O",
 				Header:      "Hea: This is loadtest channel " + strconv.Itoa(teamNum) + " on team " + strconv.Itoa(teamNum),
 				Purpose:     "Pur: This is loadtest channel " + strconv.Itoa(teamNum) + " on team " + strconv.Itoa(teamNum),
-				Scheme: scheme,
+				Scheme:      scheme,
 			})
 			channelsByTeam[teamNum] = append(channelsByTeam[teamNum], len(channels)-1)
 		}
@@ -444,16 +444,16 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 	// Convert all the objects to line objects
 	for i := range *teamSchemes {
 		lineObjectsChan <- &LineImportData{
-			Type: "scheme",
-			Scheme: &(*teamSchemes)[i],
+			Type:    "scheme",
+			Scheme:  &(*teamSchemes)[i],
 			Version: 1,
 		}
 	}
 
 	for i := range *channelSchemes {
 		lineObjectsChan <- &LineImportData{
-			Type: "scheme",
-			Scheme: &(*channelSchemes)[i],
+			Type:    "scheme",
+			Scheme:  &(*channelSchemes)[i],
 			Version: 1,
 		}
 	}
