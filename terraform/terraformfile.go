@@ -64,7 +64,7 @@ variable "ssh_private_key" {}
 
 provider "aws" {
     region = "us-east-1"
-    profile = "dev"
+    profile = "ltops"
 }
 
 resource "aws_instance" "app_server" {
@@ -522,7 +522,7 @@ func clusterTf() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "cluster.tf", size: 11698, mode: os.FileMode(420), modTime: time.Unix(1524441465, 0)}
+	info := bindataFileInfo{name: "cluster.tf", size: 11700, mode: os.FileMode(420), modTime: time.Unix(1529948620, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

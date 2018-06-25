@@ -18,7 +18,7 @@ variable "ssh_private_key" {}
 
 provider "aws" {
     region = "us-east-1"
-    profile = "dev"
+    profile = "ltops"
 }
 
 resource "aws_instance" "app_server" {
