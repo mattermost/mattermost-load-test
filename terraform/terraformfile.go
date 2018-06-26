@@ -231,7 +231,7 @@ resource "aws_security_group" "db" {
         from_port = 3306
         to_port = 3306
         protocol = "tcp"
-        security_groups = ["${aws_security_group.app.id}"]
+        cidr_blocks = ["0.0.0.0/0"]
     }
 }
 
@@ -522,7 +522,7 @@ func clusterTf() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "cluster.tf", size: 11700, mode: os.FileMode(420), modTime: time.Unix(1530028749, 0)}
+	info := bindataFileInfo{name: "cluster.tf", size: 11677, mode: os.FileMode(420), modTime: time.Unix(1530046468, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
