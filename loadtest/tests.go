@@ -79,7 +79,7 @@ func actionGetStatuses(c *EntityConfig) {
 		if team == nil || channel == nil {
 			return
 		}
-		channelId := c.ChannelMap[team.Name+channel.Name]
+		channelId := c.ChannelMap[team.Name][channel.Name]
 
 		if channelId == "" {
 			mlog.Error("Unable to get channel from map")
@@ -171,7 +171,7 @@ func actionPost(c *EntityConfig) {
 	if team == nil || channel == nil {
 		return
 	}
-	channelId := c.ChannelMap[team.Name+channel.Name]
+	channelId := c.ChannelMap[team.Name][channel.Name]
 
 	if channelId == "" {
 		mlog.Error("Unable to get channel from map")
@@ -222,7 +222,7 @@ func actionGetChannel(c *EntityConfig) {
 	if team == nil || channel == nil {
 		return
 	}
-	channelId := c.ChannelMap[team.Name+channel.Name]
+	channelId := c.ChannelMap[team.Name][channel.Name]
 
 	if _, resp := c.Client.ViewChannel("me", &model.ChannelView{
 		ChannelId:     channelId,
@@ -299,7 +299,7 @@ func actionPostWebhook(c *EntityConfig) {
 		if team == nil || channel == nil {
 			return
 		}
-		channelId := c.ChannelMap[team.Name+channel.Name]
+		channelId := c.ChannelMap[team.Name][channel.Name]
 
 		webhook, resp := c.Client.CreateIncomingWebhook(&model.IncomingWebhook{
 			ChannelId:   channelId,
@@ -420,6 +420,10 @@ var standardUserEntity UserEntity = UserEntity{
 		},
 		{
 			Item:   actionDisconnectWebsocket,
+			Weight: 4,
+		},
+		{
+			Item:   actionMoreChannels,
 			Weight: 4,
 		},
 	},
@@ -563,6 +567,68 @@ var TestDeactivation TestRun = TestRun{
 		{
 			Item: UserEntityWithRateMultiplier{
 				Entity:         deactivatingUserEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 30,
+		},
+	},
+}
+
+const CHANNELS_CHUNK_SIZE = 50
+const CHANNELS_FETCH_SIZE = CHANNELS_CHUNK_SIZE * 2
+
+func actionMoreChannels(c *EntityConfig) {
+	team := c.UserData.PickTeam()
+	if team == nil {
+		return
+	}
+
+	teamId := c.TeamMap[team.Name]
+	if teamId == "" {
+		mlog.Error("Unable to get team from map")
+		return
+	}
+
+	numChannels := len(c.ChannelMap[team.Name])
+
+	for i := 0; i < numChannels; i += CHANNELS_FETCH_SIZE {
+		page := i * numChannels / CHANNELS_FETCH_SIZE
+		if _, resp := c.Client.GetPublicChannelsForTeam(teamId, page, CHANNELS_FETCH_SIZE, ""); resp.Error != nil {
+			mlog.Error("Failed to get public channels for team", mlog.String("team_id", teamId), mlog.Int("page", page), mlog.Err(resp.Error))
+			return
+		}
+
+		// 30% chance of continuing to scroll to next page.
+		if rand.Float64() > 0.30 {
+			return
+		}
+
+		time.Sleep(time.Millisecond * 1000)
+	}
+}
+
+var moreChannelsEntity UserEntity = UserEntity{
+	Name: "MoreChannelsEntity",
+	Actions: []randutil.Choice{
+		{
+			Item:   actionMoreChannels,
+			Weight: 1,
+		},
+	},
+}
+
+var TestMoreChannelsBrowser TestRun = TestRun{
+	UserEntities: []randutil.Choice{
+		{
+			Item: UserEntityWithRateMultiplier{
+				Entity:         standardUserEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 70,
+		},
+		{
+			Item: UserEntityWithRateMultiplier{
+				Entity:         moreChannelsEntity,
 				RateMultiplier: 1.0,
 			},
 			Weight: 30,

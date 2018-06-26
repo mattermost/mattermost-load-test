@@ -19,7 +19,7 @@ type EntityConfig struct {
 	EntityName          string
 	EntityActions       []randutil.Choice
 	UserData            UserImportData
-	ChannelMap          map[string]string
+	ChannelMap          map[string]map[string]string
 	TeamMap             map[string]string
 	TownSquareMap       map[string]string
 	Client              *model.Client4
