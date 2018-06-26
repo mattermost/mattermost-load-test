@@ -275,6 +275,9 @@ func actionGetChannel(c *EntityConfig) {
 			mlog.Error(fmt.Sprintf("Got nil posts for get posts for channel. Resp was: %#v", resp))
 			return
 		}
+
+		uniqueUserIds := map[string]bool{}
+
 		for _, post := range posts.Posts {
 			if post.HasReactions {
 				if _, resp := c.Client.GetReactions(post.Id); resp.Error != nil {
@@ -293,6 +296,13 @@ func actionGetChannel(c *EntityConfig) {
 						}
 					}
 				}
+			}
+
+			if !uniqueUserIds[post.UserId] {
+				if _, resp := c.Client.GetProfileImage(post.UserId, ""); resp.Error != nil {
+					mlog.Error("Unable to get profile image for post.", mlog.String("channel_id", channelId), mlog.String("user_id", post.UserId), mlog.String("post_id", post.Id), mlog.Err(resp.Error))
+				}
+				uniqueUserIds[post.UserId] = true
 			}
 
 			if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.LinkPreviewChance {
