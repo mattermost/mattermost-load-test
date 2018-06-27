@@ -148,6 +148,7 @@ func deployToLoadtestInstance(instanceNum int, instanceAddr string, loadtestDist
 	for _, cmd := range []string{
 		"sudo apt-get update",
 		"sudo apt-get install -y jq",
+		"sudo apt-get install -y golang-go",
 		"sudo rm -rf /home/ubuntu/mattermost-load-test",
 		"tar -xvzf /home/ubuntu/mattermost-load-test.tar.gz",
 		"sudo chmod 600 /home/ubuntu/key.pem",
