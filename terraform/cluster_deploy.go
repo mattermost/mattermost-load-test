@@ -176,10 +176,7 @@ func deployToLoadtestInstance(instanceNum int, instanceAddr string, loadtestDist
 		return errors.Wrap(err, "Couldn't get app instance addresses.")
 	}
 
-	appURL, err := url.Parse(appURLs[0])
-	if err != nil {
-		return errors.Wrap(err, "Couldn't parse app url.")
-	}
+	appURL := appURLs[0]
 
 	siteURL, err := url.Parse(proxyURLs[instanceNum])
 	if err != nil {
@@ -192,23 +189,19 @@ func deployToLoadtestInstance(instanceNum int, instanceAddr string, loadtestDist
 	websocketURL := *siteURL
 	websocketURL.Scheme = "ws"
 
-	pprofURL := *appURL
-	pprofURL.Host = pprofURL.Host + ":8067"
-	pprofURL.Path = "/debug/pprof"
-
 	for k, v := range map[string]interface{}{
 		".ConnectionConfiguration.ServerURL":            serverURL.String(),
 		".ConnectionConfiguration.WebsocketURL":         websocketURL.String(),
-		".ConnectionConfiguration.PProfURL":             pprofURL.String(),
+		".ConnectionConfiguration.PProfURL":             "http://" + appURL + ":8067/debug/pprof",
 		".ConnectionConfiguration.DataSource":           cluster.DBConnectionString(),
 		".ConnectionConfiguration.LocalCommands":        false,
-		".ConnectionConfiguration.SSHHostnamePort":      appURL.String() + ":22",
+		".ConnectionConfiguration.SSHHostnamePort":      appURL + ":22",
 		".ConnectionConfiguration.SSHUsername":          "ubuntu",
 		".ConnectionConfiguration.SSHKey":               remoteSSHKeyPath,
 		".ConnectionConfiguration.MattermostInstallDir": "/opt/mattermost",
 		".ConnectionConfiguration.WaitForServerStart":   false,
 	} {
-		logger.Debug("updating config: " + k)
+		logger.Debugf("updating config %s=%v", k, v)
 		jsonValue, err := json.Marshal(v)
 		if err != nil {
 			return errors.Wrap(err, "invalid config value for key: "+k)
