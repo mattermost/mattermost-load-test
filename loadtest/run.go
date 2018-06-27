@@ -187,14 +187,14 @@ func RunTest(test *TestRun) error {
 		mlog.Info(fmt.Sprintf("Will run PProf after %v minutes.", cfg.ResultsConfiguration.PProfDelayMinutes))
 		go func() {
 			time.Sleep(time.Duration(cfg.ResultsConfiguration.PProfDelayMinutes) * time.Minute)
-			mlog.Info("Running PProf.")
+			mlog.Info("Running PProf", mlog.String("url", cfg.ConnectionConfiguration.PProfURL), mlog.Int("duration_s", cfg.ResultsConfiguration.PProfLength))
 			RunProfile(cfg.ConnectionConfiguration.PProfURL, cfg.ResultsConfiguration.PProfLength)
 		}()
 	}
 
 	select {
 	case <-interruptChannel:
-		mlog.Info("Interupted!")
+		mlog.Info("Interrupted!")
 	case <-timeoutchan:
 		mlog.Info("Test finished normally")
 	}
@@ -239,28 +239,45 @@ func RunTest(test *TestRun) error {
 	return nil
 }
 
-func RunProfile(pprofurl string, profileLength int) {
-	cmdgoroutine := exec.Command("go", "tool", "pprof", "-svg", pprofurl+"/goroutine")
-	cmdblock := exec.Command("go", "tool", "pprof", "-svg", pprofurl+"/block")
-	cmdprofile := exec.Command("go", "tool", "pprof", "-seconds="+strconv.Itoa(profileLength), "-svg", pprofurl+"/profile")
+func goCmd(args ...string) ([]byte, error) {
+	cmd := exec.Command("go", args...)
 
-	datagoroutine, err := cmdgoroutine.Output()
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		return nil, errors.Wrapf(err, "cmd.Run(go %v) failed: %s", args, string(stderr.Bytes()))
+	}
+
+	return stdout.Bytes(), nil
+}
+
+func pprofSvg(pprofUrl, svgFilename string, otherArgs ...string) error {
+	args := []string{"tool", "pprof"}
+	args = append(args, otherArgs...)
+	args = append(args, "-svg", pprofUrl)
+
+	svgBytes, err := goCmd(args...)
 	if err != nil {
+		return errors.Wrap(err, "pprof svg failed")
+	}
+
+	return ioutil.WriteFile(svgFilename, svgBytes, 0644)
+}
+
+func RunProfile(pprofUrl string, profileLength int) {
+	if err := pprofSvg(pprofUrl+"/goroutine", "goroutine.svg"); err != nil {
 		mlog.Error("Error running goroutine profile: " + err.Error())
 	}
-	ioutil.WriteFile("goroutine.svg", datagoroutine, 0644)
 
-	datablock, err := cmdblock.Output()
-	if err != nil {
+	if err := pprofSvg(pprofUrl+"/block", "block.svg"); err != nil {
 		mlog.Error("Error running block profile: " + err.Error())
 	}
-	ioutil.WriteFile("block.svg", datablock, 0644)
 
-	dataprofile, err := cmdprofile.Output()
-	if err != nil {
-		mlog.Error("Error running cpu profile: " + err.Error())
+	if err := pprofSvg(pprofUrl+"/profile", "profile.svg", "-seconds="+strconv.Itoa(profileLength)); err != nil {
+		mlog.Error("Error running block profile: " + err.Error())
 	}
-	ioutil.WriteFile("profile.svg", dataprofile, 0644)
 }
 
 func sendResultsToMMServer(server, username, password, channelId, message string, attachments []string) error {
