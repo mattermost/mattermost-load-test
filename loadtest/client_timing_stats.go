@@ -80,12 +80,18 @@ func (s *RouteStats) Merge(other *RouteStats) *RouteStats {
 }
 
 func (s *RouteStats) CalcResults() {
-	s.ErrorRate = float64(s.NumErrors) / float64(s.NumHits)
-	s.Max, _ = stats.Max(s.Duration)
-	s.Min, _ = stats.Min(s.Duration)
-	s.Mean, _ = stats.Mean(s.Duration)
-	s.Median, _ = stats.Median(s.Duration)
-	s.InterQuartileRange, _ = stats.InterQuartileRange(s.Duration)
+	if s.NumHits > 0 {
+		s.ErrorRate = float64(s.NumErrors) / float64(s.NumHits)
+	} else {
+		s.ErrorRate = 0
+	}
+	if len(s.Duration) > 0 {
+		s.Max, _ = stats.Max(s.Duration)
+		s.Min, _ = stats.Min(s.Duration)
+		s.Mean, _ = stats.Mean(s.Duration)
+		s.Median, _ = stats.Median(s.Duration)
+		s.InterQuartileRange, _ = stats.InterQuartileRange(s.Duration)
+	}
 }
 
 func NewClientTimingStats() *ClientTimingStats {
