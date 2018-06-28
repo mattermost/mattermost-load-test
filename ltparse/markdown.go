@@ -51,9 +51,9 @@ var (
 		},
 	}
 
-	timingSummaryMarkdown = template.Must(template.New("timingSummaryMarkdown").Parse(
+	singleTimingSummaryMarkdown = template.Must(template.New("singleTimingSummaryMarkdown").Funcs(funcMap).Parse(
 		`## Loadtest Results
-### Score: {{printf "%.2f" .GetScore}}
+### Score: {{printf "%.2f" .Actual.GetScore}}
 The score is the average of the 95th percentile, median and interquartile ranges in the routes below.
 
 ### Routes
@@ -75,6 +75,15 @@ The score is the average of the 95th percentile, median and interquartile ranges
 | Min Response Time | {{.Actual.Min}}ms |
 | Inter Quartile Range | {{.Actual.InterQuartileRange}} |
 {{end}}
+`,
+	))
+
+	comparisonTimingSummaryMarkdown = template.Must(template.New("comparisonTimingSummaryMarkdown").Funcs(funcMap).Parse(
+		`## Loadtest Results
+### Score: {{printf "%.2f" .Actual.GetScore}} ({{compareFloat64 .Actual.GetScore .Baseline.GetScore}}, relative to baseline)
+The score is the average of the 95th percentile, median and interquartile ranges in the routes below.
+
+### Routes
 `,
 	))
 
@@ -131,7 +140,12 @@ func sortedRoutes(routesMap map[string]*loadtest.RouteStats) []*loadtest.RouteSt
 }
 
 func dumpSingleTimingsMarkdown(timings *loadtest.ClientTimingStats, output io.Writer, verbose bool) error {
-	if err := timingSummaryMarkdown.Execute(output, timings); err != nil {
+	summaryData := struct {
+		Actual *loadtest.ClientTimingStats
+	}{
+		timings,
+	}
+	if err := singleTimingSummaryMarkdown.Execute(output, summaryData); err != nil {
 		return errors.Wrap(err, "error executing summary template")
 	}
 
@@ -147,7 +161,14 @@ func dumpSingleTimingsMarkdown(timings *loadtest.ClientTimingStats, output io.Wr
 }
 
 func dumpComparisonTimingsMarkdown(timings *loadtest.ClientTimingStats, baseline *loadtest.ClientTimingStats, output io.Writer, verbose bool) error {
-	if err := timingSummaryMarkdown.Execute(output, timings); err != nil {
+	summaryData := struct {
+		Actual   *loadtest.ClientTimingStats
+		Baseline *loadtest.ClientTimingStats
+	}{
+		timings,
+		baseline,
+	}
+	if err := comparisonTimingSummaryMarkdown.Execute(output, summaryData); err != nil {
 		return errors.Wrap(err, "error executing summary template")
 	}
 
