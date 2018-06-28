@@ -54,7 +54,7 @@ var (
 	timingSummaryMarkdown = template.Must(template.New("timingSummaryMarkdown").Parse(
 		`## Loadtest Results
 ### Score: {{printf "%.2f" .GetScore}}
-The score is the the average of the mean reponse times below.
+The score is the average of the 95th percentile, median and interquartile ranges in the routes below.
 
 ### Routes
 `,

@@ -158,12 +158,12 @@ func (ts *ClientTimingStats) AddTimingReport(timingReport TimedRoundTripperRepor
 	ts.AddRouteSample(path, int64(timingReport.RequestDuration/time.Millisecond), timingReport.StatusCode)
 }
 
-// Score is currently the average mean of all the routes
+// Score is the average of the 95th percentile, median and interquartile range of all routes.
 func (ts *ClientTimingStats) GetScore() float64 {
 	total := 0.0
 	num := 0.0
 	for _, stats := range ts.Routes {
-		total += stats.Mean
+		total += stats.Percentile95
 		total += stats.Median
 		total += stats.InterQuartileRange
 		num += 1.0
