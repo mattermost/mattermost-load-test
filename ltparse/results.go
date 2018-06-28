@@ -16,6 +16,13 @@ type ResultsConfig struct {
 	Output        io.Writer
 	Display       string
 	Aggregate     bool
+	Verbose       bool
+}
+
+type templateData struct {
+	Actual   *loadtest.RouteStats
+	Baseline *loadtest.RouteStats
+	Verbose  bool
 }
 
 func parseTimings(input io.Reader) ([]*loadtest.ClientTimingStats, error) {
@@ -84,9 +91,14 @@ func ParseResults(config *ResultsConfig) error {
 		}
 	}
 
+	timings.CalcResults()
+	if baselineTimings != nil {
+		baselineTimings.CalcResults()
+	}
+
 	switch config.Display {
 	case "markdown":
-		if err := dumpTimingsMarkdown(timings, baselineTimings, config.Output); err != nil {
+		if err := dumpTimingsMarkdown(timings, baselineTimings, config.Output, config.Verbose); err != nil {
 			return errors.Wrap(err, "failed to dump timings")
 		}
 	case "text":
@@ -95,7 +107,7 @@ func ParseResults(config *ResultsConfig) error {
 		}
 		fallthrough
 	default:
-		if err := dumpTimingsText(timings, config.Output); err != nil {
+		if err := dumpTimingsText(timings, config.Output, config.Verbose); err != nil {
 			return errors.Wrap(err, "failed to dump timings")
 		}
 	}

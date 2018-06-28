@@ -19,6 +19,8 @@ type RouteStatResults struct {
 	Min                float64
 	Mean               float64
 	Median             float64
+	Percentile90       float64
+	Percentile95       float64
 	InterQuartileRange float64
 }
 
@@ -33,6 +35,8 @@ type RouteStats struct {
 	Min                float64
 	Mean               float64
 	Median             float64
+	Percentile90       float64
+	Percentile95       float64
 	InterQuartileRange float64
 }
 
@@ -90,6 +94,8 @@ func (s *RouteStats) CalcResults() {
 		s.Min, _ = stats.Min(s.Duration)
 		s.Mean, _ = stats.Mean(s.Duration)
 		s.Median, _ = stats.Median(s.Duration)
+		s.Percentile90, _ = stats.Percentile(s.Duration, 90)
+		s.Percentile95, _ = stats.Percentile(s.Duration, 95)
 		s.InterQuartileRange, _ = stats.InterQuartileRange(s.Duration)
 	}
 }
@@ -152,12 +158,12 @@ func (ts *ClientTimingStats) AddTimingReport(timingReport TimedRoundTripperRepor
 	ts.AddRouteSample(path, int64(timingReport.RequestDuration/time.Millisecond), timingReport.StatusCode)
 }
 
-// Score is currently the average mean of all the routes
+// Score is the average of the 95th percentile, median and interquartile range of all routes.
 func (ts *ClientTimingStats) GetScore() float64 {
 	total := 0.0
 	num := 0.0
 	for _, stats := range ts.Routes {
-		total += stats.Mean
+		total += stats.Percentile95
 		total += stats.Median
 		total += stats.InterQuartileRange
 		num += 1.0

@@ -10,34 +10,39 @@ import (
 	"github.com/mattermost/mattermost-load-test/loadtest"
 )
 
-func dumpTimingsText(timings *loadtest.ClientTimingStats, output io.Writer) error {
-	const rates = `Total Hits: {{.NumHits}}
-Error Rate: {{percent .NumErrors .NumHits}}%
-Max Response Time: {{.Max}}ms
-Min Response Time: {{.Min}}ms
-Mean Response Time: {{printf "%.2f" .Mean}}ms
-Median Response Time: {{printf "%.2f" .Median}}ms
-Inter Quartile Range: {{.InterQuartileRange}}
-
+const text = `Total Hits: {{.Actual.NumHits}}
+Error Rate: {{percent .Actual.NumErrors .Actual.NumHits}}%
+Mean Response Time: {{printf "%.2f" .Actual.Mean}}ms
+Median Response Time: {{printf "%.2f" .Actual.Median}}ms
+95th Percentile: {{printf "%.2f" .Actual.Percentile95}}ms
+{{if .Verbose -}}
+90th Percentile: {{printf "%.2f" .Actual.Percentile90}}ms
+Max Response Time: {{.Actual.Max}}ms
+Min Response Time: {{.Actual.Min}}ms
+Inter Quartile Range: {{.Actual.InterQuartileRange}}
+{{end}}
 `
+
+func dumpTimingsText(timings *loadtest.ClientTimingStats, output io.Writer, verbose bool) error {
 	funcMap := template.FuncMap{
 		"percent": func(x, y int64) string {
 			return fmt.Sprintf("%.2f", float64(x)/float64(y)*100.0)
 		},
 	}
-	rateTemplate := template.Must(template.New("rates").Funcs(funcMap).Parse(rates))
+	rateTemplate := template.Must(template.New("rates").Funcs(funcMap).Parse(text))
 
 	fmt.Println("--------- Timings Report ------------")
 
 	for routeName, route := range timings.Routes {
 		fmt.Println("Route: " + routeName)
-		if err := rateTemplate.Execute(output, route); err != nil {
+		data := templateData{route, nil, verbose}
+		if err := rateTemplate.Execute(output, data); err != nil {
 			return errors.Wrap(err, "error executing template")
 		}
 	}
 
-	fmt.Printf("Score: %.2f", timings.GetScore())
-	fmt.Println("")
+	fmt.Fprintf(output, "Score: %.2f", timings.GetScore())
+	fmt.Fprintln(output, "")
 
 	return nil
 }
