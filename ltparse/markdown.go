@@ -61,18 +61,20 @@ The score is the the average of the mean reponse times below.
 	))
 
 	singleTimingTemplate = template.Must(template.New("singleTimingTemplate").Funcs(funcMap).Parse(
-		`#### {{.Name}}
+		`#### {{.Actual.Name}}
 | Metric | Actual |
 | --- | --- |
-| Hits | {{.NumHits}} |
-| Error Rate | {{printf "%.2f%%" .ErrorRate}} |
-| Max Response Time | {{.Max}}ms |
-| Min Response Time | {{.Min}}ms |
-| Mean Response Time | {{printf "%.2f" .Mean}}ms |
-| Median Response Time | {{printf "%.2f" .Median}}ms |
-| 90th Percentile | {{printf "%.2f" .Percentile90}}ms |
-| 95th Percentile | {{printf "%.2f" .Percentile95}}ms |
-| Inter Quartile Range | {{.InterQuartileRange}} |
+| Hits | {{.Actual.NumHits}} |
+| Error Rate | {{printf "%.2f%%" .Actual.ErrorRate}} |
+| Mean Response Time | {{printf "%.2f" .Actual.Mean}}ms |
+| Median Response Time | {{printf "%.2f" .Actual.Median}}ms |
+| 95th Percentile | {{printf "%.2f" .Actual.Percentile95}}ms |
+{{if .Verbose -}}
+| 90th Percentile | {{printf "%.2f" .Actual.Percentile90}}ms |
+| Max Response Time | {{.Actual.Max}}ms |
+| Min Response Time | {{.Actual.Min}}ms |
+| Inter Quartile Range | {{.Actual.InterQuartileRange}} |
+{{end}}
 `,
 	))
 
@@ -82,13 +84,15 @@ The score is the the average of the mean reponse times below.
 | --- | --- | --- | --- | --- |
 | Hits | {{.Baseline.NumHits}} | {{.Actual.NumHits}} | {{compareInt64 .Actual.NumHits .Baseline.NumHits}} | {{comparePercentageInt64 .Actual.NumHits .Baseline.NumHits}}
 | Error Rate | {{printf "%.2f%%" .Baseline.ErrorRate }} | {{printf "%.2f%%" .Actual.ErrorRate}} | {{comparePercentageFloat64 .Actual.ErrorRate .Baseline.ErrorRate}} | {{comparePercentageFloat64 .Actual.ErrorRate .Baseline.ErrorRate}} |
-| Max Response Time | {{.Baseline.Max}}ms | {{.Actual.Max}}ms | {{compareFloat64 .Actual.Max .Baseline.Max}}ms | {{comparePercentageFloat64 .Actual.Max .Baseline.Max}} |
-| Min Response Time | {{.Baseline.Min}}ms | {{.Actual.Min}}ms | {{compareFloat64 .Actual.Min .Baseline.Min}}ms | {{comparePercentageFloat64 .Actual.Min .Baseline.Min}} |
 | Mean Response Time | {{printf "%.2f" .Baseline.Mean}}ms | {{printf "%.2f" .Actual.Mean}}ms | {{compareFloat64 .Actual.Mean .Baseline.Mean}}ms | {{comparePercentageFloat64 .Actual.Mean .Baseline.Mean}} |
 | Median Response Time | {{printf "%.2f" .Baseline.Median}}ms | {{printf "%.2f" .Actual.Median}}ms | {{compareFloat64 .Actual.Median .Baseline.Median}}ms | {{comparePercentageFloat64 .Actual.Median .Baseline.Median}} |
-| 90th Percentile | {{printf "%.2f" .Baseline.Percentile90}}ms | {{printf "%.2f" .Actual.Percentile90}}ms | {{compareFloat64 .Actual.Percentile90 .Baseline.Percentile90}}ms | {{comparePercentageFloat64 .Actual.Percentile90 .Baseline.Percentile90}} |
 | 95th Percentile | {{printf "%.2f" .Baseline.Percentile95}}ms | {{printf "%.2f" .Actual.Percentile95}}ms | {{compareFloat64 .Actual.Percentile95 .Baseline.Percentile95}}ms | {{comparePercentageFloat64 .Actual.Percentile95 .Baseline.Percentile95}} |
+{{if .Verbose -}}
+| 90th Percentile | {{printf "%.2f" .Baseline.Percentile90}}ms | {{printf "%.2f" .Actual.Percentile90}}ms | {{compareFloat64 .Actual.Percentile90 .Baseline.Percentile90}}ms | {{comparePercentageFloat64 .Actual.Percentile90 .Baseline.Percentile90}} |
+| Max Response Time | {{.Baseline.Max}}ms | {{.Actual.Max}}ms | {{compareFloat64 .Actual.Max .Baseline.Max}}ms | {{comparePercentageFloat64 .Actual.Max .Baseline.Max}} |
+| Min Response Time | {{.Baseline.Min}}ms | {{.Actual.Min}}ms | {{compareFloat64 .Actual.Min .Baseline.Min}}ms | {{comparePercentageFloat64 .Actual.Min .Baseline.Min}} |
 | Inter Quartile Range | {{.Baseline.InterQuartileRange}} | {{.Actual.InterQuartileRange}} | {{compareFloat64 .Actual.InterQuartileRange .Baseline.InterQuartileRange}}ms | {{comparePercentageFloat64 .Actual.InterQuartileRange .Baseline.InterQuartileRange}} |
+{{end}}
 `,
 	))
 
@@ -96,15 +100,17 @@ The score is the the average of the mean reponse times below.
 		`#### {{.Name}}
 | Metric | Baseline | Actual | Delta |
 | --- | --- | --- | --- |
-| Hits | - | {{.NumHits}} | - |
-| Error Rate | - | {{printf "%.2f%%" .ErrorRate}} | - |
-| Max Response Time | - | {{.Max}}ms | - |
-| Min Response Time | - | {{.Min}}ms | - |
-| Mean Response Time | - | {{printf "%.2f" .Mean}}ms | - |
-| Median Response Time | - | {{printf "%.2f" .Median}}ms | - |
-| 90th Percentile | - | {{printf "%.2f" .Percentile90}}ms | - |
-| 95th Percentile | - | {{printf "%.2f" .Percentile95}}ms | - |
-| Inter Quartile Range | - | {{.InterQuartileRange}} | - |
+| Hits | - | {{.Actual.NumHits}} | - |
+| Error Rate | - | {{printf "%.2f%%" .Actual.ErrorRate}} | - |
+| Mean Response Time | - | {{printf "%.2f" .Actual.Mean}}ms | - |
+| Median Response Time | - | {{printf "%.2f" .Actual.Median}}ms | - |
+| 95th Percentile | - | {{printf "%.2f" .Actual.Percentile95}}ms | - |
+{{if .Verbose -}}
+| 90th Percentile | - | {{printf "%.2f" .Actual.Percentile90}}ms | - |
+| Max Response Time | - | {{.Actual.Max}}ms | - |
+| Min Response Time | - | {{.Actual.Min}}ms | - |
+| Inter Quartile Range | - | {{.Actual.InterQuartileRange}} | - |
+{{end}}
 `,
 	))
 )
@@ -124,13 +130,15 @@ func sortedRoutes(routesMap map[string]*loadtest.RouteStats) []*loadtest.RouteSt
 	return routes
 }
 
-func dumpSingleTimingsMarkdown(timings *loadtest.ClientTimingStats, output io.Writer) error {
+func dumpSingleTimingsMarkdown(timings *loadtest.ClientTimingStats, output io.Writer, verbose bool) error {
 	if err := timingSummaryMarkdown.Execute(output, timings); err != nil {
 		return errors.Wrap(err, "error executing summary template")
 	}
 
 	for _, route := range sortedRoutes(timings.Routes) {
-		if err := singleTimingTemplate.Execute(output, route); err != nil {
+		data := templateData{route, nil, verbose}
+
+		if err := singleTimingTemplate.Execute(output, data); err != nil {
 			return errors.Wrap(err, "error executing route template")
 		}
 	}
@@ -138,26 +146,20 @@ func dumpSingleTimingsMarkdown(timings *loadtest.ClientTimingStats, output io.Wr
 	return nil
 }
 
-func dumpComparisonTimingsMarkdown(timings *loadtest.ClientTimingStats, baseline *loadtest.ClientTimingStats, output io.Writer) error {
+func dumpComparisonTimingsMarkdown(timings *loadtest.ClientTimingStats, baseline *loadtest.ClientTimingStats, output io.Writer, verbose bool) error {
 	if err := timingSummaryMarkdown.Execute(output, timings); err != nil {
 		return errors.Wrap(err, "error executing summary template")
 	}
 
 	for _, route := range sortedRoutes(timings.Routes) {
-		baselineRoute, ok := baseline.Routes[route.Name]
-		if !ok {
-			if err := comparisonTimingWithoutBaselineTemplate.Execute(output, route); err != nil {
+		if baselineRoute, ok := baseline.Routes[route.Name]; !ok {
+			data := templateData{route, nil, verbose}
+			if err := comparisonTimingWithoutBaselineTemplate.Execute(output, data); err != nil {
 				return errors.Wrap(err, "error executing route template")
 			}
 		} else {
-			comparison := struct {
-				Actual   *loadtest.RouteStats
-				Baseline *loadtest.RouteStats
-			}{
-				route,
-				baselineRoute,
-			}
-			if err := comparisonTimingTemplate.Execute(output, comparison); err != nil {
+			data := templateData{route, baselineRoute, verbose}
+			if err := comparisonTimingTemplate.Execute(output, data); err != nil {
 				return errors.Wrap(err, "error executing route template")
 			}
 		}
@@ -166,10 +168,10 @@ func dumpComparisonTimingsMarkdown(timings *loadtest.ClientTimingStats, baseline
 	return nil
 }
 
-func dumpTimingsMarkdown(timings *loadtest.ClientTimingStats, baselineTimings *loadtest.ClientTimingStats, output io.Writer) error {
+func dumpTimingsMarkdown(timings *loadtest.ClientTimingStats, baselineTimings *loadtest.ClientTimingStats, output io.Writer, verbose bool) error {
 	if baselineTimings == nil {
-		return dumpSingleTimingsMarkdown(timings, output)
+		return dumpSingleTimingsMarkdown(timings, output, verbose)
 	} else {
-		return dumpComparisonTimingsMarkdown(timings, baselineTimings, output)
+		return dumpComparisonTimingsMarkdown(timings, baselineTimings, output, verbose)
 	}
 }

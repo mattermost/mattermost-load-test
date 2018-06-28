@@ -21,6 +21,7 @@ func resultsCmd(cmd *cobra.Command, args []string) error {
 	config.Aggregate, _ = cmd.Flags().GetBool("aggregate")
 	inputFilename, _ := cmd.Flags().GetString("file")
 	baselineFilename, _ := cmd.Flags().GetString("baseline")
+	verbose, _ := cmd.Flags().GetBool("verbose")
 
 	config.Output = os.Stdout
 
@@ -51,6 +52,8 @@ func resultsCmd(cmd *cobra.Command, args []string) error {
 		config.BaselineInput = baselineFile
 	}
 
+	config.Verbose = verbose
+
 	if err := ltparse.ParseResults(&config); err != nil {
 		return err
 	}
@@ -63,6 +66,7 @@ func init() {
 	results.Flags().StringP("display", "d", "text", "one of 'text' or 'markdown'")
 	results.Flags().BoolP("aggregate", "a", false, "aggregate all results found instead of just picking the last")
 	results.Flags().StringP("baseline", "b", "", "a file containing structured logs to which to compare results")
+	results.Flags().BoolP("verbose", "v", false, "display additional statistics")
 
 	rootCmd.AddCommand(results)
 }
