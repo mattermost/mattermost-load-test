@@ -67,6 +67,11 @@ var tests []TestItem = []TestItem{
 		ShortDesc: "Test browsing more channels while under load",
 		Test:      &loadtest.TestMoreChannelsBrowser,
 	},
+	{
+		Name:      "autocomplete",
+		ShortDesc: "Test autocomplete",
+		Test:      &loadtest.TestAutocomplete,
+	},
 }
 
 func main() {
