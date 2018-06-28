@@ -6,6 +6,7 @@ package loadtest
 import (
 	"fmt"
 	"math/rand"
+	"net/http"
 	"runtime"
 	"strconv"
 	"time"
@@ -14,8 +15,10 @@ import (
 	"github.com/mattermost/mattermost-server/model"
 )
 
-func newClientFromToken(token string, serverUrl string) *model.Client4 {
-	client := model.NewAPIv4Client(serverUrl)
+func newClientFromToken(httpClient *http.Client, token string, serverUrl string) *model.Client4 {
+	// Lifted from model.NewAPIv4Client
+	client := &model.Client4{serverUrl, serverUrl + model.API_URL_SUFFIX, httpClient, "", ""}
+
 	client.AuthToken = token
 	client.AuthType = model.HEADER_BEARER
 	return client
@@ -61,8 +64,9 @@ func loginAsUsers(cfg *LoadTestConfig, adminClient *model.Client4, entityStartNu
 	return activeTokens
 }
 
-func getAdminClient(serverURL string, adminEmail string, adminPass string, cmdrun ServerCLICommandRunner) *model.Client4 {
-	client := model.NewAPIv4Client(serverURL)
+func getAdminClient(httpClient *http.Client, serverURL string, adminEmail string, adminPass string, cmdrun ServerCLICommandRunner) *model.Client4 {
+	// Lifted from model.NewAPIv4Client
+	client := &model.Client4{serverURL, serverURL + model.API_URL_SUFFIX, httpClient, "", ""}
 
 	if success, resp := client.GetPing(); resp.Error != nil || success != "OK" {
 		mlog.Error(fmt.Sprintf("Failed to ping server at %v", serverURL))

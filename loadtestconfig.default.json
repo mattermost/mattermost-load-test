@@ -15,7 +15,10 @@
         "AdminEmail": "success+ltadmin@simulator.amazonses.com",
         "AdminPassword": "ltpassword",
         "SkipBulkload": false,
-        "WaitForServerStart": false
+        "WaitForServerStart": false,
+        "MaxIdleConns": 100,
+        "MaxIdleConnsPerHost": 128,
+        "IdleConnTimeoutMilliseconds": 90000
     },
     "LoadtestEnviromentConfig": {
         "NumTeams": 1,
