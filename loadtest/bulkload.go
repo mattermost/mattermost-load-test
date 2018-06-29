@@ -157,10 +157,10 @@ type SchemeImportData struct {
 	DisplayName             string          `json:"display_name"`
 	Description             string          `json:"description"`
 	Scope                   string          `json:"scope"`
-	DefaultTeamAdminRole    *RoleImportData `json:"default_team_admin_role"`
-	DefaultTeamUserRole     *RoleImportData `json:"default_team_user_role"`
-	DefaultChannelAdminRole *RoleImportData `json:"default_channel_admin_role"`
-	DefaultChannelUserRole  *RoleImportData `json:"default_channel_user_role"`
+	DefaultTeamAdminRole    *RoleImportData `json:"default_team_admin_role,omitempty"`
+	DefaultTeamUserRole     *RoleImportData `json:"default_team_user_role,omitempty"`
+	DefaultChannelAdminRole *RoleImportData `json:"default_channel_admin_role,omitempty"`
+	DefaultChannelUserRole  *RoleImportData `json:"default_channel_user_role,omitempty"`
 }
 
 type RoleImportData struct {
@@ -246,22 +246,22 @@ func generateTeamSchemes(numSchemes int) *[]SchemeImportData {
 			DisplayName: "Loadtest Team Scheme " + strconv.Itoa(schemeNum),
 			Scope:       "team", // model.SCHEME_SCOPE_TEAM
 			DefaultTeamAdminRole: &RoleImportData{
-				Name:        "loadtest-tsta-role-" + strconv.Itoa(schemeNum),
+				Name:        "loadtest_tsta_role_" + strconv.Itoa(schemeNum),
 				DisplayName: "Loadtest Team Scheme DTA Role " + strconv.Itoa(schemeNum),
 				Permissions: strings.Fields(DEFAULT_PERMISSIONS_TEAM_ADMIN),
 			},
 			DefaultTeamUserRole: &RoleImportData{
-				Name:        "loadtest-tstu-role-" + strconv.Itoa(schemeNum),
+				Name:        "loadtest_tstu_role_" + strconv.Itoa(schemeNum),
 				DisplayName: "Loadtest Team Scheme DTU Role " + strconv.Itoa(schemeNum),
 				Permissions: strings.Fields(DEFAULT_PERMISSIONS_TEAM_USER),
 			},
 			DefaultChannelAdminRole: &RoleImportData{
-				Name:        "loadtest-tsca-role-" + strconv.Itoa(schemeNum),
+				Name:        "loadtest_tsca_role_" + strconv.Itoa(schemeNum),
 				DisplayName: "Loadtest Team Scheme DCA Role " + strconv.Itoa(schemeNum),
 				Permissions: strings.Fields(DEFAULT_PERMISSIONS_CHANNEL_ADMIN),
 			},
 			DefaultChannelUserRole: &RoleImportData{
-				Name:        "loadtest-tscu-role-" + strconv.Itoa(schemeNum),
+				Name:        "loadtest_tscu_role_" + strconv.Itoa(schemeNum),
 				DisplayName: "Loadtest Team Scheme DCU Role " + strconv.Itoa(schemeNum),
 				Permissions: strings.Fields(DEFAULT_PERMISSIONS_CHANNEL_USER),
 			},
@@ -280,12 +280,12 @@ func generateChannelSchemes(numSchemes int) *[]SchemeImportData {
 			DisplayName: "Loadtest Channel Scheme " + strconv.Itoa(schemeNum),
 			Scope:       "channel", // model.SCHEME_SCOPE_CHANNEL
 			DefaultChannelAdminRole: &RoleImportData{
-				Name:        "loadtest-csca-role-" + strconv.Itoa(schemeNum),
+				Name:        "loadtest_csca_role_" + strconv.Itoa(schemeNum),
 				DisplayName: "Loadtest Channel Scheme DCA Role " + strconv.Itoa(schemeNum),
 				Permissions: strings.Fields(DEFAULT_PERMISSIONS_CHANNEL_ADMIN),
 			},
 			DefaultChannelUserRole: &RoleImportData{
-				Name:        "loadtest-cscu-role-" + strconv.Itoa(schemeNum),
+				Name:        "loadtest_cscu_role_" + strconv.Itoa(schemeNum),
 				DisplayName: "Loadtest Channel Scheme DCU Role " + strconv.Itoa(schemeNum),
 				Permissions: strings.Fields(DEFAULT_PERMISSIONS_CHANNEL_USER),
 			},
@@ -365,8 +365,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 		usersInTeam := make([]int, 0, numUsersToAdd)
 		for userNum := 0; userNum < numUsersToAdd; userNum++ {
 			userTeamImportData := &UserTeamImportData{
-				Name:  currentTeam.Name,
-				Roles: "team_user",
+				Name: currentTeam.Name,
 			}
 			users[userPermutation[userNum]].Teams = append(users[userPermutation[userNum]].Teams, *userTeamImportData)
 			users[userPermutation[userNum]].TeamChoice = append(users[userPermutation[userNum]].TeamChoice, randutil.Choice{
@@ -403,8 +402,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 			for userInTeamNum := 0; userInTeamNum < numUsersToAddChannel; userInTeamNum++ {
 				userNum := usersInTeam[usersInTeamPermutation[userInTeamNum]]
 				userChannelImportData := &UserChannelImportData{
-					Name:  channel.Name,
-					Roles: "channel_user",
+					Name: channel.Name,
 				}
 				users[userNum].Teams[len(users[userNum].Teams)-1].Channels = append(users[userNum].Teams[len(users[userNum].Teams)-1].Channels, *userChannelImportData)
 				users[userNum].Teams[len(users[userNum].Teams)-1].ChannelChoice = append(users[userNum].Teams[len(users[userNum].Teams)-1].ChannelChoice, randutil.Choice{
