@@ -365,8 +365,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 		usersInTeam := make([]int, 0, numUsersToAdd)
 		for userNum := 0; userNum < numUsersToAdd; userNum++ {
 			userTeamImportData := &UserTeamImportData{
-				Name:  currentTeam.Name,
-				Roles: "team_user",
+				Name: currentTeam.Name,
 			}
 			users[userPermutation[userNum]].Teams = append(users[userPermutation[userNum]].Teams, *userTeamImportData)
 			users[userPermutation[userNum]].TeamChoice = append(users[userPermutation[userNum]].TeamChoice, randutil.Choice{
@@ -403,8 +402,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 			for userInTeamNum := 0; userInTeamNum < numUsersToAddChannel; userInTeamNum++ {
 				userNum := usersInTeam[usersInTeamPermutation[userInTeamNum]]
 				userChannelImportData := &UserChannelImportData{
-					Name:  channel.Name,
-					Roles: "channel_user",
+					Name: channel.Name,
 				}
 				users[userNum].Teams[len(users[userNum].Teams)-1].Channels = append(users[userNum].Teams[len(users[userNum].Teams)-1].Channels, *userChannelImportData)
 				users[userNum].Teams[len(users[userNum].Teams)-1].ChannelChoice = append(users[userNum].Teams[len(users[userNum].Teams)-1].ChannelChoice, randutil.Choice{
