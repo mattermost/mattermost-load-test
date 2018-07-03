@@ -14,6 +14,7 @@ const masterMySQLConfig = `[mysqld]
 log_bin
 skip_name_resolve
 max_connections = 300
+innodb_log_buffer_size = 128M
 `
 
 const slaveMySQLConfig = `[mysqld]

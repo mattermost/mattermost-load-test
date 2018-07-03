@@ -72,17 +72,25 @@ func (c *Cluster) bulkLoad(loadtestPod string, appPod string, force bool) error 
 		log.Info(fmt.Sprintf("system admin already created or failed to create err=%v output=%v", err, string(out)))
 	}
 
+	log.Info("bulk import...")
+	startBulkload := time.Now()
 	cmd = exec.Command("kubectl", "exec", appPod, "--", "./bin/platform", "import", "bulk", "--workers", "64", "--apply", "./loadtestbulkload.json")
 	if out, err := cmd.CombinedOutput(); err != nil {
+		log.Info("Import failed after: %s", time.Since(startBulkload))
 		return errors.Wrap(err, "bulk import failed: "+string(out))
 	}
+	log.Info("Import took: %s", time.Since(startBulkload))
 
-	// TODO: uncomment when post loading is sped up
+	// TODO: uncomment when post loading happens at acceptable speed
 	/*
+		log.Info("loadposts...")
+		startLoadposts := time.Now()
 		cmd = exec.Command("kubectl", "exec", loadtestPod, "./bin/loadtest", "loadposts")
 		if out, err := cmd.CombinedOutput(); err != nil {
+			log.Info("Loadposts failed after: %s", time.Since(startLoadposts))
 			return errors.Wrap(err, "loading posts failed: "+string(out))
 		}
+		log.Info("Loadposts took: %s", time.Since(startLoadposts))
 	*/
 
 	c.Config.BulkLoadComplete = true
