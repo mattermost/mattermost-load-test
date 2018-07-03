@@ -23,6 +23,10 @@ import (
 	"github.com/mattermost/mattermost-server/utils"
 )
 
+const (
+	OPENGRAPH_TEST_URL = "https://s3.amazonaws.com/mattermost-load-test-media/index.html"
+)
+
 type TestRun struct {
 	UserEntities []randutil.Choice
 }
@@ -250,6 +254,7 @@ func actionGetChannel(c *EntityConfig) {
 			mlog.Error(fmt.Sprintf("Got nil posts for get posts for channel. Resp was: %#v", resp))
 			return
 		}
+		index := 0
 		for _, post := range posts.Posts {
 			if post.HasReactions {
 				if _, resp := c.Client.GetReactions(post.Id); resp.Error != nil {
@@ -269,6 +274,14 @@ func actionGetChannel(c *EntityConfig) {
 					}
 				}
 			}
+
+			// Assume a link every 5 posts
+			if index%5 == 0 {
+				if _, resp := c.Client.OpenGraph(OPENGRAPH_TEST_URL); resp.Error != nil {
+					mlog.Error("Unable to get open graph for url.", mlog.String("url", OPENGRAPH_TEST_URL), mlog.String("user_id", post.UserId), mlog.Err(resp.Error))
+				}
+			}
+			index++
 		}
 	}
 }
