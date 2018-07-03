@@ -5,17 +5,22 @@ package loadtest
 
 import (
 	"bytes"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"math/rand"
+	"net/url"
+	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
 	sqlx "github.com/jmoiron/sqlx"
 
-	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 
 	"github.com/icrowley/fake"
@@ -25,10 +30,10 @@ import (
 )
 
 const (
-	DEFAULT_PERMISSIONS_TEAM_ADMIN = "edit_others_posts remove_user_from_team manage_team import_team manage_team_roles manage_channel_roles manage_others_webhooks manage_slash_commands manage_others_slash_commands manage_webhooks delete_post delete_others_posts"
-	DEFAULT_PERMISSIONS_TEAM_USER = "list_team_channels join_public_channels read_public_channel view_team create_public_channel manage_public_channel_properties delete_public_channel create_private_channel manage_private_channel_properties delete_private_channel invite_user add_user_to_team"
+	DEFAULT_PERMISSIONS_TEAM_ADMIN    = "edit_others_posts remove_user_from_team manage_team import_team manage_team_roles manage_channel_roles manage_others_webhooks manage_slash_commands manage_others_slash_commands manage_webhooks delete_post delete_others_posts"
+	DEFAULT_PERMISSIONS_TEAM_USER     = "list_team_channels join_public_channels read_public_channel view_team create_public_channel manage_public_channel_properties delete_public_channel create_private_channel manage_private_channel_properties delete_private_channel invite_user add_user_to_team"
 	DEFAULT_PERMISSIONS_CHANNEL_ADMIN = "manage_channel_roles"
-	DEFAULT_PERMISSIONS_CHANNEL_USER = "read_channel add_reaction remove_reaction manage_public_channel_members upload_file get_public_link create_post use_slash_commands manage_private_channel_members delete_post edit_post"
+	DEFAULT_PERMISSIONS_CHANNEL_USER  = "read_channel add_reaction remove_reaction manage_public_channel_members upload_file get_public_link create_post use_slash_commands manage_private_channel_members delete_post edit_post"
 )
 
 type LoadtestEnviromentConfig struct {
@@ -321,7 +326,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 				Type:        "O",
 				Header:      "Hea: This is loadtest channel " + strconv.Itoa(teamNum) + " on team " + strconv.Itoa(teamNum),
 				Purpose:     "Pur: This is loadtest channel " + strconv.Itoa(teamNum) + " on team " + strconv.Itoa(teamNum),
-				Scheme: scheme,
+				Scheme:      scheme,
 			})
 			channelsByTeam[teamNum] = append(channelsByTeam[teamNum], len(channels)-1)
 		}
@@ -444,16 +449,16 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 	// Convert all the objects to line objects
 	for i := range *teamSchemes {
 		lineObjectsChan <- &LineImportData{
-			Type: "scheme",
-			Scheme: &(*teamSchemes)[i],
+			Type:    "scheme",
+			Scheme:  &(*teamSchemes)[i],
 			Version: 1,
 		}
 	}
 
 	for i := range *channelSchemes {
 		lineObjectsChan <- &LineImportData{
-			Type: "scheme",
-			Scheme: &(*channelSchemes)[i],
+			Type:    "scheme",
+			Scheme:  &(*channelSchemes)[i],
 			Version: 1,
 		}
 	}
@@ -494,7 +499,13 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 }
 
 func ConnectToDB(driverName, dataSource string) *sqlx.DB {
-	db, err := sqlx.Open(driverName, dataSource)
+	url, err := url.Parse(dataSource)
+	if err != nil {
+		fmt.Println("Unable to parse datasource: " + err.Error())
+		return nil
+	}
+	url.RawQuery = "charset=utf8mb4,utf8"
+	db, err := sqlx.Open(driverName, url.String())
 	if err != nil {
 		fmt.Println("Unable to open database: " + err.Error())
 		return nil
@@ -526,17 +537,6 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 	}
 
 	numPostsPerChannel := int(math.Floor(float64(cfg.LoadtestEnviromentConfig.NumPosts) / float64(cfg.LoadtestEnviromentConfig.NumTeams*cfg.LoadtestEnviromentConfig.NumChannelsPerTeam)))
-
-	statementStr := "INSERT INTO Posts (Id, CreateAt, UpdateAt, EditAt, DeleteAt, IsPinned, UserId, ChannelId, RootId, ParentId, OriginalId, Message, Type, Props, Hashtags, Filenames, FileIds, HasReactions) VALUES "
-	for i := 0; i < 100; i++ {
-		statementStr += "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?),"
-	}
-	statementStr = statementStr[0 : len(statementStr)-1]
-	statement, err := db.Prepare(db.Rebind(statementStr))
-	if err != nil {
-		mlog.Error("Unable to prepare statment", mlog.String("statement", statementStr), mlog.Err(err))
-		return
-	}
 
 	// Generate a random time before now, either within the configured post time range or after the given time.
 	randomTime := func(after *time.Time) time.Time {
@@ -587,8 +587,29 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 			}
 		}
 
+		if _, err := db.Exec("SET autocommit=0,unique_checks=0,foreign_key_checks=0"); err != nil {
+			mlog.Error("Couldn't temporary set values for performance.", mlog.Err(err))
+			return
+		}
+		defer func() {
+			if _, err := db.Exec("SET autocommit=1,unique_checks=1,foreign_key_checks=1"); err != nil {
+				mlog.Critical("Couldn't set temporary values back to defaults, your DB is in a bad state!", mlog.Err(err))
+				return
+			}
+		}()
+
+		csvLines := make(chan []string)
+		var wg sync.WaitGroup
+		for i := 0; i < 4; i++ {
+			wg.Add(1)
+			go func() {
+				importCSVToSQL(csvLines, db)
+				wg.Done()
+			}()
+		}
+
 		mlog.Info("Thread splitting", mlog.String("team", team.Name))
-		ThreadSplit(len(channels), 16, PrintCounter, func(channelNum int) {
+		ThreadSplit(len(channels), 4, PrintCounter, func(channelNum int) {
 			mlog.Info("Thread", mlog.Int("channel_num", channelNum))
 			// Only recognizes multiples of 100
 			type rootPost struct {
@@ -597,13 +618,11 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 			}
 			rootPosts := make([]rootPost, 0)
 			for i := 0; i < numPostsPerChannel; i += 100 {
-				vals := []interface{}{}
-
 				for j := 0; j < 100; j++ {
 					message := "PL" + fake.SentencesN(1)
 					now := randomTime(nil)
 					id := model.NewId()
-					zero := 0
+					zero := "0"
 					emptyobject := "{}"
 					emptyarray := "[]"
 
@@ -618,14 +637,51 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 						}
 					}
 
-					vals = append(vals, id, now.Unix()*1000, now.Unix()*1000, zero, zero, zero, users[(j+i+channelNum)%len(users)].Id, channels[channelNum].Id, parentRoot, parentRoot, "", message, "", emptyobject, "", emptyarray, emptyarray, zero)
-				}
-
-				if _, err := statement.Exec(vals...); err != nil {
-					mlog.Error("Error running statement", mlog.Err(err))
+					results := make([]string, 0, 19)
+					results = append(results, id, fmt.Sprint(now.Unix()*1000), fmt.Sprint(now.Unix()*1000), zero, zero, zero, users[(j+i+channelNum)%len(users)].Id, channels[channelNum].Id, parentRoot, parentRoot, "", message, "", emptyobject, "", emptyarray, emptyarray, zero)
+					csvLines <- results
 				}
 			}
 		})
+
+		wg.Wait()
 	}
-	statement.Close()
+}
+
+func importCSVToSQL(csvLines chan []string, db *sqlx.DB) {
+	done := false
+	for !done {
+		tmpfile, err := ioutil.TempFile("", "loadtestload")
+		if err != nil {
+			mlog.Error("Can't create a temporary file for loading posts.", mlog.Err(err))
+			return
+		}
+		csvWriter := csv.NewWriter(tmpfile)
+
+		numLines := 0
+		for {
+			line, ok := <-csvLines
+			if !ok {
+				done = true
+				break
+			}
+			if err := csvWriter.Write(line); err != nil {
+				mlog.Error("Failed to write csv line.", mlog.Err(err))
+			}
+			numLines += 1
+			if numLines >= 1000 {
+				break
+			}
+		}
+
+		csvWriter.Flush()
+		tmpfile.Close()
+
+		mysql.RegisterLocalFile(tmpfile.Name())
+		_, err = db.Exec("LOAD DATA LOCAL INFILE '" + tmpfile.Name() + "' INTO TABLE Posts")
+		if err != nil {
+			mlog.Error("Couldn't load csv data", mlog.Err(err))
+		}
+		os.Remove(tmpfile.Name())
+	}
 }
