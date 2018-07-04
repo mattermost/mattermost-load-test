@@ -3,7 +3,6 @@ package ltparse
 import (
 	"fmt"
 	"io"
-	"sort"
 	"text/template"
 
 	"github.com/pkg/errors"
@@ -123,21 +122,6 @@ The score is the average of the 95th percentile, median and interquartile ranges
 `,
 	))
 )
-
-func sortedRoutes(routesMap map[string]*loadtest.RouteStats) []*loadtest.RouteStats {
-	routeNames := make([]string, 0, len(routesMap))
-	for routeName := range routesMap {
-		routeNames = append(routeNames, routeName)
-	}
-	sort.Strings(routeNames)
-
-	routes := make([]*loadtest.RouteStats, 0, len(routesMap))
-	for _, routeName := range routeNames {
-		routes = append(routes, routesMap[routeName])
-	}
-
-	return routes
-}
 
 func dumpSingleTimingsMarkdown(timings *loadtest.ClientTimingStats, output io.Writer, verbose bool) error {
 	summaryData := struct {

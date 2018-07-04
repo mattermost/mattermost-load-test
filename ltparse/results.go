@@ -3,6 +3,7 @@ package ltparse
 import (
 	"encoding/json"
 	"io"
+	"sort"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
@@ -23,6 +24,21 @@ type templateData struct {
 	Actual   *loadtest.RouteStats
 	Baseline *loadtest.RouteStats
 	Verbose  bool
+}
+
+func sortedRoutes(routesMap map[string]*loadtest.RouteStats) []*loadtest.RouteStats {
+	routeNames := make([]string, 0, len(routesMap))
+	for routeName := range routesMap {
+		routeNames = append(routeNames, routeName)
+	}
+	sort.Strings(routeNames)
+
+	routes := make([]*loadtest.RouteStats, 0, len(routesMap))
+	for _, routeName := range routeNames {
+		routes = append(routes, routesMap[routeName])
+	}
+
+	return routes
 }
 
 func parseTimings(input io.Reader) ([]*loadtest.ClientTimingStats, error) {

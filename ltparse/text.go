@@ -11,7 +11,7 @@ import (
 )
 
 const text = `Total Hits: {{.Actual.NumHits}}
-Error Rate: {{percent .Actual.NumErrors .Actual.NumHits}}%
+Error Rate: {{percent .Actual.ErrorRate}}
 Mean Response Time: {{printf "%.2f" .Actual.Mean}}ms
 Median Response Time: {{printf "%.2f" .Actual.Median}}ms
 95th Percentile: {{printf "%.2f" .Actual.Percentile95}}ms
@@ -25,24 +25,23 @@ Inter Quartile Range: {{.Actual.InterQuartileRange}}
 
 func dumpTimingsText(timings *loadtest.ClientTimingStats, output io.Writer, verbose bool) error {
 	funcMap := template.FuncMap{
-		"percent": func(x, y int64) string {
-			return fmt.Sprintf("%.2f", float64(x)/float64(y)*100.0)
+		"percent": func(x float64) string {
+			return fmt.Sprintf("%.2f%%", float64(x)*100.0)
 		},
 	}
 	rateTemplate := template.Must(template.New("rates").Funcs(funcMap).Parse(text))
 
-	fmt.Println("--------- Timings Report ------------")
+	fmt.Fprint(output, "--------- Timings Report ------------\n")
 
-	for routeName, route := range timings.Routes {
-		fmt.Println("Route: " + routeName)
+	for _, route := range sortedRoutes(timings.Routes) {
+		fmt.Fprintf(output, "Route: %s\n", route.Name)
 		data := templateData{route, nil, verbose}
 		if err := rateTemplate.Execute(output, data); err != nil {
 			return errors.Wrap(err, "error executing template")
 		}
 	}
 
-	fmt.Fprintf(output, "Score: %.2f", timings.GetScore())
-	fmt.Fprintln(output, "")
+	fmt.Fprintf(output, "Score: %.2f\n", timings.GetScore())
 
 	return nil
 }
