@@ -26,6 +26,7 @@ type UserEntitiesConfiguration struct {
 	EnableRequestTiming               bool
 	ChannelLinkChance                 float64
 	UploadImageChance                 float64
+	LinkPreviewChance                 float64
 	DoStatusPolling                   bool
 	RandomizeEntitySelection          bool
 }
