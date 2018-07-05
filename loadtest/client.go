@@ -86,8 +86,8 @@ func getAdminClient(httpClient *http.Client, serverURL string, adminEmail string
 	}
 
 	var adminUser *model.User
-	if user, _ := client.Login(adminEmail, adminPass); user == nil {
-		mlog.Info("Failed to login as admin user.")
+	if user, resp := client.Login(adminEmail, adminPass); user == nil {
+		mlog.Info(fmt.Sprintf("Failed to login as admin user: %s", resp.Error.Error()))
 		if cmdrun == nil {
 			mlog.Error("Unable to create admin user because was not able to connect to app server. Please create the admin user manually or fill in SSH information.")
 			mlog.Error(fmt.Sprintf("Command to create admin user: ./bin/platform user create --email %v --password %v --system_admin --username ltadmin", adminEmail, adminPass))
