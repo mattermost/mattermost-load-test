@@ -17,11 +17,13 @@ import (
 
 func newClientFromToken(httpClient *http.Client, token string, serverUrl string) *model.Client4 {
 	// Lifted from model.NewAPIv4Client
-	client := &model.Client4{serverUrl, serverUrl + model.API_URL_SUFFIX, httpClient, "", ""}
-
-	client.AuthToken = token
-	client.AuthType = model.HEADER_BEARER
-	return client
+	return &model.Client4{
+		Url:        serverUrl,
+		ApiUrl:     serverUrl + model.API_URL_SUFFIX,
+		HttpClient: httpClient,
+		AuthToken:  token,
+		AuthType:   model.HEADER_BEARER,
+	}
 }
 
 func loginAsUsers(cfg *LoadTestConfig, adminClient *model.Client4, entityStartNum int, seed int64) []string {
@@ -66,7 +68,11 @@ func loginAsUsers(cfg *LoadTestConfig, adminClient *model.Client4, entityStartNu
 
 func getAdminClient(httpClient *http.Client, serverURL string, adminEmail string, adminPass string, cmdrun ServerCLICommandRunner) *model.Client4 {
 	// Lifted from model.NewAPIv4Client
-	client := &model.Client4{serverURL, serverURL + model.API_URL_SUFFIX, httpClient, "", ""}
+	client := &model.Client4{
+		Url:        serverURL,
+		ApiUrl:     serverURL + model.API_URL_SUFFIX,
+		HttpClient: httpClient,
+	}
 
 	if success, resp := client.GetPing(); resp.Error != nil || success != "OK" {
 		mlog.Error(fmt.Sprintf("Failed to ping server at %v", serverURL))
