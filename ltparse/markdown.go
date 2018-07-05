@@ -3,7 +3,6 @@ package ltparse
 import (
 	"fmt"
 	"io"
-	"sort"
 	"text/template"
 
 	"github.com/pkg/errors"
@@ -13,6 +12,9 @@ import (
 
 var (
 	funcMap = template.FuncMap{
+		"percent": func(x float64) string {
+			return fmt.Sprintf("%.2f%%", float64(x)*100.0)
+		},
 		"compareInt64": func(a, b int64) string {
 			delta := a - b
 			if delta == 0 {
@@ -65,7 +67,7 @@ The score is the average of the 95th percentile, median and interquartile ranges
 | Metric | Actual |
 | --- | --- |
 | Hits | {{.Actual.NumHits}} |
-| Error Rate | {{printf "%.2f%%" .Actual.ErrorRate}} |
+| Error Rate | {{percent .Actual.ErrorRate}} |
 | Mean Response Time | {{printf "%.2f" .Actual.Mean}}ms |
 | Median Response Time | {{printf "%.2f" .Actual.Median}}ms |
 | 95th Percentile | {{printf "%.2f" .Actual.Percentile95}}ms |
@@ -92,7 +94,7 @@ The score is the average of the 95th percentile, median and interquartile ranges
 | Metric | Baseline | Actual | Delta | Delta % |
 | --- | --- | --- | --- | --- |
 | Hits | {{.Baseline.NumHits}} | {{.Actual.NumHits}} | {{compareInt64 .Actual.NumHits .Baseline.NumHits}} | {{comparePercentageInt64 .Actual.NumHits .Baseline.NumHits}}
-| Error Rate | {{printf "%.2f%%" .Baseline.ErrorRate }} | {{printf "%.2f%%" .Actual.ErrorRate}} | {{comparePercentageFloat64 .Actual.ErrorRate .Baseline.ErrorRate}} | {{comparePercentageFloat64 .Actual.ErrorRate .Baseline.ErrorRate}} |
+| Error Rate | {{percent .Baseline.ErrorRate }} | {{percent .Actual.ErrorRate}} | {{comparePercentageFloat64 .Actual.ErrorRate .Baseline.ErrorRate}} | {{comparePercentageFloat64 .Actual.ErrorRate .Baseline.ErrorRate}} |
 | Mean Response Time | {{printf "%.2f" .Baseline.Mean}}ms | {{printf "%.2f" .Actual.Mean}}ms | {{compareFloat64 .Actual.Mean .Baseline.Mean}}ms | {{comparePercentageFloat64 .Actual.Mean .Baseline.Mean}} |
 | Median Response Time | {{printf "%.2f" .Baseline.Median}}ms | {{printf "%.2f" .Actual.Median}}ms | {{compareFloat64 .Actual.Median .Baseline.Median}}ms | {{comparePercentageFloat64 .Actual.Median .Baseline.Median}} |
 | 95th Percentile | {{printf "%.2f" .Baseline.Percentile95}}ms | {{printf "%.2f" .Actual.Percentile95}}ms | {{compareFloat64 .Actual.Percentile95 .Baseline.Percentile95}}ms | {{comparePercentageFloat64 .Actual.Percentile95 .Baseline.Percentile95}} |
@@ -110,7 +112,7 @@ The score is the average of the 95th percentile, median and interquartile ranges
 | Metric | Baseline | Actual | Delta |
 | --- | --- | --- | --- |
 | Hits | - | {{.Actual.NumHits}} | - |
-| Error Rate | - | {{printf "%.2f%%" .Actual.ErrorRate}} | - |
+| Error Rate | - | {{percent .Actual.ErrorRate}} | - |
 | Mean Response Time | - | {{printf "%.2f" .Actual.Mean}}ms | - |
 | Median Response Time | - | {{printf "%.2f" .Actual.Median}}ms | - |
 | 95th Percentile | - | {{printf "%.2f" .Actual.Percentile95}}ms | - |
@@ -123,21 +125,6 @@ The score is the average of the 95th percentile, median and interquartile ranges
 `,
 	))
 )
-
-func sortedRoutes(routesMap map[string]*loadtest.RouteStats) []*loadtest.RouteStats {
-	routeNames := make([]string, 0, len(routesMap))
-	for routeName := range routesMap {
-		routeNames = append(routeNames, routeName)
-	}
-	sort.Strings(routeNames)
-
-	routes := make([]*loadtest.RouteStats, 0, len(routesMap))
-	for _, routeName := range routeNames {
-		routes = append(routes, routesMap[routeName])
-	}
-
-	return routes
-}
 
 func dumpSingleTimingsMarkdown(timings *loadtest.ClientTimingStats, output io.Writer, verbose bool) error {
 	summaryData := struct {

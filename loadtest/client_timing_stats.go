@@ -169,7 +169,11 @@ func (ts *ClientTimingStats) GetScore() float64 {
 		num += 1.0
 	}
 
-	return total / num
+	if num > 0 {
+		return total / num
+	}
+
+	return 0
 }
 
 func (ts *ClientTimingStats) CalcResults() {
