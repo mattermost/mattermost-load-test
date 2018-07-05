@@ -36,9 +36,16 @@ func getStandardConfig(users int) *ChartConfig {
 	config := &ChartConfig{
 		Global: &GlobalConfig{
 			Features: &FeaturesConfig{
-				&LoadTestFeature{Enabled: true},
-				&GrafanaFeature{Enabled: true},
+				LoadTest:     &LoadTestFeature{Enabled: true},
+				Grafana:      &GrafanaFeature{Enabled: true},
+				LinkPreviews: &LinkPreviewFeature{Enabled: true},
 			},
+		},
+		Tags: &TagsConfig{
+			Core:    true,
+			Metrics: true,
+			Ingress: true,
+			Storage: true,
 		},
 		MySQLHA: &MySQLHAConfig{
 			Enabled: true,
@@ -65,15 +72,20 @@ func getStandardConfig(users int) *ChartConfig {
 			NumChannelsPerTeam:                400,
 			NumUsers:                          users,
 			ReplyChance:                       0.3,
+			LinkPreviewChance:                 0.2,
 			SkipBulkLoad:                      true,
 			TestLengthMinutes:                 20,
 			ActionRateMilliseconds:            240000,
 			ActionRateMaxVarianceMilliseconds: 15000,
 		},
 		Proxy: &ProxyConfig{
+			Enabled: true,
 			Controller: &ProxyController{
 				Resources: &ResourcesSetting{Requests: &ResourceSetting{}},
 			},
+		},
+		Prometheus: &PrometheusConfig{
+			Enabled: true,
 		},
 	}
 

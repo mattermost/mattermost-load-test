@@ -5,11 +5,20 @@ import (
 )
 
 type ChartConfig struct {
-	Global   *GlobalConfig   `yaml:"global"`
-	MySQLHA  *MySQLHAConfig  `yaml:"mysqlha"`
-	App      *AppConfig      `yaml:"mattermost-app"`
-	Loadtest *LoadtestConfig `yaml:"mattermost-loadtest"`
-	Proxy    *ProxyConfig    `yaml:"nginx-ingress"`
+	Global     *GlobalConfig     `yaml:"global"`
+	Tags       *TagsConfig       `yaml:"tags"`
+	MySQLHA    *MySQLHAConfig    `yaml:"mysqlha"`
+	App        *AppConfig        `yaml:"mattermost-app"`
+	Loadtest   *LoadtestConfig   `yaml:"mattermost-loadtest"`
+	Proxy      *ProxyConfig      `yaml:"nginx-ingress"`
+	Prometheus *PrometheusConfig `yaml:"prometheus"`
+}
+
+type TagsConfig struct {
+	Core    bool `yaml:"core"`
+	Metrics bool `yaml:"metrics"`
+	Ingress bool `yaml:"ingress"`
+	Storage bool `yaml:"storage"`
 }
 
 type GlobalConfig struct {
@@ -19,8 +28,9 @@ type GlobalConfig struct {
 }
 
 type FeaturesConfig struct {
-	LoadTest *LoadTestFeature `yaml:"loadTest"`
-	Grafana  *GrafanaFeature  `yaml:"grafana"`
+	LoadTest     *LoadTestFeature    `yaml:"loadTest"`
+	Grafana      *GrafanaFeature     `yaml:"grafana"`
+	LinkPreviews *LinkPreviewFeature `yaml:"linkPreviews"`
 }
 
 type LoadTestFeature struct {
@@ -28,6 +38,10 @@ type LoadTestFeature struct {
 }
 
 type GrafanaFeature struct {
+	Enabled bool `yaml:"enabled"`
+}
+
+type LinkPreviewFeature struct {
 	Enabled bool `yaml:"enabled"`
 }
 
@@ -62,6 +76,7 @@ type LoadtestConfig struct {
 	NumUsers                          int               `yaml:"numUsers"`
 	NumPosts                          int               `yaml:"numPosts"`
 	ReplyChance                       float32           `yaml:"replyChance"`
+	LinkPreviewChance                 float32           `yaml:"linkPreviewChance"`
 	SkipBulkLoad                      bool              `yaml:"skipBulkLoad"`
 	TestLengthMinutes                 int               `yaml:"testLengthMinutes"`
 	NumActiveEntities                 int               `yaml:"numActiveEntities"`
@@ -70,12 +85,17 @@ type LoadtestConfig struct {
 }
 
 type ProxyConfig struct {
+	Enabled    bool             `yaml:"enabled"`
 	Controller *ProxyController `yaml:"controller"`
 }
 
 type ProxyController struct {
 	ReplicaCount int               `yaml:"replicaCount"`
 	Resources    *ResourcesSetting `yaml:"resources"`
+}
+
+type PrometheusConfig struct {
+	Enabled bool `yaml:"enabled"`
 }
 
 type ImageSetting struct {

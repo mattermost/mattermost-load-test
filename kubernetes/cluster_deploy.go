@@ -51,15 +51,16 @@ func (c *Cluster) Deploy(options *ltops.DeployOptions) error {
 			return errors.Wrap(err, "unable to install mattermost chart, error from helm: "+string(out))
 		}
 
-		// Delete the pods so they are recreated with any config changes
-		cmd = exec.Command("kubectl", "delete", "po", "-l", fmt.Sprintf("release=%v", c.Release()))
+		// Delete the app pods to make sure they reset caches and restart to pick up config changes
+		cmd = exec.Command("kubectl", "delete", "po", "-l", fmt.Sprintf("app=%v-mattermost-app", c.Release()))
 		if out, err := cmd.CombinedOutput(); err != nil {
-			return errors.Wrap(err, "unable to restart release pods, error from kubectl: "+string(out))
+			return errors.Wrap(err, "unable to restart app server pods, error from kubectl: "+string(out))
 		}
 
-		cmd = exec.Command("kubectl", "delete", "po", "-l", fmt.Sprintf("app=%v-mysqlha", c.Release()))
+		// Delete the loadtest pods to make sure they pick up config changes
+		cmd = exec.Command("kubectl", "delete", "po", "-l", "app=mattermost-loadtest")
 		if out, err := cmd.CombinedOutput(); err != nil {
-			return errors.Wrap(err, "unable to restart mysqlha pods, error from kubectl: "+string(out))
+			return errors.Wrap(err, "unable to restart loadtest pods, error from kubectl: "+string(out))
 		}
 
 		log.Info("upgraded release '" + c.ReleaseName + "'")
