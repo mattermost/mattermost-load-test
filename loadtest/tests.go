@@ -23,6 +23,10 @@ import (
 	"github.com/mattermost/mattermost-server/utils"
 )
 
+const (
+	OPENGRAPH_TEST_URL = "https://s3.amazonaws.com/mattermost-load-test-media/index.html"
+)
+
 type TestRun struct {
 	UserEntities []randutil.Choice
 }
@@ -269,6 +273,12 @@ func actionGetChannel(c *EntityConfig) {
 					}
 				}
 			}
+
+			if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.LinkPreviewChance {
+				if _, resp := c.Client.OpenGraph(OPENGRAPH_TEST_URL); resp.Error != nil {
+					mlog.Error("Unable to get open graph for url.", mlog.String("url", OPENGRAPH_TEST_URL), mlog.String("user_id", post.UserId), mlog.Err(resp.Error))
+				}
+			}
 		}
 	}
 }
@@ -284,6 +294,7 @@ func actionPerformSearch(c *EntityConfig) {
 	if resp.Error != nil {
 		mlog.Error("Failed to search", mlog.Err(resp.Error))
 	}
+
 }
 
 func actionAutocompleteChannel(c *EntityConfig) {

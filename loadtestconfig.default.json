@@ -58,6 +58,7 @@
         "EnableRequestTiming": true,
         "ChannelLinkChance": 0.02,
         "UploadImageChance": 0.01,
+        "LinkPreviewChance": 0.2,
         "DoStatusPolling": true,
         "RandomizeEntitySelection": false
     },
