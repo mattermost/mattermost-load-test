@@ -134,6 +134,7 @@ func (ts *ClientTimingStats) Merge(timings *ClientTimingStats) *ClientTimingStat
 }
 
 var teamPathRegex *regexp.Regexp = regexp.MustCompile("/teams/[a-z0-9]{26}/")
+var emojiPathRegex *regexp.Regexp = regexp.MustCompile("/emoji/name/[A-Za-z0-9]+")
 var channelPathRegex *regexp.Regexp = regexp.MustCompile("/channels/[a-z0-9]{26}/")
 var postPathRegex *regexp.Regexp = regexp.MustCompile("/posts/[a-z0-9]{26}/")
 var filePathRegex *regexp.Regexp = regexp.MustCompile("/files/[a-z0-9]{26}/")
@@ -150,6 +151,8 @@ func processCommonPaths(path string) string {
 	result = filePathRegex.ReplaceAllString(result, "/files/PID/")
 	result = userPathRegex.ReplaceAllString(result, "/users/UID/")
 	result = userEmailPathRegex.ReplaceAllString(result, "/users/email/UID")
+	result = emojiPathRegex.ReplaceAllString(result, "/emoji/name/NAME")
+
 	return result
 }
 

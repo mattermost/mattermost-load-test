@@ -622,7 +622,7 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 		}
 
 		if _, err := db.Exec("SET autocommit=0,unique_checks=0,foreign_key_checks=0"); err != nil {
-			mlog.Error("Couldn't temporary set values for performance.", mlog.Err(err))
+			mlog.Error("Couldn't set temporary values for performance.", mlog.Err(err))
 		}
 		defer func() {
 			if _, err := db.Exec("SET autocommit=1,unique_checks=1,foreign_key_checks=1"); err != nil {
