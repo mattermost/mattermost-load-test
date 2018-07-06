@@ -40,6 +40,7 @@ func getStandardConfig(users int) *ChartConfig {
 				LoadTest:     &LoadTestFeature{Enabled: true},
 				Grafana:      &GrafanaFeature{Enabled: true},
 				LinkPreviews: &LinkPreviewFeature{Enabled: true},
+				CustomEmoji:  &CustomEmojiFeature{Enabled: true},
 			},
 		},
 		Tags: &TagsConfig{

@@ -279,6 +279,13 @@ func actionGetChannel(c *EntityConfig) {
 					mlog.Error("Unable to get open graph for url.", mlog.String("url", OPENGRAPH_TEST_URL), mlog.String("user_id", post.UserId), mlog.Err(resp.Error))
 				}
 			}
+
+			if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.CustomEmojiChance {
+				name := c.LoadTestConfig.LoadtestEnviromentConfig.PickEmoji()
+				if _, resp := c.Client.GetEmojiByName(name); resp.Error != nil {
+					mlog.Error("Unable to get emoji.", mlog.String("emoji_name", name), mlog.String("user_id", post.UserId), mlog.Err(resp.Error))
+				}
+			}
 		}
 	}
 }
