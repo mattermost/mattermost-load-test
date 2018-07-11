@@ -27,6 +27,7 @@ type UserEntitiesConfiguration struct {
 	ChannelLinkChance                 float64
 	UploadImageChance                 float64
 	LinkPreviewChance                 float64
+	CustomEmojiChance                 float64
 	DoStatusPolling                   bool
 	RandomizeEntitySelection          bool
 }

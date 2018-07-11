@@ -31,6 +31,7 @@ type FeaturesConfig struct {
 	LoadTest     *LoadTestFeature    `yaml:"loadTest"`
 	Grafana      *GrafanaFeature     `yaml:"grafana"`
 	LinkPreviews *LinkPreviewFeature `yaml:"linkPreviews"`
+	CustomEmoji  *CustomEmojiFeature `yaml:"customEmoji"`
 }
 
 type LoadTestFeature struct {
@@ -42,6 +43,10 @@ type GrafanaFeature struct {
 }
 
 type LinkPreviewFeature struct {
+	Enabled bool `yaml:"enabled"`
+}
+
+type CustomEmojiFeature struct {
 	Enabled bool `yaml:"enabled"`
 }
 

@@ -65,6 +65,21 @@ func (c *Cluster) bulkLoad(loadtestPod string, appPod string, force bool) error 
 		return err
 	}
 
+	cmd = exec.Command("kubectl", "cp", loadtestPod+":/mattermost-load-test/testfiles/test_emoji.png", c.Configuration().WorkingDirectory)
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	cmd = exec.Command("kubectl", "exec", appPod, "--", "mkdir", "-p", "testfiles")
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	cmd = exec.Command("kubectl", "cp", filepath.Join(c.Configuration().WorkingDirectory, "test_emoji.png"), appPod+":/mattermost/testfiles/")
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
 	// If this command fails, assume user was already created
 	cmd = exec.Command("kubectl", "exec", appPod, "--", "./bin/platform", "user", "create", "--email", "success+ltadmin@simulator.amazonses.com", "--username", "ltadmin", "--password", "ltpassword", "--system_admin")
 	out, err := cmd.CombinedOutput()

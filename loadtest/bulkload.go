@@ -42,6 +42,7 @@ type LoadtestEnviromentConfig struct {
 	NumUsers           int
 	NumTeamSchemes     int
 	NumChannelSchemes  int
+	NumEmoji           int
 
 	PercentHighVolumeChannels float64
 	PercentMidVolumeChannels  float64
@@ -82,6 +83,7 @@ type LineImportData struct {
 	Channel *ChannelImportData `json:"channel,omitempty"`
 	User    *UserImportData    `json:"user,omitempty"`
 	Post    *PostImportData    `json:"post,omitempty"`
+	Emoji   *EmojiImportData   `json:"emoji,omitempty"`
 	Version int                `json:"version"`
 }
 
@@ -175,12 +177,22 @@ type RoleImportData struct {
 	Permissions []string `json:"permissions"`
 }
 
+type EmojiImportData struct {
+	Name  string `json:"name"`
+	Image string `json:"image"`
+}
+
 type GenerateBulkloadFileResult struct {
 	File     bytes.Buffer
 	Users    []UserImportData
 	Teams    []TeamImportData
 	Channels []ChannelImportData
 	Schemes  []SchemeImportData
+	Emojis   []EmojiImportData
+}
+
+func (c *LoadtestEnviromentConfig) PickEmoji() string {
+	return fmt.Sprintf("loadtestemoji%v", rand.Intn(c.NumEmoji-1))
 }
 
 func (s *UserImportData) PickTeam() *UserTeamImportData {
@@ -300,6 +312,19 @@ func generateChannelSchemes(numSchemes int) *[]SchemeImportData {
 	return &channelSchemes
 }
 
+func generateEmoji(numEmoji int) []EmojiImportData {
+	emojis := make([]EmojiImportData, 0, numEmoji)
+
+	for emojiNum := 0; emojiNum < numEmoji; emojiNum++ {
+		emojis = append(emojis, EmojiImportData{
+			Name:  "loadtestemoji" + strconv.Itoa(emojiNum),
+			Image: "./testfiles/test_emoji.png",
+		})
+	}
+
+	return emojis
+}
+
 func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFileResult {
 	users := make([]UserImportData, 0, config.NumUsers)
 	channels := make([]ChannelImportData, 0, config.NumChannelsPerTeam*config.NumTeams)
@@ -310,6 +335,8 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 	channelSchemes := generateChannelSchemes(config.NumChannelSchemes)
 
 	channelsByTeam := make([][]int, 0, config.NumChannelsPerTeam*config.NumTeams)
+
+	emojis := generateEmoji(config.NumEmoji)
 
 	for teamNum := 0; teamNum < config.NumTeams; teamNum++ {
 		channelsByTeam = append(channelsByTeam, make([]int, 0, config.NumChannelsPerTeam))
@@ -485,6 +512,14 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 		}
 	}
 
+	for i := range emojis {
+		lineObjectsChan <- &LineImportData{
+			Type:    "emoji",
+			Emoji:   &emojis[i],
+			Version: 1,
+		}
+	}
+
 	close(lineObjectsChan)
 	<-doneChan
 
@@ -493,6 +528,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 		Users:    users,
 		Teams:    teams,
 		Channels: channels,
+		Emojis:   emojis,
 	}
 }
 
@@ -586,12 +622,11 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 		}
 
 		if _, err := db.Exec("SET autocommit=0,unique_checks=0,foreign_key_checks=0"); err != nil {
-			mlog.Error("Couldn't temporarily set values for performance.", mlog.Err(err))
-			return
+			mlog.Error("Couldn't set temporary values for performance.", mlog.Err(err))
 		}
 		defer func() {
 			if _, err := db.Exec("SET autocommit=1,unique_checks=1,foreign_key_checks=1"); err != nil {
-				mlog.Critical("Couldn't set temporarily values back to defaults.", mlog.Err(err))
+				mlog.Critical("Couldn't set temporary values back to defaults.", mlog.Err(err))
 				return
 			}
 		}()
