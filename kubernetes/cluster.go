@@ -176,7 +176,7 @@ func (c *Cluster) DBInstanceCount() int {
 func (c *Cluster) Destroy() error {
 	log.Info("Destroying cluster...")
 
-	cmd := exec.Command("helm", "delete", c.Release())
+	cmd := exec.Command("helm", "del", "--purge", c.Release())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return errors.Wrap(err, "unable to delete release, error from helm: "+string(out))
