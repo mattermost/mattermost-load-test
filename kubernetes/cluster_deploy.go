@@ -65,7 +65,7 @@ func (c *Cluster) Deploy(options *ltops.DeployOptions) error {
 
 		log.Info("upgraded release '" + c.ReleaseName + "'")
 	} else {
-		cmd := exec.Command("helm", "install", "-f", configFileLocation, "mattermost/mattermost-helm")
+		cmd := exec.Command("helm", "install", "-n", c.Config.Name, "-f", configFileLocation, "mattermost/mattermost-helm")
 		out, err := cmd.CombinedOutput()
 		if err != nil {
 			return errors.Wrap(err, "unable to install mattermost chart, error from helm: "+string(out))
