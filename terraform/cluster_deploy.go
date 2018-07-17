@@ -200,6 +200,7 @@ func deployToLoadtestInstance(instanceNum int, instanceAddr string, loadtestDist
 		".ConnectionConfiguration.SSHKey":               remoteSSHKeyPath,
 		".ConnectionConfiguration.MattermostInstallDir": "/opt/mattermost",
 		".ConnectionConfiguration.WaitForServerStart":   false,
+		".LoadtestEnviromentConfig.NumEmoji":            0,
 	} {
 		logger.Debugf("updating config %s=%v", k, v)
 		jsonValue, err := json.Marshal(v)

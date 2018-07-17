@@ -280,12 +280,18 @@ func actionGetChannel(c *EntityConfig) {
 				}
 			}
 
-			if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.CustomEmojiChance {
+			if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.CustomEmojiChance && c.LoadTestConfig.LoadtestEnviromentConfig.NumEmoji > 0 {
 				name := c.LoadTestConfig.LoadtestEnviromentConfig.PickEmoji()
 				if _, resp := c.Client.GetEmojiByName(name); resp.Error != nil {
 					mlog.Error("Unable to get emoji.", mlog.String("emoji_name", name), mlog.String("user_id", post.UserId), mlog.Err(resp.Error))
 				}
 			}
+		}
+	}
+	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.NeedsProfilesChance {
+		secondUser := "user" + strconv.Itoa(rand.Intn(c.LoadTestConfig.LoadtestEnviromentConfig.NumUsers))
+		if _, resp := c.Client.GetUsersByUsernames([]string{model.NewId(), secondUser}); resp.Error != nil {
+			mlog.Error("Unable to get users by usernames", mlog.Err(resp.Error))
 		}
 	}
 }
