@@ -397,6 +397,13 @@ func actionPostWebhook(c *EntityConfig) {
 	}
 }
 
+func actionGetTeamUnreads(c *EntityConfig) {
+	_, err := c.Client.GetTeamsUnreadForUser("me", "")
+	if err != nil {
+		mlog.Error("Failed to get team unreads", mlog.String("user", c.UserData.Username))
+	}
+}
+
 var posterEntity UserEntity = UserEntity{
 	Name: "Poster",
 	Actions: []randutil.Choice{
@@ -477,6 +484,10 @@ var standardUserEntity UserEntity = UserEntity{
 		{
 			Item:   actionGetChannel,
 			Weight: 56,
+		},
+		{
+			Item:   actionGetTeamUnreads,
+			Weight: 41,
 		},
 		{
 			Item:   actionAutocompleteChannel,
