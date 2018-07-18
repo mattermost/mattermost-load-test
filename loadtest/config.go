@@ -28,6 +28,7 @@ type UserEntitiesConfiguration struct {
 	UploadImageChance                 float64
 	LinkPreviewChance                 float64
 	CustomEmojiChance                 float64
+	NeedsProfilesChance               float64
 	DoStatusPolling                   bool
 	RandomizeEntitySelection          bool
 }
