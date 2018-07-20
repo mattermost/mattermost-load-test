@@ -247,6 +247,20 @@ func actionGetChannel(c *EntityConfig) {
 		mlog.Error("Unable to get channel member.", mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.Err(resp.Error))
 	}
 
+	// The webapp is observed to invoke ViewChannel once without a PrevChannelId, and once with
+	// one specified. Duplicate that behaviour here.
+	prevChannel := team.PickChannel()
+	if prevChannel != nil {
+		prevChannelId := c.ChannelMap[team.Name][prevChannel.Name]
+
+		if _, resp := c.Client.ViewChannel("me", &model.ChannelView{
+			ChannelId:     channelId,
+			PrevChannelId: prevChannelId,
+		}); resp.Error != nil {
+			mlog.Error("Unable to view channel.", mlog.String("channel_id", channelId), mlog.String("prev_channel_id", prevChannelId), mlog.String("username", c.UserData.Username))
+		}
+	}
+
 	if posts, resp := c.Client.GetPostsForChannel(channelId, 0, 60, ""); resp.Error != nil {
 		mlog.Error("Unable to get channel member.", mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.Err(resp.Error))
 	} else {
