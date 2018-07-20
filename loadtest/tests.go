@@ -303,6 +303,17 @@ func actionGetChannel(c *EntityConfig) {
 		}
 	}
 
+	usersToQueryById := make([]string, 0)
+	for rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.NeedsProfilesByIdChance {
+		nextUser := "user" + strconv.Itoa(rand.Intn(c.LoadTestConfig.LoadtestEnviromentConfig.NumUsers))
+		usersToQueryById = append(usersToQueryById, nextUser)
+	}
+	if len(usersToQueryById) > 0 {
+		if _, resp := c.Client.GetUsersByIds(usersToQueryById); resp.Error != nil {
+			mlog.Error("Unable to get users by ids", mlog.Err(resp.Error))
+		}
+	}
+
 	usersToQueryByUsername := make([]string, 0)
 	for rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.NeedsProfilesByUsernameChance {
 		if rand.Float64() > 0.5 {
@@ -316,6 +327,17 @@ func actionGetChannel(c *EntityConfig) {
 	if len(usersToQueryByUsername) > 0 {
 		if _, resp := c.Client.GetUsersByUsernames(usersToQueryByUsername); resp.Error != nil {
 			mlog.Error("Unable to get users by usernames", mlog.Err(resp.Error))
+		}
+	}
+
+	usersToQueryForStatusById := make([]string, 0)
+	for rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.NeedsProfileStatusChance {
+		nextUser := "user" + strconv.Itoa(rand.Intn(c.LoadTestConfig.LoadtestEnviromentConfig.NumUsers))
+		usersToQueryForStatusById = append(usersToQueryForStatusById, nextUser)
+	}
+	if len(usersToQueryForStatusById) > 0 {
+		if _, resp := c.Client.GetUsersStatusesByIds(usersToQueryForStatusById); resp.Error != nil {
+			mlog.Error("Unable to get user statuses by ids", mlog.Err(resp.Error))
 		}
 	}
 }
