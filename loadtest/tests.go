@@ -288,18 +288,19 @@ func actionGetChannel(c *EntityConfig) {
 			}
 		}
 	}
-	usersToQuery := make([]string, 0)
-	for rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.NeedsProfilesChance {
+
+	usersToQueryByUsername := make([]string, 0)
+	for rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.NeedsProfilesByUsernameChance {
 		if rand.Float64() > 0.5 {
 			nextUser := "user" + strconv.Itoa(rand.Intn(c.LoadTestConfig.LoadtestEnviromentConfig.NumUsers))
-			usersToQuery = append(usersToQuery, nextUser)
+			usersToQueryByUsername = append(usersToQueryByUsername, nextUser)
 		} else {
 			nextUser := model.NewId()
-			usersToQuery = append(usersToQuery, nextUser)
+			usersToQueryByUsername = append(usersToQueryByUsername, nextUser)
 		}
 	}
-	if len(usersToQuery) > 0 {
-		if _, resp := c.Client.GetUsersByUsernames(usersToQuery); resp.Error != nil {
+	if len(usersToQueryByUsername) > 0 {
+		if _, resp := c.Client.GetUsersByUsernames(usersToQueryByUsername); resp.Error != nil {
 			mlog.Error("Unable to get users by usernames", mlog.Err(resp.Error))
 		}
 	}
