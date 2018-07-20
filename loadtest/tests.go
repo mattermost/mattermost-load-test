@@ -450,9 +450,9 @@ func actionPostWebhook(c *EntityConfig) {
 }
 
 func actionGetTeamUnreads(c *EntityConfig) {
-	_, err := c.Client.GetTeamsUnreadForUser("me", "")
-	if err != nil {
-		mlog.Error("Failed to get team unreads", mlog.String("user", c.UserData.Username))
+	_, response := c.Client.GetTeamsUnreadForUser("me", "")
+	if response.Error != nil {
+		mlog.Error("Failed to get team unreads", mlog.String("user", c.UserData.Username), mlog.Err(response.Error))
 	}
 }
 
