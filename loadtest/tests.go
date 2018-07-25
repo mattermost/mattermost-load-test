@@ -247,6 +247,20 @@ func actionGetChannel(c *EntityConfig) {
 		mlog.Error("Unable to get channel member.", mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.Err(resp.Error))
 	}
 
+	// The webapp is observed to invoke ViewChannel once without a PrevChannelId, and once with
+	// one specified. Duplicate that behaviour here.
+	prevChannel := team.PickChannel()
+	if prevChannel != nil {
+		prevChannelId := c.ChannelMap[team.Name][prevChannel.Name]
+
+		if _, resp := c.Client.ViewChannel("me", &model.ChannelView{
+			ChannelId:     channelId,
+			PrevChannelId: prevChannelId,
+		}); resp.Error != nil {
+			mlog.Error("Unable to view channel.", mlog.String("channel_id", channelId), mlog.String("prev_channel_id", prevChannelId), mlog.String("username", c.UserData.Username))
+		}
+	}
+
 	if posts, resp := c.Client.GetPostsForChannel(channelId, 0, 60, ""); resp.Error != nil {
 		mlog.Error("Unable to get channel member.", mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.Err(resp.Error))
 	} else {
@@ -288,19 +302,42 @@ func actionGetChannel(c *EntityConfig) {
 			}
 		}
 	}
-	usersToQuery := make([]string, 0)
-	for rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.NeedsProfilesChance {
-		if rand.Float64() > 0.5 {
-			nextUser := "user" + strconv.Itoa(rand.Intn(c.LoadTestConfig.LoadtestEnviromentConfig.NumUsers))
-			usersToQuery = append(usersToQuery, nextUser)
-		} else {
-			nextUser := model.NewId()
-			usersToQuery = append(usersToQuery, nextUser)
+
+	usersToQueryById := make([]string, 0)
+	for rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.NeedsProfilesByIdChance {
+		nextUser := "user" + strconv.Itoa(rand.Intn(c.LoadTestConfig.LoadtestEnviromentConfig.NumUsers))
+		usersToQueryById = append(usersToQueryById, nextUser)
+	}
+	if len(usersToQueryById) > 0 {
+		if _, resp := c.Client.GetUsersByIds(usersToQueryById); resp.Error != nil {
+			mlog.Error("Unable to get users by ids", mlog.Err(resp.Error))
 		}
 	}
-	if len(usersToQuery) > 0 {
-		if _, resp := c.Client.GetUsersByUsernames(usersToQuery); resp.Error != nil {
+
+	usersToQueryByUsername := make([]string, 0)
+	for rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.NeedsProfilesByUsernameChance {
+		if rand.Float64() > 0.5 {
+			nextUser := "user" + strconv.Itoa(rand.Intn(c.LoadTestConfig.LoadtestEnviromentConfig.NumUsers))
+			usersToQueryByUsername = append(usersToQueryByUsername, nextUser)
+		} else {
+			nextUser := model.NewId()
+			usersToQueryByUsername = append(usersToQueryByUsername, nextUser)
+		}
+	}
+	if len(usersToQueryByUsername) > 0 {
+		if _, resp := c.Client.GetUsersByUsernames(usersToQueryByUsername); resp.Error != nil {
 			mlog.Error("Unable to get users by usernames", mlog.Err(resp.Error))
+		}
+	}
+
+	usersToQueryForStatusById := make([]string, 0)
+	for rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.NeedsProfileStatusChance {
+		nextUser := "user" + strconv.Itoa(rand.Intn(c.LoadTestConfig.LoadtestEnviromentConfig.NumUsers))
+		usersToQueryForStatusById = append(usersToQueryForStatusById, nextUser)
+	}
+	if len(usersToQueryForStatusById) > 0 {
+		if _, resp := c.Client.GetUsersStatusesByIds(usersToQueryForStatusById); resp.Error != nil {
+			mlog.Error("Unable to get user statuses by ids", mlog.Err(resp.Error))
 		}
 	}
 }
@@ -413,9 +450,9 @@ func actionPostWebhook(c *EntityConfig) {
 }
 
 func actionGetTeamUnreads(c *EntityConfig) {
-	_, err := c.Client.GetTeamsUnreadForUser("me", "")
-	if err != nil {
-		mlog.Error("Failed to get team unreads", mlog.String("user", c.UserData.Username))
+	_, response := c.Client.GetTeamsUnreadForUser("me", "")
+	if response.Error != nil {
+		mlog.Error("Failed to get team unreads", mlog.String("user", c.UserData.Username), mlog.Err(response.Error))
 	}
 }
 

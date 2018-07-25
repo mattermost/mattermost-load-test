@@ -330,6 +330,7 @@ func deployToAppInstance(mattermostDistribution, license io.Reader, instanceAddr
 		".ServiceSettings.LicenseFileLocation":         remoteLicenseFilePath,
 		".ServiceSettings.SiteURL":                     clust.SiteURL(),
 		".ServiceSettings.EnableAPIv3":                 true,
+		".ServiceSettings.EnableLinkPreviews":          true,
 		".SqlSettings.DriverName":                      "mysql",
 		".SqlSettings.DataSource":                      clust.DBConnectionString(),
 		".SqlSettings.DataSourceReplicas":              clust.DBReaderConnectionStrings(),
