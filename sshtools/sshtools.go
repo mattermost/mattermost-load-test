@@ -106,8 +106,12 @@ func RemoteCommand(client *ssh.Client, cmd string) error {
 	}
 	defer session.Close()
 
+	output := &bytes.Buffer{}
+	session.Stdout = output
+	session.Stderr = output
+
 	if err := session.Run(cmd); err != nil {
-		return err
+		return errors.Wrap(err, output.String())
 	}
 
 	return nil

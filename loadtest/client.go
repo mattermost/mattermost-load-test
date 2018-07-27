@@ -17,11 +17,13 @@ import (
 
 func newClientFromToken(httpClient *http.Client, token string, serverUrl string) *model.Client4 {
 	// Lifted from model.NewAPIv4Client
-	client := &model.Client4{serverUrl, serverUrl + model.API_URL_SUFFIX, httpClient, "", ""}
-
-	client.AuthToken = token
-	client.AuthType = model.HEADER_BEARER
-	return client
+	return &model.Client4{
+		Url:        serverUrl,
+		ApiUrl:     serverUrl + model.API_URL_SUFFIX,
+		HttpClient: httpClient,
+		AuthToken:  token,
+		AuthType:   model.HEADER_BEARER,
+	}
 }
 
 func loginAsUsers(cfg *LoadTestConfig, adminClient *model.Client4, entityStartNum int, seed int64) []string {
@@ -66,7 +68,11 @@ func loginAsUsers(cfg *LoadTestConfig, adminClient *model.Client4, entityStartNu
 
 func getAdminClient(httpClient *http.Client, serverURL string, adminEmail string, adminPass string, cmdrun ServerCLICommandRunner) *model.Client4 {
 	// Lifted from model.NewAPIv4Client
-	client := &model.Client4{serverURL, serverURL + model.API_URL_SUFFIX, httpClient, "", ""}
+	client := &model.Client4{
+		Url:        serverURL,
+		ApiUrl:     serverURL + model.API_URL_SUFFIX,
+		HttpClient: httpClient,
+	}
 
 	if success, resp := client.GetPing(); resp.Error != nil || success != "OK" {
 		mlog.Error(fmt.Sprintf("Failed to ping server at %v", serverURL))
@@ -80,8 +86,8 @@ func getAdminClient(httpClient *http.Client, serverURL string, adminEmail string
 	}
 
 	var adminUser *model.User
-	if user, _ := client.Login(adminEmail, adminPass); user == nil {
-		mlog.Info("Failed to login as admin user.")
+	if user, resp := client.Login(adminEmail, adminPass); user == nil {
+		mlog.Info(fmt.Sprintf("Failed to login as admin user: %s", resp.Error.Error()))
 		if cmdrun == nil {
 			mlog.Error("Unable to create admin user because was not able to connect to app server. Please create the admin user manually or fill in SSH information.")
 			mlog.Error(fmt.Sprintf("Command to create admin user: ./bin/platform user create --email %v --password %v --system_admin --username ltadmin", adminEmail, adminPass))
