@@ -800,3 +800,13 @@ var TestAutocomplete TestRun = TestRun{
 		},
 	},
 }
+
+func actionWakeup(c *EntityConfig) {
+	manifests, resp := c.Client.GetWebappPlugins()
+	if resp.Error != nil {
+		mlog.Error("Failed to get webapp plugins", mlog.Err(resp.Error))
+		return
+	}
+
+	mlog.Debug("Found webapp plugins", mlog.Int("count", len(manifests)))
+}

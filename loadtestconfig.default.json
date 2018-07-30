@@ -28,6 +28,7 @@
         "NumTeamSchemes": 1,
         "NumPosts": 20000000,
         "NumEmoji": 2000,
+        "NumPlugins": 1,
         "PostTimeRange": 2600000,
         "ReplyChance": 0.3,
         "PercentHighVolumeTeams": 0.2,
