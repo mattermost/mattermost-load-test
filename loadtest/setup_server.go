@@ -6,6 +6,7 @@ package loadtest
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"time"
 
@@ -62,6 +63,25 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 	mlog.Info("Checking configuration parameters.")
 	if err := checkConfigForLoadtests(adminClient); err != nil {
 		return nil, err
+	}
+
+	if cfg.LoadtestEnviromentConfig.NumPlugins > 0 {
+		mlog.Info("Setting up plugins.")
+		if cfg.LoadtestEnviromentConfig.NumPlugins > 1 {
+			mlog.Error("Bulk-loading supports at most one plugin deployment at this time")
+		}
+
+		plugin, err := os.Open("testfiles/com.mattermost.sample-plugin-webapp-only.tar.gz")
+		if err != nil {
+			return nil, err
+		}
+
+		if _, resp := adminClient.UploadPlugin(plugin); resp.Error != nil {
+			return nil, resp.Error
+		}
+		if _, resp := adminClient.ActivatePlugin("com.mattermost.sample-plugin"); resp.Error != nil {
+			return nil, resp.Error
+		}
 	}
 
 	mlog.Info("Generating users for loadtest.")
@@ -190,6 +210,20 @@ func checkConfigForLoadtests(adminClient *model.Client4) error {
 		}
 		mlog.Info("EnableOnlyAdminIntegrations is false")
 
+		if !*serverConfig.PluginSettings.Enable {
+			mlog.Info("Enabling plugins for loadtest.")
+			*serverConfig.PluginSettings.Enable = true
+			if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
+				mlog.Error("Failed to set PluginSettings.Enable", mlog.Err(resp.Error))
+				return resp.Error
+			}
+		}
+		mlog.Info("PluginSettings.Enable is true")
+
+		if !*serverConfig.PluginSettings.EnableUploads {
+			mlog.Warn("Cannot enable plugin uploads via API. Must manually enable to test with plugins.")
+		}
+		mlog.Info("PluginSettings.EnableUploads is true")
 	}
 
 	return nil

@@ -351,6 +351,8 @@ func deployToAppInstance(mattermostDistribution, license io.Reader, instanceAddr
 		".TeamSettings.MaxChannelsPerTeam":             10000000,
 		".ServiceSettings.EnableIncomingWehbooks":      true,
 		".ServiceSettings.EnableOnlyAdminIntegrations": false,
+		".PluginSettings.Enable":                       true,
+		".PluginSettings.EnableUploads":                true,
 	} {
 		logger.Debug("updating config: " + k)
 		jsonValue, err := json.Marshal(v)

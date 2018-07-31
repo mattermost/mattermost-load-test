@@ -102,6 +102,7 @@ func websocketListen(ec *EntityConfig) {
 	}
 
 	ec.WebSocketClient.Listen()
+	actionWakeup(ec)
 
 	websocketRetryCount := 0
 
@@ -128,6 +129,7 @@ func websocketListen(ec *EntityConfig) {
 						continue
 					}
 					ec.WebSocketClient.Listen()
+					actionWakeup(ec)
 					break
 				}
 			}

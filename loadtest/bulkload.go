@@ -43,6 +43,7 @@ type LoadtestEnviromentConfig struct {
 	NumTeamSchemes     int
 	NumChannelSchemes  int
 	NumEmoji           int
+	NumPlugins         int
 
 	PercentHighVolumeChannels float64
 	PercentMidVolumeChannels  float64
