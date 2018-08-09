@@ -65,19 +65,20 @@ func (c *Cluster) bulkLoad(loadtestPod string, appPod string, force bool) error 
 		return err
 	}
 
+	// If copying test emoji fails, still continue because we might be on an older version that does not have emoji testing
 	cmd = exec.Command("kubectl", "cp", loadtestPod+":/mattermost-load-test/testfiles/test_emoji.png", c.Configuration().WorkingDirectory)
-	if err := cmd.Run(); err != nil {
-		return err
-	}
+	if err := cmd.Run(); err == nil {
+		cmd = exec.Command("kubectl", "exec", appPod, "--", "mkdir", "-p", "testfiles")
+		if err := cmd.Run(); err != nil {
+			return err
+		}
 
-	cmd = exec.Command("kubectl", "exec", appPod, "--", "mkdir", "-p", "testfiles")
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-
-	cmd = exec.Command("kubectl", "cp", filepath.Join(c.Configuration().WorkingDirectory, "test_emoji.png"), appPod+":/mattermost/testfiles/")
-	if err := cmd.Run(); err != nil {
-		return err
+		cmd = exec.Command("kubectl", "cp", filepath.Join(c.Configuration().WorkingDirectory, "test_emoji.png"), appPod+":/mattermost/testfiles/")
+		if err := cmd.Run(); err != nil {
+			return err
+		}
+	} else {
+		log.Warn("loadtest agent missing test emoji, skipping")
 	}
 
 	// If this command fails, assume user was already created

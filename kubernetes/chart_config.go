@@ -6,19 +6,10 @@ import (
 
 type ChartConfig struct {
 	Global     *GlobalConfig     `yaml:"global"`
-	Tags       *TagsConfig       `yaml:"tags"`
 	MySQLHA    *MySQLHAConfig    `yaml:"mysqlha"`
-	App        *AppConfig        `yaml:"mattermost-app"`
-	Loadtest   *LoadtestConfig   `yaml:"mattermost-loadtest"`
+	App        *AppConfig        `yaml:"mattermostApp"`
 	Proxy      *ProxyConfig      `yaml:"nginx-ingress"`
 	Prometheus *PrometheusConfig `yaml:"prometheus"`
-}
-
-type TagsConfig struct {
-	Core    bool `yaml:"core"`
-	Metrics bool `yaml:"metrics"`
-	Ingress bool `yaml:"ingress"`
-	Storage bool `yaml:"storage"`
 }
 
 type GlobalConfig struct {
@@ -28,14 +19,53 @@ type GlobalConfig struct {
 }
 
 type FeaturesConfig struct {
+	Ingress      *IngressFeature     `yaml:"ingress"`
+	Database     *DatabaseFeature    `yaml:"database"`
 	LoadTest     *LoadTestFeature    `yaml:"loadTest"`
 	Grafana      *GrafanaFeature     `yaml:"grafana"`
 	LinkPreviews *LinkPreviewFeature `yaml:"linkPreviews"`
 	CustomEmoji  *CustomEmojiFeature `yaml:"customEmoji"`
+	Storage      *StorageFeature     `yaml:"storage"`
+}
+
+type IngressFeature struct {
+	Enabled bool `yaml:"enabled"`
+}
+
+type DatabaseFeature struct {
+	UseInternal bool              `yaml:"useInternal"`
+	Internal    *DatabaseInternal `yaml:"internal,omitempty"`
+	External    *DatabaseExternal `yaml:"external,omitempty"`
+}
+
+type DatabaseInternal struct {
+	DBUser     string `yaml:"dbUser"`
+	DBPassword string `yaml:"dbPassword"`
+	DBName     string `yaml:"dbName"`
+}
+
+type DatabaseExternal struct {
+	Driver             string `yaml:"driver"`
+	DataSource         string `yaml:"dataSource"`
+	DataSourceReplicas string `yaml:"dataSourceReplicas"`
 }
 
 type LoadTestFeature struct {
-	Enabled bool `yaml:"enabled"`
+	Enabled                           bool              `yaml:"enabled"`
+	ReplicaCount                      int               `yaml:"replicaCount"`
+	Image                             *ImageSetting     `yaml:"image"`
+	Resources                         *ResourcesSetting `yaml:"resources"`
+	NumTeams                          int               `yaml:"numTeams"`
+	NumChannelsPerTeam                int               `yaml:"numChannelsPerTeam"`
+	NumUsers                          int               `yaml:"numUsers"`
+	NumPosts                          int               `yaml:"numPosts"`
+	ReplyChance                       float32           `yaml:"replyChance"`
+	LinkPreviewChance                 float32           `yaml:"linkPreviewChance"`
+	SkipBulkLoad                      bool              `yaml:"skipBulkLoad"`
+	TestLengthMinutes                 int               `yaml:"testLengthMinutes"`
+	NumActiveEntities                 int               `yaml:"numActiveEntities"`
+	ActionRateMilliseconds            int               `yaml:"actionRateMilliseconds"`
+	ActionRateMaxVarianceMilliseconds int               `yaml:"actionRateMaxVarianceMilliseconds"`
 }
 
 type GrafanaFeature struct {
@@ -47,6 +77,10 @@ type LinkPreviewFeature struct {
 }
 
 type CustomEmojiFeature struct {
+	Enabled bool `yaml:"enabled"`
+}
+
+type StorageFeature struct {
 	Enabled bool `yaml:"enabled"`
 }
 
@@ -70,23 +104,6 @@ type AppConfig struct {
 	ReplicaCount int               `yaml:"replicaCount"`
 	Image        *ImageSetting     `yaml:"image"`
 	Resources    *ResourcesSetting `yaml:"resources"`
-}
-
-type LoadtestConfig struct {
-	ReplicaCount                      int               `yaml:"replicaCount"`
-	Image                             *ImageSetting     `yaml:"image"`
-	Resources                         *ResourcesSetting `yaml:"resources"`
-	NumTeams                          int               `yaml:"numTeams"`
-	NumChannelsPerTeam                int               `yaml:"numChannelsPerTeam"`
-	NumUsers                          int               `yaml:"numUsers"`
-	NumPosts                          int               `yaml:"numPosts"`
-	ReplyChance                       float32           `yaml:"replyChance"`
-	LinkPreviewChance                 float32           `yaml:"linkPreviewChance"`
-	SkipBulkLoad                      bool              `yaml:"skipBulkLoad"`
-	TestLengthMinutes                 int               `yaml:"testLengthMinutes"`
-	NumActiveEntities                 int               `yaml:"numActiveEntities"`
-	ActionRateMilliseconds            int               `yaml:"actionRateMilliseconds"`
-	ActionRateMaxVarianceMilliseconds int               `yaml:"actionRateMaxVarianceMilliseconds"`
 }
 
 type ProxyConfig struct {
@@ -136,8 +153,8 @@ func (c *ChartConfig) TotalCPURequests() *Quantity {
 	for i := 0; i < c.Proxy.Controller.ReplicaCount; i++ {
 		total.Add(*c.Proxy.Controller.Resources.Requests.CPU.Quantity)
 	}
-	for i := 0; i < c.Loadtest.ReplicaCount; i++ {
-		total.Add(*c.Loadtest.Resources.Requests.CPU.Quantity)
+	for i := 0; i < c.Global.Features.LoadTest.ReplicaCount; i++ {
+		total.Add(*c.Global.Features.LoadTest.Resources.Requests.CPU.Quantity)
 	}
 
 	// Add two cores as buffer for other pods
@@ -156,8 +173,8 @@ func (c *ChartConfig) TotalMemoryRequests() *Quantity {
 	for i := 0; i < c.Proxy.Controller.ReplicaCount; i++ {
 		total.Add(*c.Proxy.Controller.Resources.Requests.Memory.Quantity)
 	}
-	for i := 0; i < c.Loadtest.ReplicaCount; i++ {
-		total.Add(*c.Loadtest.Resources.Requests.Memory.Quantity)
+	for i := 0; i < c.Global.Features.LoadTest.ReplicaCount; i++ {
+		total.Add(*c.Global.Features.LoadTest.Resources.Requests.Memory.Quantity)
 	}
 
 	// Add two 2 GiB of memory as buffer for other pods

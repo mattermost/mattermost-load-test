@@ -37,17 +37,36 @@ func getStandardConfig(users int) *ChartConfig {
 	config := &ChartConfig{
 		Global: &GlobalConfig{
 			Features: &FeaturesConfig{
-				LoadTest:     &LoadTestFeature{Enabled: true},
+				Ingress: &IngressFeature{Enabled: true},
+				LoadTest: &LoadTestFeature{
+					Enabled: true,
+					Image: &ImageSetting{
+						Tag: "4.10.1",
+					},
+					Resources:                         &ResourcesSetting{Requests: &ResourceSetting{}},
+					NumTeams:                          1,
+					NumChannelsPerTeam:                400,
+					NumUsers:                          users,
+					ReplyChance:                       0.3,
+					LinkPreviewChance:                 0.2,
+					SkipBulkLoad:                      true,
+					TestLengthMinutes:                 20,
+					ActionRateMilliseconds:            240000,
+					ActionRateMaxVarianceMilliseconds: 15000,
+				},
+				Database: &DatabaseFeature{
+					UseInternal: true,
+					Internal: &DatabaseInternal{
+						DBUser:     "mmuser",
+						DBPassword: "passwd",
+						DBName:     "mattermost",
+					},
+				},
 				Grafana:      &GrafanaFeature{Enabled: true},
 				LinkPreviews: &LinkPreviewFeature{Enabled: true},
 				CustomEmoji:  &CustomEmojiFeature{Enabled: true},
+				Storage:      &StorageFeature{Enabled: true},
 			},
-		},
-		Tags: &TagsConfig{
-			Core:    true,
-			Metrics: true,
-			Ingress: true,
-			Storage: true,
 		},
 		MySQLHA: &MySQLHAConfig{
 			Enabled: true,
@@ -65,21 +84,6 @@ func getStandardConfig(users int) *ChartConfig {
 			},
 			Resources: &ResourcesSetting{Requests: &ResourceSetting{}},
 		},
-		Loadtest: &LoadtestConfig{
-			Image: &ImageSetting{
-				Tag: "4.10.1",
-			},
-			Resources:                         &ResourcesSetting{Requests: &ResourceSetting{}},
-			NumTeams:                          1,
-			NumChannelsPerTeam:                400,
-			NumUsers:                          users,
-			ReplyChance:                       0.3,
-			LinkPreviewChance:                 0.2,
-			SkipBulkLoad:                      true,
-			TestLengthMinutes:                 20,
-			ActionRateMilliseconds:            240000,
-			ActionRateMaxVarianceMilliseconds: 15000,
-		},
 		Proxy: &ProxyConfig{
 			Enabled: true,
 			Controller: &ProxyController{
@@ -91,7 +95,7 @@ func getStandardConfig(users int) *ChartConfig {
 		},
 	}
 
-	config.Loadtest.NumUsers = users
+	config.Global.Features.LoadTest.NumUsers = users
 
 	// TODO: replace with non-flubbed numbers
 	if users <= 5000 {
@@ -104,10 +108,10 @@ func getStandardConfig(users int) *ChartConfig {
 		config.Proxy.Controller.ReplicaCount = 1
 		config.Proxy.Controller.Resources.Requests.CPU = cpu(2)
 		config.Proxy.Controller.Resources.Requests.Memory = memory(4)
-		config.Loadtest.ReplicaCount = 1
-		config.Loadtest.Resources.Requests.CPU = cpu(2)
-		config.Loadtest.Resources.Requests.Memory = memory(4)
-		config.Loadtest.NumPosts = 5000000
+		config.Global.Features.LoadTest.ReplicaCount = 1
+		config.Global.Features.LoadTest.Resources.Requests.CPU = cpu(2)
+		config.Global.Features.LoadTest.Resources.Requests.Memory = memory(4)
+		config.Global.Features.LoadTest.NumPosts = 5000000
 	} else if users <= 10000 {
 		config.App.ReplicaCount = 2
 		config.App.Resources.Requests.CPU = cpu(4)
@@ -118,10 +122,10 @@ func getStandardConfig(users int) *ChartConfig {
 		config.Proxy.Controller.ReplicaCount = 2
 		config.Proxy.Controller.Resources.Requests.CPU = cpu(2)
 		config.Proxy.Controller.Resources.Requests.Memory = memory(4)
-		config.Loadtest.ReplicaCount = 2
-		config.Loadtest.Resources.Requests.CPU = cpu(2)
-		config.Loadtest.Resources.Requests.Memory = memory(4)
-		config.Loadtest.NumPosts = 10000000
+		config.Global.Features.LoadTest.ReplicaCount = 2
+		config.Global.Features.LoadTest.Resources.Requests.CPU = cpu(2)
+		config.Global.Features.LoadTest.Resources.Requests.Memory = memory(4)
+		config.Global.Features.LoadTest.NumPosts = 10000000
 	} else if users <= 20000 {
 		config.App.ReplicaCount = 4
 		config.App.Resources.Requests.CPU = cpu(4)
@@ -132,10 +136,10 @@ func getStandardConfig(users int) *ChartConfig {
 		config.Proxy.Controller.ReplicaCount = 3
 		config.Proxy.Controller.Resources.Requests.CPU = cpu(2)
 		config.Proxy.Controller.Resources.Requests.Memory = memory(4)
-		config.Loadtest.ReplicaCount = 3
-		config.Loadtest.Resources.Requests.CPU = cpu(2)
-		config.Loadtest.Resources.Requests.Memory = memory(4)
-		config.Loadtest.NumPosts = 20000000
+		config.Global.Features.LoadTest.ReplicaCount = 3
+		config.Global.Features.LoadTest.Resources.Requests.CPU = cpu(2)
+		config.Global.Features.LoadTest.Resources.Requests.Memory = memory(4)
+		config.Global.Features.LoadTest.NumPosts = 20000000
 	} else if users <= 30000 {
 		config.App.ReplicaCount = 4
 		config.App.Resources.Requests.CPU = cpu(4)
@@ -146,10 +150,10 @@ func getStandardConfig(users int) *ChartConfig {
 		config.Proxy.Controller.ReplicaCount = 4
 		config.Proxy.Controller.Resources.Requests.CPU = cpu(2)
 		config.Proxy.Controller.Resources.Requests.Memory = memory(4)
-		config.Loadtest.ReplicaCount = 4
-		config.Loadtest.Resources.Requests.CPU = cpu(2)
-		config.Loadtest.Resources.Requests.Memory = memory(4)
-		config.Loadtest.NumPosts = 30000000
+		config.Global.Features.LoadTest.ReplicaCount = 4
+		config.Global.Features.LoadTest.Resources.Requests.CPU = cpu(2)
+		config.Global.Features.LoadTest.Resources.Requests.Memory = memory(4)
+		config.Global.Features.LoadTest.NumPosts = 30000000
 	} else {
 		config.App.ReplicaCount = 5
 		config.App.Resources.Requests.CPU = cpu(4)
@@ -160,13 +164,13 @@ func getStandardConfig(users int) *ChartConfig {
 		config.Proxy.Controller.ReplicaCount = 6
 		config.Proxy.Controller.Resources.Requests.CPU = cpu(2)
 		config.Proxy.Controller.Resources.Requests.Memory = memory(8)
-		config.Loadtest.ReplicaCount = 6
-		config.Loadtest.Resources.Requests.CPU = cpu(4)
-		config.Loadtest.Resources.Requests.Memory = memory(8)
-		config.Loadtest.NumPosts = 60000000
+		config.Global.Features.LoadTest.ReplicaCount = 6
+		config.Global.Features.LoadTest.Resources.Requests.CPU = cpu(4)
+		config.Global.Features.LoadTest.Resources.Requests.Memory = memory(8)
+		config.Global.Features.LoadTest.NumPosts = 60000000
 	}
 
-	config.Loadtest.NumActiveEntities = users / config.Loadtest.ReplicaCount
+	config.Global.Features.LoadTest.NumActiveEntities = users / config.Global.Features.LoadTest.ReplicaCount
 
 	return config
 }
