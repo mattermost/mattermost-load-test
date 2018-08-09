@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -52,13 +51,13 @@ func (c *Cluster) Deploy(options *ltops.DeployOptions) error {
 		}
 
 		// Delete the app pods to make sure they reset caches and restart to pick up config changes
-		cmd = exec.Command("kubectl", "delete", "po", "-l", fmt.Sprintf("app=%v-mattermost-app", c.Release()))
+		cmd = exec.Command("kubectl", "delete", "po", "-l", fmt.Sprintf("release=%v,app=mattermost-helm", c.Release()))
 		if out, err := cmd.CombinedOutput(); err != nil {
 			return errors.Wrap(err, "unable to restart app server pods, error from kubectl: "+string(out))
 		}
 
 		// Delete the loadtest pods to make sure they pick up config changes
-		cmd = exec.Command("kubectl", "delete", "po", "-l", "app=mattermost-loadtest")
+		cmd = exec.Command("kubectl", "delete", "po", "-l", fmt.Sprintf("release=%v,app=mattermost-helm-loadtest", c.Release()))
 		if out, err := cmd.CombinedOutput(); err != nil {
 			return errors.Wrap(err, "unable to restart loadtest pods, error from kubectl: "+string(out))
 		}
@@ -71,8 +70,7 @@ func (c *Cluster) Deploy(options *ltops.DeployOptions) error {
 			return errors.Wrap(err, "unable to install mattermost chart, error from helm: "+string(out))
 		}
 
-		fields := strings.Fields(strings.Split(string(out), "\n")[0])
-		c.ReleaseName = fields[1]
+		c.ReleaseName = c.Config.Name
 
 		log.Info("created release '" + c.Release() + "'")
 	}

@@ -62,7 +62,7 @@ func (c *Cluster) GetAppInstancesAddrs() ([]string, error) {
 		return []string{}, nil
 	}
 
-	pods, err := c.Kubernetes.CoreV1().Pods("").List(metav1.ListOptions{LabelSelector: "app=" + c.Release() + "-mattermost-app"})
+	pods, err := c.Kubernetes.CoreV1().Pods("").List(metav1.ListOptions{LabelSelector: "release=" + c.Release() + ",app=mattermost-helm"})
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (c *Cluster) GetLoadtestInstancesAddrs() ([]string, error) {
 		return []string{}, nil
 	}
 
-	pods, err := c.Kubernetes.CoreV1().Pods("").List(metav1.ListOptions{LabelSelector: "app=mattermost-loadtest,release=" + c.Release()})
+	pods, err := c.Kubernetes.CoreV1().Pods("").List(metav1.ListOptions{LabelSelector: "app=mattermost-helm-loadtest,release=" + c.Release()})
 	if err != nil {
 		return nil, err
 	}
