@@ -1,8 +1,6 @@
 # Mattermost Load Test 
 
-A set of tools for testing/proving Mattermost servers under load. 
-
-Docker Build Status (determines whether build path will include latest version of Mattermost): [![Docker Build Status](https://img.shields.io/docker/build/mattermost/mattermost-load-test.svg)](https://hub.docker.com/r/mattermost/mattermost-load-test/)
+A set of tools for testing/proving Mattermost servers under load.
 
 ## Recommendations
 
