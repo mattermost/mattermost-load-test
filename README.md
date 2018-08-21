@@ -1,10 +1,18 @@
-# Mattermost load test [![Docker Build Status](https://img.shields.io/docker/build/mattermost/mattermost-load-test.svg)](https://hub.docker.com/r/mattermost/mattermost-load-test/)
+# Mattermost Load Test 
 
 A set of tools for testing/proving Mattermost servers under load. 
 
+Docker Build Status (determines whether build path will include latest version of Mattermost): [![Docker Build Status](https://img.shields.io/docker/build/mattermost/mattermost-load-test.svg)](https://hub.docker.com/r/mattermost/mattermost-load-test/)
+
+## Recommendations
+
+1. Deploying on AWS with Terraform instruction is the fastest and easiest way to get the system running. 
+2. Follow the instructions without modification to install and setup initial load test 
+3. Wait until after load test is properly running with defaults before modifying settings to test custom set up
+
 ## Loadtesting with the ltops (load test ops) tool
 
-The ltops tool allows you to easily spin up and load test a cluster of Mattermost servers with all the trimmings. Currently it supports AWS via [Terraform](https://www.terraform.io/) and Kubernetes.
+The **ltops** tool allows you to easily spin up and load test a cluster of Mattermost servers with all the trimmings. Currently it supports AWS via [Terraform](https://www.terraform.io/) and Kubernetes.
 
 ### Installation
 
@@ -45,11 +53,11 @@ See https://kubernetes.io/docs/setup/pick-right-solution/ for more options.
 
 You'll also need to install kubectl and helm.
 
-Install kubectl: https://kubernetes.io/docs/tasks/tools/install-kubectl/
+- Install kubectl: https://kubernetes.io/docs/tasks/tools/install-kubectl/
 
 Type `kubectl` to check the tool is installed properly.
 
-Install helm: https://docs.helm.sh/using_helm/#installing-helm
+- Install helm: https://docs.helm.sh/using_helm/#installing-helm
 
 Type `helm` to check the tool is installed properly.
 
@@ -78,7 +86,7 @@ ltops status
 
 If you want to run load test clusters on AWS, you need to install terraform.
 
-Install Terraform: https://www.terraform.io/intro/getting-started/install.html
+- Install Terraform: https://www.terraform.io/intro/getting-started/install.html
 
 Type `terraform` to check tool is installed properly.
 
