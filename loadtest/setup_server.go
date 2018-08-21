@@ -79,7 +79,7 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 		if _, resp := adminClient.UploadPlugin(plugin); resp.Error != nil {
 			return nil, resp.Error
 		}
-		if _, resp := adminClient.ActivatePlugin("com.mattermost.sample-plugin"); resp.Error != nil {
+		if _, resp := adminClient.EnablePlugin("com.mattermost.sample-plugin"); resp.Error != nil {
 			return nil, resp.Error
 		}
 	}
