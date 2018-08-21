@@ -201,6 +201,7 @@ func deployToLoadtestInstance(instanceNum int, instanceAddr string, loadtestDist
 		".ConnectionConfiguration.MattermostInstallDir": "/opt/mattermost",
 		".ConnectionConfiguration.WaitForServerStart":   false,
 		".LoadtestEnviromentConfig.NumEmoji":            0,
+		".LoadtestEnviromentConfig.NumPlugins":          0,
 	} {
 		logger.Debugf("updating config %s=%v", k, v)
 		jsonValue, err := json.Marshal(v)
