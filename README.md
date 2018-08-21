@@ -106,11 +106,57 @@ More info on setting up the credentials file here: https://docs.aws.amazon.com/c
 ltops create --name myloadtestcluster --type terraform --app-count 1 --db-count 1 --loadtest-count 1 --app-type m4.large --db-type db.r4.large
 ```
 
-2. Deploy Mattermost, configure proxy, loadtest. Note that the options support local files and URLs.
+2. Deploy Mattermost, configure proxy, loadtest. Note that the options support local files and URLs. Make sure to replace the path to the license.
 ```
-ltops deploy -c myloadtestcluster -m https://releases.mattermost.com/4.9.2/mattermost-4.9.2-linux-amd64.tar.gz -l ~/mylicence.mattermost-license -t https://releases.mattermost.com/mattermost-load-test/mattermost-load-test.tar.gz
+ltops deploy -c myloadtestcluster -m https://releases.mattermost.com/5.2.0/mattermost-5.2.0-linux-amd64.tar.gz -l ~/mylicence.mattermost-license -t https://releases.mattermost.com/mattermost-load-test/mattermost-load-test.tar.gz
 ```
 3. [Go here to run a load test](https://github.com/mattermost/mattermost-load-test#run-a-load-test)
+
+##### Configuring your load test
+
+To configure your Terrarform load test for certain number of users and posts, you need to modify the `loadtestconfig.json` inside `mattermost-load-test.tar.gz` and re-deploy to your cluster.
+
+1. Download and extract the load test bundle:
+```
+wget https://releases.mattermost.com/mattermost-load-test/mattermost-load-test.tar.gz
+tar -xzvf mattermost-load-test.tar.gz
+```
+
+2. Open up `mattermost-load-test/loadtestconfig.json` and edit the configuration.
+    1. Set `LoadtestEnviromentConfig.NumUsers` and `LoadtestEnviromentConfig.NumPosts` to your desired values:
+        ```
+        ...
+        "LoadtestEnviromentConfig": {
+            "NumTeams": 1,
+            "NumChannelsPerTeam": 400,
+            "NumUsers": 20000,
+            "NumChannelSchemes": 1,
+            "NumTeamSchemes": 1,
+            "NumPosts": 1000000,
+        ...
+        ```
+    2. Set `UserEntitiesConfiguration.NumActiveEntities` to the number of users divided by the number of load test agents you are using (e.g. for 20k users and 4 loadtest agents, set to 5000):
+        ```
+        ...
+        "UserEntitiesConfiguration": {
+            "TestLengthMinutes": 20,
+            "NumActiveEntities": 5000,
+            "ActionRateMilliseconds": 240000,
+            "ActionRateMaxVarianceMilliseconds": 1500,
+        ...
+        ```
+
+3. Re-compress the `mattermost-load-test` directory:
+```
+tar -czvf mattermost-load-test.tar.gz mattermost-load-test
+```
+
+4. Deploy to your load test cluster, using your new `mattermost-load-test.tar.gz`:
+```
+ltops deploy -c myloadtestcluster -m https://releases.mattermost.com/5.2.0/mattermost-5.2.0-linux-amd64.tar.gz -l ~/mylicence.mattermost-license -t /path/to/mattermost-load-test.tar.gz 
+```
+
+You can re-deploy to the same cluster as many times as you like to update the load test configuration.
 
 ### Run a load test
 
