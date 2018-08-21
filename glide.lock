@@ -1,10 +1,8 @@
 hash: fde5c0b51a20d5f2a51088b413c5a8fc5ac5c4c68e1be1569f1ebc98f50fae79
-updated: 2018-05-28T14:57:09.967872826-04:00
+updated: 2018-08-21T09:44:16.177986056-04:00
 imports:
 - name: github.com/corpix/uarand
   version: 2b8494104d86337cdd41d0a49cbed8e4583c0ab4
-- name: github.com/dimchansky/utfbom
-  version: 6c6132ff69f0f6c088739067407b5d32c52e1d0f
 - name: github.com/fsnotify/fsnotify
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: github.com/ghodss/yaml
@@ -64,6 +62,8 @@ imports:
   version: 6633656539c1639d9d78127b7d47c622b5d7b6dc
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/jaytaylor/html2text
+  version: 57d518f124b0cf46ea2021f25a01396b3522e6fb
 - name: github.com/jmoiron/sqlx
   version: 2aeb6a910c2b94f2d5eb53d9895d80e27264ec41
   subpackages:
@@ -76,21 +76,17 @@ imports:
   - oid
 - name: github.com/magiconair/properties
   version: c2353362d570a7bfa228149c62842019201cfb71
-- name: github.com/maruel/panicparse
-  version: 4417700b5a8d33fbb4416bb04359d20329f60008
-  subpackages:
-  - stack
-- name: github.com/mattermost/html2text
-  version: d47a5532a7bc36ad7b2b8ec3eebe24e975154f94
 - name: github.com/mattermost/mattermost-server
-  version: 792dae23ca2b23650b34f15b1aa7ad63907a82c4
+  version: f16687f83cea20f1ed3682226b60011097c85648
   subpackages:
   - model
   - utils
+  - mlog
   - utils/jsonutils
   - utils/markdown
   - einterfaces
-  - mlog
+- name: github.com/mattermost/viper
+  version: b5e8006cbee93ec955a89ab31e0e3ce3204f3736
 - name: github.com/mattn/go-runewidth
   version: ce7b0b5c7b45a81508558cd1dba6bb1e4ddb51bb
 - name: github.com/minio/minio-go
@@ -103,8 +99,6 @@ imports:
   - pkg/set
 - name: github.com/mitchellh/go-homedir
   version: 3864e76763d94a6df2f9960b16a20a33da9f9a66
-- name: github.com/mitchellh/go-wordwrap
-  version: ad45545899c7b13c020ea92b2072220eefad42b8
 - name: github.com/mitchellh/mapstructure
   version: bb74f1db0675b241733089d5a1faa5dd8b0ef57b
 - name: github.com/modern-go/concurrent
@@ -120,8 +114,8 @@ imports:
   - i18n/bundle
   - i18n/language
   - i18n/translation
-- name: github.com/nsf/termbox-go
-  version: 21a4d435a86280a2927985fd6296de56cbce453e
+- name: github.com/olekukonko/tablewriter
+  version: d4647c9c7a84d847478d890b816b7d8b62b0b279
 - name: github.com/op/go-logging
   version: 970db520ece77730c7e4724c61121037378659d9
 - name: github.com/paulbellamy/ratecounter
@@ -150,6 +144,8 @@ imports:
   version: 583c0c0531f06d5278b7d917446061adc344b5cd
 - name: github.com/spf13/viper
   version: 15738813a09db5c8e5b60a19d67d3f9bd38da3a4
+- name: github.com/ssor/bom
+  version: 6386211fdfcf24c0bfbdaceafd02849ed9a8a509
 - name: github.com/VividCortex/ewma
   version: 43880d236f695d39c62cf7aa4ebd4508c258e6c0
 - name: go.uber.org/atomic
