@@ -16,6 +16,7 @@ var loadTest = &cobra.Command{
 		loadtestOptions := &ltops.LoadTestOptions{}
 		clusterName, _ := cmd.Flags().GetString("cluster")
 		loadtestOptions.ForceBulkLoad, _ = cmd.Flags().GetBool("force-bulk-load")
+		loadtestOptions.SkipBulkLoad, _ = cmd.Flags().GetBool("skip-bulk-load")
 
 		//config, _ := cmd.Flags().GetString("config")
 
@@ -38,6 +39,7 @@ func init() {
 	loadTest.MarkFlagRequired("cluster")
 
 	loadTest.Flags().BoolP("force-bulk-load", "", false, "force bulk load even if bulk loading already complete")
+	loadTest.Flags().BoolP("skip-bulk-load", "", false, "skip bulk load if bulk loading already complete or you loaded using other way")
 
 	// TODO: Implement
 	//loadTest.Flags().StringP("config", "f", "", "a config file to use instead of the default (the ConnectionConfiguration section is mostly ignored)")

@@ -129,9 +129,15 @@ func (c *Cluster) Loadtest(options *ltops.LoadTestOptions) error {
 		return errors.Wrap(err, "unable to get app pods")
 	}
 
-	err = c.bulkLoad(loadtestPods[0], appPods[0], options.ForceBulkLoad)
-	if err != nil {
-		return err
+	if options.SkipBulkLoad {
+		if !c.Configuration().BulkLoadComplete {
+			log.Info("Bulk loading not complete, you may need load that, if you loaded outside the ltops tool you can proceed otherwise might have wrong results")
+		}
+	} else {
+		err = c.bulkLoad(loadtestPods[0], appPods[0], options.ForceBulkLoad)
+		if err != nil {
+			return err
+		}
 	}
 
 	var wg sync.WaitGroup
