@@ -132,7 +132,7 @@ func (c *Cluster) Loadtest(options *ltops.LoadTestOptions) error {
 
 	if options.SkipBulkLoad {
 		if !c.Configuration().BulkLoadComplete {
-			log.Info("Bulk loading not complete, you may need load that, if you loaded outside the ltops tool you can proceed otherwise might have wrong results")
+			log.Info("Bulk loading skipped. If you have not previously loaded the data the test may result in errors.")
 		}
 	} else {
 		err = c.bulkLoad(loadtestPods[0], appPods[0], options.Workers, options.ForceBulkLoad)
