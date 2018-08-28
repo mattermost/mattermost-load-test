@@ -461,11 +461,6 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 	doneChan := make(chan struct{})
 
 	var output bytes.Buffer
-
-	/*f, err := os.OpenFile("loadtestbulkload.json", os.O_RDWR|os.O_CREATE, 0755)
-	if err != nil {
-		fmt.Println("Problem opening file: " + err.Error())
-	}*/
 	go func() {
 		jenc := json.NewEncoder(&output)
 		for lineObject := range lineObjectsChan {
