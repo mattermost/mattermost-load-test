@@ -37,13 +37,14 @@ const (
 )
 
 type LoadtestEnviromentConfig struct {
-	NumTeams           int
-	NumChannelsPerTeam int
-	NumUsers           int
-	NumTeamSchemes     int
-	NumChannelSchemes  int
-	NumEmoji           int
-	NumPlugins         int
+	NumTeams                  int
+	NumChannelsPerTeam        int
+	NumPrivateChannelsPerTeam int
+	NumUsers                  int
+	NumTeamSchemes            int
+	NumChannelSchemes         int
+	NumEmoji                  int
+	NumPlugins                int
 
 	PercentHighVolumeChannels float64
 	PercentMidVolumeChannels  float64
@@ -328,7 +329,9 @@ func generateEmoji(numEmoji int) []EmojiImportData {
 
 func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFileResult {
 	users := make([]UserImportData, 0, config.NumUsers)
-	channels := make([]ChannelImportData, 0, config.NumChannelsPerTeam*config.NumTeams)
+
+	totalChannelsPerTeam := config.NumChannelsPerTeam + config.NumPrivateChannelsPerTeam
+	channels := make([]ChannelImportData, 0, totalChannelsPerTeam*config.NumTeams)
 
 	teamSchemes := generateTeamSchemes(config.NumTeamSchemes)
 	teams := generateTeams(config.NumTeams, config.PercentCustomSchemeTeams, teamSchemes)
@@ -340,18 +343,25 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 	emojis := generateEmoji(config.NumEmoji)
 
 	for teamNum := 0; teamNum < config.NumTeams; teamNum++ {
-		channelsByTeam = append(channelsByTeam, make([]int, 0, config.NumChannelsPerTeam))
-		for channelNum := 0; channelNum < config.NumChannelsPerTeam; channelNum++ {
+		teamName := "loadtestteam" + strconv.Itoa(teamNum)
+		channelsByTeam = append(channelsByTeam, make([]int, 0, totalChannelsPerTeam))
+
+		for channelNum := 0; channelNum < totalChannelsPerTeam; channelNum++ {
 			scheme := ""
 			if len(*channelSchemes) > 0 && rand.Float64() < config.PercentCustomSchemeChannels {
 				scheme = (*channelSchemes)[rand.Intn(len(*channelSchemes))].Name
 			}
 
+			channelType := model.CHANNEL_OPEN
+			if channelNum >= config.NumChannelsPerTeam {
+				channelType = model.CHANNEL_PRIVATE
+			}
+
 			channels = append(channels, ChannelImportData{
-				Team:        "loadtestteam" + strconv.Itoa(teamNum),
+				Team:        teamName,
 				Name:        "loadtestchannel" + strconv.Itoa(channelNum),
 				DisplayName: "Loadtest Channel " + strconv.Itoa(channelNum),
-				Type:        model.CHANNEL_OPEN,
+				Type:        channelType,
 				Header:      "Hea: This is loadtest channel " + strconv.Itoa(channelNum) + " on team " + strconv.Itoa(teamNum),
 				Purpose:     "Pur: This is loadtest channel " + strconv.Itoa(channelNum) + " on team " + strconv.Itoa(teamNum),
 				Scheme:      scheme,
