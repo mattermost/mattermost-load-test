@@ -352,8 +352,8 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 				Name:        "loadtestchannel" + strconv.Itoa(channelNum),
 				DisplayName: "Loadtest Channel " + strconv.Itoa(channelNum),
 				Type:        model.CHANNEL_OPEN,
-				Header:      "Hea: This is loadtest channel " + strconv.Itoa(teamNum) + " on team " + strconv.Itoa(teamNum),
-				Purpose:     "Pur: This is loadtest channel " + strconv.Itoa(teamNum) + " on team " + strconv.Itoa(teamNum),
+				Header:      "Hea: This is loadtest channel " + strconv.Itoa(channelNum) + " on team " + strconv.Itoa(teamNum),
+				Purpose:     "Pur: This is loadtest channel " + strconv.Itoa(channelNum) + " on team " + strconv.Itoa(teamNum),
 				Scheme:      scheme,
 			})
 			channelsByTeam[teamNum] = append(channelsByTeam[teamNum], len(channels)-1)
