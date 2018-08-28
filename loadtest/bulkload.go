@@ -245,7 +245,7 @@ func generateTeams(numTeams int, percentCustomSchemeTeams float64, teamSchemes *
 		teams = append(teams, TeamImportData{
 			Name:            "loadtestteam" + strconv.Itoa(teamNum),
 			DisplayName:     "Loadtest Team " + strconv.Itoa(teamNum),
-			Type:            "O",
+			Type:            model.TEAM_OPEN,
 			Description:     "This is loadtest team " + strconv.Itoa(teamNum),
 			AllowOpenInvite: true,
 			Scheme:          scheme,
@@ -351,7 +351,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 				Team:        "loadtestteam" + strconv.Itoa(teamNum),
 				Name:        "loadtestchannel" + strconv.Itoa(channelNum),
 				DisplayName: "Loadtest Channel " + strconv.Itoa(channelNum),
-				Type:        "O",
+				Type:        model.CHANNEL_OPEN,
 				Header:      "Hea: This is loadtest channel " + strconv.Itoa(teamNum) + " on team " + strconv.Itoa(teamNum),
 				Purpose:     "Pur: This is loadtest channel " + strconv.Itoa(teamNum) + " on team " + strconv.Itoa(teamNum),
 				Scheme:      scheme,
