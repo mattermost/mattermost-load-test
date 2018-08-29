@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
 
@@ -42,7 +43,7 @@ func (c *Cluster) loadtestPod(pod string, resultsOutput io.Writer) error {
 	return nil
 }
 
-func (c *Cluster) bulkLoad(loadtestPod string, appPod string, force bool) error {
+func (c *Cluster) bulkLoad(loadtestPod string, appPod string, workers int, force bool) error {
 	if c.Configuration().BulkLoadComplete && !force {
 		log.Info("Bulk loading previously completed, skipping (use --force-bulk-load to force)")
 		return nil
@@ -90,7 +91,7 @@ func (c *Cluster) bulkLoad(loadtestPod string, appPod string, force bool) error 
 
 	log.Info("bulk import...")
 	startBulkload := time.Now()
-	cmd = exec.Command("kubectl", "exec", appPod, "--", "./bin/platform", "import", "bulk", "--workers", "64", "--apply", "./loadtestbulkload.json")
+	cmd = exec.Command("kubectl", "exec", appPod, "--", "./bin/platform", "import", "bulk", "--workers", strconv.Itoa(workers), "--apply", "./loadtestbulkload.json")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Info("Import failed after: %s", time.Since(startBulkload))
 		return errors.Wrap(err, "bulk import failed: "+string(out))
@@ -129,9 +130,15 @@ func (c *Cluster) Loadtest(options *ltops.LoadTestOptions) error {
 		return errors.Wrap(err, "unable to get app pods")
 	}
 
-	err = c.bulkLoad(loadtestPods[0], appPods[0], options.ForceBulkLoad)
-	if err != nil {
-		return err
+	if options.SkipBulkLoad {
+		if !c.Configuration().BulkLoadComplete {
+			log.Info("Bulk loading skipped. If you have not previously loaded the data the test may result in errors.")
+		}
+	} else {
+		err = c.bulkLoad(loadtestPods[0], appPods[0], options.Workers, options.ForceBulkLoad)
+		if err != nil {
+			return err
+		}
 	}
 
 	var wg sync.WaitGroup
