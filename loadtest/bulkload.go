@@ -13,6 +13,7 @@ import (
 	"math/rand"
 	"net/url"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -41,6 +42,7 @@ type LoadtestEnviromentConfig struct {
 	NumChannelsPerTeam        int
 	NumPrivateChannelsPerTeam int
 	NumDirectMessageChannels  int
+	NumGroupMessageChannels   int
 	NumUsers                  int
 	NumTeamSchemes            int
 	NumChannelSchemes         int
@@ -373,6 +375,81 @@ func makeDirectChannels(config *LoadtestEnviromentConfig, r *rand.Rand, users []
 	return directChannels
 }
 
+// makeGroupChannels attempts to create the requested number of group message channels.
+//
+// Note that the implementation of this method is more random than makeDirectChannels and can fail
+// to generate sufficient group message channels if there aren't enough users. In practice, the
+// number of group messages is relatively low compared to direct messages, and the algorithm for
+// generating same is simpler when random.
+func makeGroupChannels(config *LoadtestEnviromentConfig, r *rand.Rand, users []UserImportData) []DirectChannelImportData {
+	groupChannels := make([]DirectChannelImportData, 0, config.NumGroupMessageChannels)
+	usernames := make([]string, 0, len(users))
+	for _, user := range users {
+		usernames = append(usernames, user.Username)
+	}
+
+	seenGroupMessageChannels := make(map[string]bool)
+
+	pickRandomUsernames := func(count int) ([]string, error) {
+		maxAttempts := 3
+		for attempts := maxAttempts; attempts > 0; attempts-- {
+			currentLength := len(usernames)
+			randomUsernames := make([]string, 0, count)
+
+			for i := 0; i < count; i++ {
+				if currentLength == 0 {
+					return nil, fmt.Errorf("ran out of usernames picking %d random usernames", count)
+				}
+
+				index := rand.Intn(currentLength)
+				randomUsernames = append(randomUsernames, usernames[index])
+
+				// Eliminate the selected username from the next random selection.
+				usernames[index], usernames[currentLength-1] = usernames[currentLength-1], usernames[index]
+				currentLength--
+			}
+
+			// Keep track of the random usernames seen to avoid generating the same
+			// group message again.
+			sort.Strings(randomUsernames)
+			if seenGroupMessageChannels[strings.Join(randomUsernames, ",")] {
+				// Try again with a different random selection.
+				continue
+			} else {
+				seenGroupMessageChannels[strings.Join(randomUsernames, ",")] = true
+			}
+
+			return randomUsernames, nil
+		}
+
+		return nil, fmt.Errorf("failed to generate unique group message channel after %d tries", maxAttempts)
+	}
+
+	for i := 0; i < config.NumGroupMessageChannels; i++ {
+		// Generate at least 3 members, but randomly generate larger group sizes.
+		count := 3
+		for count < model.CHANNEL_GROUP_MAX_USERS && rand.Float32() < 0.05 {
+			count++
+		}
+
+		header := "Hea: This is a group message loadtest channel"
+		members, err := pickRandomUsernames(count)
+		if err != nil {
+			mlog.Warn("failed to pick random usernames for group message channel", mlog.Int("count_group_message_channels", len(groupChannels)), mlog.Err(err))
+			break
+		}
+
+		groupChannels = append(groupChannels,
+			DirectChannelImportData{
+				Members: &members,
+				Header:  &header,
+			},
+		)
+	}
+
+	return groupChannels
+}
+
 func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFileResult {
 	users := make([]UserImportData, 0, config.NumUsers)
 
@@ -504,6 +581,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 	}
 
 	directChannels := makeDirectChannels(config, r, users)
+	directChannels = append(directChannels, makeGroupChannels(config, r, users)...)
 
 	lineObjectsChan := make(chan *LineImportData, 100)
 	doneChan := make(chan struct{})
