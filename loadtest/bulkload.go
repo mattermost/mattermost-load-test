@@ -338,6 +338,22 @@ func generateEmoji(numEmoji int) []EmojiImportData {
 	return emojis
 }
 
+func makeChannelName(channelNumber int) string {
+	return strings.Join(strings.Fields(fake.WordsN(2)), "-") + "-loadtestchannel" + strconv.Itoa(channelNumber)
+}
+
+func makeChannelDisplayName(channelNumber int) string {
+	return fake.WordsN(2) + " Loadtest Channel " + strconv.Itoa(channelNumber)
+}
+
+func makeChannelHeader() string {
+	return fake.Sentence()
+}
+
+func makeChannelPurpose() string {
+	return fake.Sentence()
+}
+
 // makeDirectChannels creates the requested number of direct message channels.
 func makeDirectChannels(config *LoadtestEnviromentConfig, r *rand.Rand, users []UserImportData) []DirectChannelImportData {
 	// Constrain the requested number of direct message channels to the maximum possible given
@@ -358,7 +374,7 @@ func makeDirectChannels(config *LoadtestEnviromentConfig, r *rand.Rand, users []
 		i := n - 2 - int(math.Floor(math.Sqrt(float64(-8*k+4*n*(n-1)-7))/2.0-0.5))
 		j := k + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2
 
-		header := "Hea: This is a direct message loadtest channel"
+		header := makeChannelHeader()
 		members := []string{
 			users[i].Username,
 			users[j].Username,
@@ -432,7 +448,7 @@ func makeGroupChannels(config *LoadtestEnviromentConfig, r *rand.Rand, users []U
 			count++
 		}
 
-		header := "Hea: This is a group message loadtest channel"
+		header := makeChannelHeader()
 		members, err := pickRandomUsernames(count)
 		if err != nil {
 			mlog.Warn("failed to pick random usernames for group message channel", mlog.Int("count_group_message_channels", len(groupChannels)), mlog.Err(err))
@@ -451,6 +467,8 @@ func makeGroupChannels(config *LoadtestEnviromentConfig, r *rand.Rand, users []U
 }
 
 func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFileResult {
+	r := rand.New(rand.NewSource(29))
+
 	users := make([]UserImportData, 0, config.NumUsers)
 
 	totalChannelsPerTeam := config.NumChannelsPerTeam + config.NumPrivateChannelsPerTeam
@@ -482,11 +500,11 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 
 			channels = append(channels, ChannelImportData{
 				Team:        teamName,
-				Name:        "loadtestchannel" + strconv.Itoa(channelNum),
-				DisplayName: "Loadtest Channel " + strconv.Itoa(channelNum),
+				Name:        makeChannelName(channelNum),
+				DisplayName: makeChannelDisplayName(channelNum),
 				Type:        channelType,
-				Header:      "Hea: This is loadtest channel " + strconv.Itoa(channelNum) + " on team " + strconv.Itoa(teamNum),
-				Purpose:     "Pur: This is loadtest channel " + strconv.Itoa(channelNum) + " on team " + strconv.Itoa(teamNum),
+				Header:      makeChannelHeader(),
+				Purpose:     makeChannelPurpose(),
 				Scheme:      scheme,
 			})
 			channelsByTeam[teamNum] = append(channelsByTeam[teamNum], len(channels)-1)
@@ -508,8 +526,6 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 	numUsersInHighVolumeTeam := int(math.Floor(float64(config.NumUsers) * config.PercentUsersHighVolumeTeams))
 	numUsersInMidVolumeTeam := int(math.Floor(float64(config.NumUsers) * config.PercentUsersMidVolumeTeams))
 	numUsersInLowVolumeTeam := int(math.Floor(float64(config.NumUsers) * config.PercentUsersLowVolumeTeams))
-
-	r := rand.New(rand.NewSource(29))
 
 	teamPermutation := r.Perm(len(teams))
 	for sequenceNum, teamNum := range teamPermutation {
