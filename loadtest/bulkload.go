@@ -40,6 +40,7 @@ type LoadtestEnviromentConfig struct {
 	NumTeams                  int
 	NumChannelsPerTeam        int
 	NumPrivateChannelsPerTeam int
+	NumDirectMessageChannels  int
 	NumUsers                  int
 	NumTeamSchemes            int
 	NumChannelSchemes         int
@@ -79,14 +80,15 @@ type LoadtestEnviromentConfig struct {
 }
 
 type LineImportData struct {
-	Type    string             `json:"type"`
-	Scheme  *SchemeImportData  `json:"scheme,omitempty"`
-	Team    *TeamImportData    `json:"team,omitempty"`
-	Channel *ChannelImportData `json:"channel,omitempty"`
-	User    *UserImportData    `json:"user,omitempty"`
-	Post    *PostImportData    `json:"post,omitempty"`
-	Emoji   *EmojiImportData   `json:"emoji,omitempty"`
-	Version int                `json:"version"`
+	Type          string                   `json:"type"`
+	Scheme        *SchemeImportData        `json:"scheme,omitempty"`
+	Team          *TeamImportData          `json:"team,omitempty"`
+	Channel       *ChannelImportData       `json:"channel,omitempty"`
+	User          *UserImportData          `json:"user,omitempty"`
+	Post          *PostImportData          `json:"post,omitempty"`
+	DirectChannel *DirectChannelImportData `json:"direct_channel,omitempty"`
+	Emoji         *EmojiImportData         `json:"emoji,omitempty"`
+	Version       int                      `json:"version"`
 }
 
 type TeamImportData struct {
@@ -106,6 +108,13 @@ type ChannelImportData struct {
 	Header      string `json:"header,omitempty"`
 	Purpose     string `json:"purpose,omitempty"`
 	Scheme      string `json:"scheme,omitempty"`
+}
+
+type DirectChannelImportData struct {
+	Members     *[]string `json:"members"`
+	FavoritedBy *[]string `json:"favorited_by"`
+
+	Header *string `json:"header"`
 }
 
 type UserImportData struct {
@@ -327,6 +336,43 @@ func generateEmoji(numEmoji int) []EmojiImportData {
 	return emojis
 }
 
+// makeDirectChannels creates the requested number of direct message channels.
+func makeDirectChannels(config *LoadtestEnviromentConfig, r *rand.Rand, users []UserImportData) []DirectChannelImportData {
+	// Constrain the requested number of direct message channels to the maximum possible given
+	// the number of users.
+	numDirectMessageChannels := config.NumDirectMessageChannels
+	maxDirectMessageChannels := int(len(users) / 2 * (len(users) - 1))
+	if numDirectMessageChannels > maxDirectMessageChannels {
+		mlog.Warn("Insufficient users to generate direct message channels.", mlog.Int("requested", numDirectMessageChannels), mlog.Int("cap", maxDirectMessageChannels))
+		numDirectMessageChannels = maxDirectMessageChannels
+	}
+
+	directChannels := make([]DirectChannelImportData, 0, numDirectMessageChannels)
+
+	directMessageChannelsPermutation := r.Perm(numDirectMessageChannels)
+	for k := range directMessageChannelsPermutation {
+		// https://stackoverflow.com/questions/27086195/linear-index-upper-triangular-matrix
+		n := len(users)
+		i := n - 2 - int(math.Floor(math.Sqrt(float64(-8*k+4*n*(n-1)-7))/2.0-0.5))
+		j := k + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2
+
+		header := "Hea: This is a direct message loadtest channel"
+		members := []string{
+			users[i].Username,
+			users[j].Username,
+		}
+
+		directChannels = append(directChannels,
+			DirectChannelImportData{
+				Members: &members,
+				Header:  &header,
+			},
+		)
+	}
+
+	return directChannels
+}
+
 func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFileResult {
 	users := make([]UserImportData, 0, config.NumUsers)
 
@@ -457,6 +503,8 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 		}
 	}
 
+	directChannels := makeDirectChannels(config, r, users)
+
 	lineObjectsChan := make(chan *LineImportData, 100)
 	doneChan := make(chan struct{})
 
@@ -515,6 +563,14 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 			Type:    "user",
 			User:    &users[i],
 			Version: 1,
+		}
+	}
+
+	for i := range directChannels {
+		lineObjectsChan <- &LineImportData{
+			Type:          "direct_channel",
+			DirectChannel: &directChannels[i],
+			Version:       1,
 		}
 	}
 
