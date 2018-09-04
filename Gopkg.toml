@@ -24,35 +24,6 @@
 #   go-tests = true
 #   unused-packages = true
 
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/VividCortex/ewma"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/icrowley/fake"
-
-[[constraint]]
-  name = "github.com/montanaflynn/stats"
-  version = "0.3.0"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/paulbellamy/ratecounter"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/pkg/errors"
-
-[[constraint]]
-  name = "github.com/spf13/cobra"
-  version = "0.0.3"
-
-[[constraint]]
-  name = "github.com/stretchr/testify"
-  version = "1.2.2"
-
 [prune]
   go-tests = true
   unused-packages = true
