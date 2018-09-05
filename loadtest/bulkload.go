@@ -13,6 +13,7 @@ import (
 	"math/rand"
 	"net/url"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -37,13 +38,16 @@ const (
 )
 
 type LoadtestEnviromentConfig struct {
-	NumTeams           int
-	NumChannelsPerTeam int
-	NumUsers           int
-	NumTeamSchemes     int
-	NumChannelSchemes  int
-	NumEmoji           int
-	NumPlugins         int
+	NumTeams                  int
+	NumChannelsPerTeam        int
+	NumPrivateChannelsPerTeam int
+	NumDirectMessageChannels  int
+	NumGroupMessageChannels   int
+	NumUsers                  int
+	NumTeamSchemes            int
+	NumChannelSchemes         int
+	NumEmoji                  int
+	NumPlugins                int
 
 	PercentHighVolumeChannels float64
 	PercentMidVolumeChannels  float64
@@ -78,14 +82,15 @@ type LoadtestEnviromentConfig struct {
 }
 
 type LineImportData struct {
-	Type    string             `json:"type"`
-	Scheme  *SchemeImportData  `json:"scheme,omitempty"`
-	Team    *TeamImportData    `json:"team,omitempty"`
-	Channel *ChannelImportData `json:"channel,omitempty"`
-	User    *UserImportData    `json:"user,omitempty"`
-	Post    *PostImportData    `json:"post,omitempty"`
-	Emoji   *EmojiImportData   `json:"emoji,omitempty"`
-	Version int                `json:"version"`
+	Type          string                   `json:"type"`
+	Scheme        *SchemeImportData        `json:"scheme,omitempty"`
+	Team          *TeamImportData          `json:"team,omitempty"`
+	Channel       *ChannelImportData       `json:"channel,omitempty"`
+	User          *UserImportData          `json:"user,omitempty"`
+	Post          *PostImportData          `json:"post,omitempty"`
+	DirectChannel *DirectChannelImportData `json:"direct_channel,omitempty"`
+	Emoji         *EmojiImportData         `json:"emoji,omitempty"`
+	Version       int                      `json:"version"`
 }
 
 type TeamImportData struct {
@@ -105,6 +110,13 @@ type ChannelImportData struct {
 	Header      string `json:"header,omitempty"`
 	Purpose     string `json:"purpose,omitempty"`
 	Scheme      string `json:"scheme,omitempty"`
+}
+
+type DirectChannelImportData struct {
+	Members     *[]string `json:"members"`
+	FavoritedBy *[]string `json:"favorited_by"`
+
+	Header *string `json:"header"`
 }
 
 type UserImportData struct {
@@ -245,7 +257,7 @@ func generateTeams(numTeams int, percentCustomSchemeTeams float64, teamSchemes *
 		teams = append(teams, TeamImportData{
 			Name:            "loadtestteam" + strconv.Itoa(teamNum),
 			DisplayName:     "Loadtest Team " + strconv.Itoa(teamNum),
-			Type:            "O",
+			Type:            model.TEAM_OPEN,
 			Description:     "This is loadtest team " + strconv.Itoa(teamNum),
 			AllowOpenInvite: true,
 			Scheme:          scheme,
@@ -326,9 +338,141 @@ func generateEmoji(numEmoji int) []EmojiImportData {
 	return emojis
 }
 
+func makeChannelName(channelNumber int) string {
+	return strings.Join(strings.Fields(fake.WordsN(2)), "-") + "-loadtestchannel" + strconv.Itoa(channelNumber)
+}
+
+func makeChannelDisplayName(channelNumber int) string {
+	return fake.WordsN(2) + " Loadtest Channel " + strconv.Itoa(channelNumber)
+}
+
+func makeChannelHeader() string {
+	return fake.Sentence()
+}
+
+func makeChannelPurpose() string {
+	return fake.Sentence()
+}
+
+// makeDirectChannels creates the requested number of direct message channels.
+func makeDirectChannels(config *LoadtestEnviromentConfig, r *rand.Rand, users []UserImportData) []DirectChannelImportData {
+	// Constrain the requested number of direct message channels to the maximum possible given
+	// the number of users.
+	numDirectMessageChannels := config.NumDirectMessageChannels
+	maxDirectMessageChannels := int(len(users) / 2 * (len(users) - 1))
+	if numDirectMessageChannels > maxDirectMessageChannels {
+		mlog.Warn("Insufficient users to generate direct message channels.", mlog.Int("requested", numDirectMessageChannels), mlog.Int("cap", maxDirectMessageChannels))
+		numDirectMessageChannels = maxDirectMessageChannels
+	}
+
+	directChannels := make([]DirectChannelImportData, 0, numDirectMessageChannels)
+
+	directMessageChannelsPermutation := r.Perm(numDirectMessageChannels)
+	for k := range directMessageChannelsPermutation {
+		// https://stackoverflow.com/questions/27086195/linear-index-upper-triangular-matrix
+		n := len(users)
+		i := n - 2 - int(math.Floor(math.Sqrt(float64(-8*k+4*n*(n-1)-7))/2.0-0.5))
+		j := k + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2
+
+		header := makeChannelHeader()
+		members := []string{
+			users[i].Username,
+			users[j].Username,
+		}
+
+		directChannels = append(directChannels,
+			DirectChannelImportData{
+				Members: &members,
+				Header:  &header,
+			},
+		)
+	}
+
+	return directChannels
+}
+
+// makeGroupChannels attempts to create the requested number of group message channels.
+//
+// Note that the implementation of this method is more random than makeDirectChannels and can fail
+// to generate sufficient group message channels if there aren't enough users. In practice, the
+// number of group messages is relatively low compared to direct messages, and the algorithm for
+// generating same is simpler when random.
+func makeGroupChannels(config *LoadtestEnviromentConfig, r *rand.Rand, users []UserImportData) []DirectChannelImportData {
+	groupChannels := make([]DirectChannelImportData, 0, config.NumGroupMessageChannels)
+	usernames := make([]string, 0, len(users))
+	for _, user := range users {
+		usernames = append(usernames, user.Username)
+	}
+
+	seenGroupMessageChannels := make(map[string]bool)
+
+	pickRandomUsernames := func(count int) ([]string, error) {
+		maxAttempts := 3
+		for attempts := maxAttempts; attempts > 0; attempts-- {
+			currentLength := len(usernames)
+			randomUsernames := make([]string, 0, count)
+
+			for i := 0; i < count; i++ {
+				if currentLength == 0 {
+					return nil, fmt.Errorf("ran out of usernames picking %d random usernames", count)
+				}
+
+				index := rand.Intn(currentLength)
+				randomUsernames = append(randomUsernames, usernames[index])
+
+				// Eliminate the selected username from the next random selection.
+				usernames[index], usernames[currentLength-1] = usernames[currentLength-1], usernames[index]
+				currentLength--
+			}
+
+			// Keep track of the random usernames seen to avoid generating the same
+			// group message again.
+			sort.Strings(randomUsernames)
+			if seenGroupMessageChannels[strings.Join(randomUsernames, ",")] {
+				// Try again with a different random selection.
+				continue
+			} else {
+				seenGroupMessageChannels[strings.Join(randomUsernames, ",")] = true
+			}
+
+			return randomUsernames, nil
+		}
+
+		return nil, fmt.Errorf("failed to generate unique group message channel after %d tries", maxAttempts)
+	}
+
+	for i := 0; i < config.NumGroupMessageChannels; i++ {
+		// Generate at least 3 members, but randomly generate larger group sizes.
+		count := 3
+		for count < model.CHANNEL_GROUP_MAX_USERS && rand.Float32() < 0.05 {
+			count++
+		}
+
+		header := makeChannelHeader()
+		members, err := pickRandomUsernames(count)
+		if err != nil {
+			mlog.Warn("failed to pick random usernames for group message channel", mlog.Int("count_group_message_channels", len(groupChannels)), mlog.Err(err))
+			break
+		}
+
+		groupChannels = append(groupChannels,
+			DirectChannelImportData{
+				Members: &members,
+				Header:  &header,
+			},
+		)
+	}
+
+	return groupChannels
+}
+
 func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFileResult {
+	r := rand.New(rand.NewSource(29))
+
 	users := make([]UserImportData, 0, config.NumUsers)
-	channels := make([]ChannelImportData, 0, config.NumChannelsPerTeam*config.NumTeams)
+
+	totalChannelsPerTeam := config.NumChannelsPerTeam + config.NumPrivateChannelsPerTeam
+	channels := make([]ChannelImportData, 0, totalChannelsPerTeam*config.NumTeams)
 
 	teamSchemes := generateTeamSchemes(config.NumTeamSchemes)
 	teams := generateTeams(config.NumTeams, config.PercentCustomSchemeTeams, teamSchemes)
@@ -340,20 +484,27 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 	emojis := generateEmoji(config.NumEmoji)
 
 	for teamNum := 0; teamNum < config.NumTeams; teamNum++ {
-		channelsByTeam = append(channelsByTeam, make([]int, 0, config.NumChannelsPerTeam))
-		for channelNum := 0; channelNum < config.NumChannelsPerTeam; channelNum++ {
+		teamName := "loadtestteam" + strconv.Itoa(teamNum)
+		channelsByTeam = append(channelsByTeam, make([]int, 0, totalChannelsPerTeam))
+
+		for channelNum := 0; channelNum < totalChannelsPerTeam; channelNum++ {
 			scheme := ""
 			if len(*channelSchemes) > 0 && rand.Float64() < config.PercentCustomSchemeChannels {
 				scheme = (*channelSchemes)[rand.Intn(len(*channelSchemes))].Name
 			}
 
+			channelType := model.CHANNEL_OPEN
+			if channelNum >= config.NumChannelsPerTeam {
+				channelType = model.CHANNEL_PRIVATE
+			}
+
 			channels = append(channels, ChannelImportData{
-				Team:        "loadtestteam" + strconv.Itoa(teamNum),
-				Name:        "loadtestchannel" + strconv.Itoa(channelNum),
-				DisplayName: "Loadtest Channel " + strconv.Itoa(channelNum),
-				Type:        "O",
-				Header:      "Hea: This is loadtest channel " + strconv.Itoa(teamNum) + " on team " + strconv.Itoa(teamNum),
-				Purpose:     "Pur: This is loadtest channel " + strconv.Itoa(teamNum) + " on team " + strconv.Itoa(teamNum),
+				Team:        teamName,
+				Name:        makeChannelName(channelNum),
+				DisplayName: makeChannelDisplayName(channelNum),
+				Type:        channelType,
+				Header:      makeChannelHeader(),
+				Purpose:     makeChannelPurpose(),
 				Scheme:      scheme,
 			})
 			channelsByTeam[teamNum] = append(channelsByTeam[teamNum], len(channels)-1)
@@ -375,8 +526,6 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 	numUsersInHighVolumeTeam := int(math.Floor(float64(config.NumUsers) * config.PercentUsersHighVolumeTeams))
 	numUsersInMidVolumeTeam := int(math.Floor(float64(config.NumUsers) * config.PercentUsersMidVolumeTeams))
 	numUsersInLowVolumeTeam := int(math.Floor(float64(config.NumUsers) * config.PercentUsersLowVolumeTeams))
-
-	r := rand.New(rand.NewSource(29))
 
 	teamPermutation := r.Perm(len(teams))
 	for sequenceNum, teamNum := range teamPermutation {
@@ -447,15 +596,13 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 		}
 	}
 
+	directChannels := makeDirectChannels(config, r, users)
+	directChannels = append(directChannels, makeGroupChannels(config, r, users)...)
+
 	lineObjectsChan := make(chan *LineImportData, 100)
 	doneChan := make(chan struct{})
 
 	var output bytes.Buffer
-
-	/*f, err := os.OpenFile("loadtestbulkload.json", os.O_RDWR|os.O_CREATE, 0755)
-	if err != nil {
-		fmt.Println("Problem opening file: " + err.Error())
-	}*/
 	go func() {
 		jenc := json.NewEncoder(&output)
 		for lineObject := range lineObjectsChan {
@@ -510,6 +657,14 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 			Type:    "user",
 			User:    &users[i],
 			Version: 1,
+		}
+	}
+
+	for i := range directChannels {
+		lineObjectsChan <- &LineImportData{
+			Type:          "direct_channel",
+			DirectChannel: &directChannels[i],
+			Version:       1,
 		}
 	}
 

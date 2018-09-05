@@ -22,7 +22,10 @@
     },
     "LoadtestEnviromentConfig": {
         "NumTeams": 1,
-        "NumChannelsPerTeam": 400,
+        "NumChannelsPerTeam": 300,
+        "NumPrivateChannelsPerTeam": 100,
+        "NumDirectMessageChannels": 2000,
+        "NumGroupMessageChannels": 50,
         "NumUsers": 1000,
         "NumChannelSchemes": 1,
         "NumTeamSchemes": 1,
