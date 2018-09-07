@@ -90,9 +90,9 @@ func (c *MattermostSSHConnection) RunCommand(command string) (bool, string) {
 
 func (c *MattermostSSHConnection) RunPlatformCommand(args string) (bool, string) {
 	if c.configFileLoc != "" {
-		return c.RunCommand("cd " + c.mattermostInstallDir + " && ./bin/platform " + args + " --config " + c.configFileLoc)
+		return c.RunCommand("cd " + c.mattermostInstallDir + " && ./bin/mattermost " + args + " --config " + c.configFileLoc)
 	} else {
-		return c.RunCommand("cd " + c.mattermostInstallDir + " && ./bin/platform " + args)
+		return c.RunCommand("cd " + c.mattermostInstallDir + " && ./bin/mattermost " + args)
 	}
 }
 
