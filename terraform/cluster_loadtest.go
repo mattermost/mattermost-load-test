@@ -14,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (c *Cluster) loadtestInstance(addr string, resultsOutput io.Writer) error {
+func (c *Cluster) loadtestInstance(addr string, configFile []byte, resultsOutput io.Writer) error {
 	client, err := sshtools.SSHClient(c.SSHKey(), addr)
 	if err != nil {
 		return errors.Wrap(err, "unable to connect to loadtest instance via ssh")
@@ -26,6 +26,12 @@ func (c *Cluster) loadtestInstance(addr string, resultsOutput io.Writer) error {
 		return errors.Wrap(err, "unable to create ssh session")
 	}
 	defer session.Close()
+
+	if len(configFile) > 0 {
+		if err := sshtools.UploadBytes(client, configFile, "mattermost-load-test/loadtestconfig.json"); err != nil {
+			return errors.Wrap(err, "failed to upload config file")
+		}
+	}
 
 	commandOutputFile := filepath.Join(c.Env.WorkingDirectory, "results", "loadtest-out-"+addr+".txt")
 	if err := os.MkdirAll(filepath.Dir(commandOutputFile), 0700); err != nil {
@@ -60,14 +66,24 @@ func (c *Cluster) Loadtest(options *ltops.LoadTestOptions) error {
 	var wg sync.WaitGroup
 	wg.Add(len(loadtestInstancesAddrs))
 
+	var configFile []byte
+	if len(options.ConfigFile) > 0 {
+		data, err := ltops.GetFileOrURL(options.ConfigFile)
+		if err != nil {
+			return errors.Wrap(err, "failed to load config file")
+		}
+
+		configFile = data
+	}
+
 	for i, addr := range loadtestInstancesAddrs {
 		addr := addr
 		go func() {
 			var err error
 			if i == 0 {
-				err = c.loadtestInstance(addr, options.ResultsWriter)
+				err = c.loadtestInstance(addr, configFile, options.ResultsWriter)
 			} else {
-				err = c.loadtestInstance(addr, nil)
+				err = c.loadtestInstance(addr, configFile, nil)
 			}
 			if err != nil {
 				logrus.Error(err)
