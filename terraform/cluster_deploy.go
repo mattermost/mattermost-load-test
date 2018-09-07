@@ -6,11 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
-	"time"
 
 	"github.com/mattermost/mattermost-load-test/ltops"
 	"github.com/mattermost/mattermost-load-test/sshtools"
@@ -20,117 +17,126 @@ import (
 )
 
 func (c *Cluster) Deploy(options *ltops.DeployOptions) error {
+	var wg sync.WaitGroup
+
+	failed := make(chan bool)
+
 	if len(options.MattermostBinaryFile) > 0 {
-		if err := c.DeployMattermost(options.MattermostBinaryFile, options.LicenseFile); err != nil {
-			return errors.Wrap(err, "failed to deploy mattermost distribution")
-		}
+		c.DeployMattermost(&wg, failed, options.MattermostBinaryFile, options.LicenseFile)
 	}
 
 	if len(options.LoadTestBinaryFile) > 0 {
-		if err := c.DeployLoadtests(options.LoadTestBinaryFile); err != nil {
-			return errors.Wrap(err, "failed to deploy loadtests")
+		c.DeployLoadtests(&wg, failed, options.LoadTestBinaryFile)
+	}
+
+	done := make(chan bool)
+	failedCount := 0
+	go func() {
+		for range failed {
+			failedCount++
 		}
-	}
 
-	return nil
-}
-
-func (c *Cluster) DeployMattermost(mattermostDistLocation string, licenceFileLocation string) error {
-	appInstanceAddrs, err := c.GetAppInstancesAddrs()
-	if err != nil || len(appInstanceAddrs) <= 0 {
-		return errors.Wrap(err, "Unable to get app instance addresses")
-	}
-
-	proxyInstanceAddrs, err := c.GetProxyInstancesAddrs()
-	if err != nil || len(proxyInstanceAddrs) <= 0 {
-		return errors.Wrap(err, "Unable to get app instance addresses")
-	}
-
-	mattermostDist, err := ltops.GetMattermostFileOrURL(mattermostDistLocation)
-	if err != nil {
-		return err
-	}
-
-	licenseFile, err := ltops.GetFileOrURL(licenceFileLocation)
-	if err != nil {
-		return err
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(len(appInstanceAddrs) + len(proxyInstanceAddrs))
-
-	failed := new(int32)
-
-	doDeploy(&wg, failed, appInstanceAddrs, "app", func(instanceNum int, addr string, logger logrus.FieldLogger) error {
-		return deployToAppInstance(bytes.NewReader(mattermostDist), bytes.NewReader(licenseFile), addr, c, logrus.WithField("instance", addr))
-	})
-
-	doDeploy(&wg, failed, proxyInstanceAddrs, "proxy", func(instanceNum int, addr string, logger logrus.FieldLogger) error {
-		return deployToProxyInstance(addr, c, logrus.WithField("instance", addr))
-	})
+		close(done)
+	}()
 
 	wg.Wait()
+	close(failed)
+	<-done
 
-	if *failed == 1 {
-		return fmt.Errorf("failed to deploy to 1 instance")
-	} else if *failed > 0 {
-		return fmt.Errorf("failed to deploy to %v instances", *failed)
-	} else {
-		// This is here because the commands above do not wait for the servers to come back up after they restart them.
-		//TODO: Actually wait for them instead of just sleeping
-		logrus.Info("Deploy successful. Restarting servers...")
-		time.Sleep(time.Second * 5)
-		logrus.Info("Done")
+	if failedCount > 0 {
+		return fmt.Errorf("failed to deploy %d resources", failedCount)
 	}
+
 	return nil
 }
 
-func (c *Cluster) DeployLoadtests(loadtestsDistLocation string) error {
-	loadtestInstanceAddrs, err := c.GetLoadtestInstancesAddrs()
-	if err != nil || len(loadtestInstanceAddrs) <= 0 {
-		return errors.Wrap(err, "Unable to get loadtest instance addresses")
-	}
+func do(wg *sync.WaitGroup, failed chan bool, logger logrus.FieldLogger, action func() error) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 
-	loadtestsDist, err := ltops.GetLoadtestFileOrURL(loadtestsDistLocation)
-	if err != nil {
-		return err
-	}
+		err := action()
+		if err != nil {
+			logger.Error(err.Error())
+			failed <- true
+		}
+	}()
+}
 
-	var wg sync.WaitGroup
-	wg.Add(len(loadtestInstanceAddrs))
+func (c *Cluster) DeployMattermost(wg *sync.WaitGroup, failed chan bool, mattermostDistLocation string, licenceFileLocation string) {
+	do(wg, failed, logrus.StandardLogger(), func() error {
+		appInstanceAddrs, err := c.GetAppInstancesAddrs()
+		if err != nil || len(appInstanceAddrs) <= 0 {
+			return errors.Wrap(err, "unable to get app instance addresses")
+		}
 
-	failed := new(int32)
+		mattermostDist, err := ltops.GetMattermostFileOrURL(mattermostDistLocation)
+		if err != nil {
+			return errors.Wrap(err, "unable to load mattermost distribution")
+		}
 
-	doDeploy(&wg, failed, loadtestInstanceAddrs, "loadtest", func(instanceNum int, addr string, logger logrus.FieldLogger) error {
-		return deployToLoadtestInstance(instanceNum, addr, bytes.NewReader(loadtestsDist), c, logrus.WithField("instance", addr))
+		licenseFile, err := ltops.GetFileOrURL(licenceFileLocation)
+		if err != nil {
+			return errors.Wrap(err, "unable to load mattermost license")
+		}
+
+		doDeploy(wg, failed, appInstanceAddrs, "app", func(instanceNum int, addr string, logger logrus.FieldLogger) error {
+			return deployToAppInstance(bytes.NewReader(mattermostDist), bytes.NewReader(licenseFile), addr, c, logger)
+		})
+
+		return nil
 	})
 
-	wg.Wait()
+	do(wg, failed, logrus.StandardLogger(), func() error {
+		proxyInstanceAddrs, err := c.GetProxyInstancesAddrs()
+		if err != nil || len(proxyInstanceAddrs) <= 0 {
+			return errors.Wrap(err, "unable to get app instance addresses")
+		}
 
-	if *failed == 1 {
-		return fmt.Errorf("failed to deploy to 1 instance")
-	} else if *failed > 0 {
-		return fmt.Errorf("failed to deploy to %v instances", *failed)
-	}
+		doDeploy(wg, failed, proxyInstanceAddrs, "proxy", func(instanceNum int, addr string, logger logrus.FieldLogger) error {
+			return deployToProxyInstance(addr, c, logger)
+		})
 
-	return nil
+		return nil
+	})
 }
 
-func doDeploy(wg *sync.WaitGroup, failed *int32, addresses []string, addressesName string, deployFunc func(instanceNum int, addr string, logger logrus.FieldLogger) error) error {
+func (c *Cluster) DeployLoadtests(wg *sync.WaitGroup, failed chan bool, loadtestsDistLocation string) {
+	do(wg, failed, logrus.StandardLogger(), func() error {
+		loadtestInstanceAddrs, err := c.GetLoadtestInstancesAddrs()
+		if err != nil || len(loadtestInstanceAddrs) <= 0 {
+			return errors.Wrap(err, "unable to get loadtest instance addresses")
+		}
+
+		loadtestsDist, err := ltops.GetLoadtestFileOrURL(loadtestsDistLocation)
+		if err != nil {
+			return errors.Wrap(err, "unable to load loadtests distribution")
+		}
+
+		doDeploy(wg, failed, loadtestInstanceAddrs, "loadtest", func(instanceNum int, addr string, logger logrus.FieldLogger) error {
+			return deployToLoadtestInstance(instanceNum, addr, bytes.NewReader(loadtestsDist), c, logger)
+		})
+
+		return nil
+	})
+}
+
+func doDeploy(wg *sync.WaitGroup, failed chan bool, addresses []string, addressesName string, deployFunc func(instanceNum int, addr string, logger logrus.FieldLogger) error) error {
 	for instanceNum, instanceAddr := range addresses {
 		instanceAddr := instanceAddr
 		instanceNum := instanceNum
-		go func() {
-			logrus.Infof("deploying to %v%v : %v...", addressesName, instanceNum, instanceAddr)
-			if err := deployFunc(instanceNum, instanceAddr, logrus.WithField("instance", strconv.Itoa(instanceNum)+":"+instanceAddr)); err != nil {
-				wrapped := errors.Wrap(err, "unable to deploy to "+addressesName+strconv.Itoa(instanceNum)+" : "+instanceAddr)
-				logrus.Error(wrapped)
-				atomic.AddInt32(failed, 1)
+
+		logger := logrus.WithField("instance", instanceAddr)
+		do(wg, failed, logger, func() error {
+			logger.Infof("deploying to %s%d", addressesName, instanceNum)
+			if err := deployFunc(instanceNum, instanceAddr, logger); err != nil {
+				return errors.Wrapf(err, "unable to deploy to %s%d", addressesName, instanceNum)
 			} else {
-				logrus.Infof("successfully deployed to %v%v : %v...", addressesName, instanceNum, instanceAddr)
+				logger.Infof("successfully deployed to %v%v", addressesName, instanceNum)
 			}
-			wg.Done()
-		}()
+
+			return nil
+		})
 	}
 	return nil
 }

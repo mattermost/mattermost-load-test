@@ -101,6 +101,8 @@ func getFile(file string) ([]byte, error) {
 }
 
 func getURL(url string) ([]byte, error) {
+	logrus.Debugf("loading %s", url)
+
 	response, err := http.Get(url)
 	if err != nil {
 		return nil, errors.Wrap(err, "Can't get file at URL: "+url)
