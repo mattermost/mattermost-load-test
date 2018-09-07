@@ -798,7 +798,7 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 		}
 
 		mlog.Info("Thread splitting", mlog.String("team", team.Name))
-		ThreadSplit(len(channels), 4, PrintCounter, func(channelNum int) {
+		ThreadSplit(len(channels), 4, func(channelNum int) {
 			mlog.Info("Thread", mlog.Int("channel_num", channelNum))
 			// Only recognizes multiples of 100
 			type rootPost struct {

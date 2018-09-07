@@ -31,7 +31,7 @@ func loginAsUsers(cfg *LoadTestConfig, adminClient *model.Client4, entityStartNu
 	r := rand.New(rand.NewSource(seed))
 	order := r.Perm(cfg.LoadtestEnviromentConfig.NumUsers)
 
-	ThreadSplit(cfg.UserEntitiesConfiguration.NumActiveEntities, runtime.GOMAXPROCS(0)*2, PrintCounter, func(i int) {
+	ThreadSplit(cfg.UserEntitiesConfiguration.NumActiveEntities, runtime.GOMAXPROCS(0)*2, func(i int) {
 		// Add the usernum to start from
 		entityNum := i + entityStartNum
 		userNum := entityNum
