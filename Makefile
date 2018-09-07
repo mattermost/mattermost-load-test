@@ -13,7 +13,8 @@ BUILDER_GOOS_GOARCH="$(shell $(GO) env GOOS)_$(shell $(GO) env GOARCH)"
 all: install
 
 vendor:
-	glide install
+	go get -u github.com/golang/dep/cmd/dep
+	$(shell go env GOPATH)/bin/dep ensure
 
 build-linux: vendor
 	@echo Build Linux amd64
@@ -48,7 +49,7 @@ package: build-linux
 	cp loadtestconfig.default.json $(DIST_PATH)/loadtestconfig.json
 	cp README.md $(DIST_PATH)
 	cp -r testfiles $(DIST_PATH)
-	
+
 	@# ----- PLATFORM SPECIFIC -----
 
 	@# Linux, the only supported package version for now. Build manually for other targets.
