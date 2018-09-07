@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/mattermost/mattermost-load-test/ltops"
 	"github.com/mattermost/mattermost-load-test/sshtools"
@@ -141,6 +142,8 @@ func doDeploy(wg *sync.WaitGroup, failed chan bool, addresses []string, addresse
 	return nil
 }
 
+var remoteSSHKeyPath = "/home/ubuntu/key.pem"
+
 func deployToLoadtestInstance(instanceNum int, instanceAddr string, loadtestDistribution io.Reader, cluster ltops.Cluster, logger logrus.FieldLogger) error {
 	client, err := sshtools.SSHClient(cluster.SSHKey(), instanceAddr)
 	if err != nil {
@@ -154,7 +157,6 @@ func deployToLoadtestInstance(instanceNum int, instanceAddr string, loadtestDist
 		return errors.Wrap(err, "unable to upload loadtest distribution.")
 	}
 
-	remoteSSHKeyPath := "/home/ubuntu/key.pem"
 	if err := sshtools.UploadBytes(client, cluster.SSHKey(), remoteSSHKeyPath); err != nil {
 		return errors.Wrap(err, "unable to upload ssh key")
 	}
@@ -175,11 +177,23 @@ func deployToLoadtestInstance(instanceNum int, instanceAddr string, loadtestDist
 		}
 	}
 
-	logger.Debug("uploading limits config...")
+	logger.Debug("uploading limits config")
 	if err := uploadLimitsConfig(client); err != nil {
 		return errors.Wrap(err, "Unable to upload limits config")
 	}
 
+	if err := configureLoadtestInstance(instanceNum, client, cluster, logger); err != nil {
+		return errors.Wrap(err, "failed to configure loadtest instance")
+	}
+
+	if err := reboot(cluster, client, logger); err != nil {
+		return errors.Wrap(err, "failed to reboot loadtest instance")
+	}
+
+	return nil
+}
+
+func configureLoadtestInstance(instanceNum int, client *ssh.Client, cluster ltops.Cluster, logger logrus.FieldLogger) error {
 	proxyURLs, err := cluster.GetProxyInstancesAddrs()
 	if err != nil || len(proxyURLs) < 1 {
 		return errors.Wrap(err, "Couldn't get app instance addresses.")
@@ -227,15 +241,6 @@ func deployToLoadtestInstance(instanceNum int, instanceAddr string, loadtestDist
 		}
 	}
 
-	for _, cmd := range []string{
-		"sudo shutdown -r now &",
-	} {
-		logger.Debug("+ " + cmd)
-		if err := sshtools.RemoteCommand(client, cmd); err != nil {
-			return errors.Wrap(err, "error running command: "+cmd)
-		}
-	}
-
 	return nil
 }
 
@@ -277,12 +282,15 @@ func deployToProxyInstance(instanceAddr string, clust ltops.Cluster, logger logr
 		"sudo systemctl daemon-reload",
 		"sudo systemctl restart nginx",
 		"sudo systemctl enable nginx",
-		"sudo shutdown -r now &",
 	} {
 		logger.Debug("+ " + cmd)
 		if err := sshtools.RemoteCommand(client, cmd); err != nil {
 			return errors.Wrap(err, "error running command: "+cmd)
 		}
+	}
+
+	if err := reboot(clust, client, logger); err != nil {
+		return errors.Wrap(err, "failed to reboot proxy instance")
 	}
 
 	return nil
@@ -385,12 +393,15 @@ func deployToAppInstance(mattermostDistribution, license io.Reader, instanceAddr
 		"sudo systemctl daemon-reload",
 		"sudo systemctl restart mattermost.service",
 		"sudo systemctl enable mattermost.service",
-		"sudo shutdown -r now &",
 	} {
 		logger.Debug("+ " + cmd)
 		if err := sshtools.RemoteCommand(client, cmd); err != nil {
 			return errors.Wrap(err, "error running command: "+cmd)
 		}
+	}
+
+	if err := reboot(clust, client, logger); err != nil {
+		return errors.Wrap(err, "failed to reboot app instance")
 	}
 
 	return nil
@@ -535,6 +546,51 @@ net.ipv4.tcp_fin_timeout=30
 		return err
 	}
 	session.Close()
+
+	return nil
+}
+
+func reboot(clust ltops.Cluster, client *ssh.Client, logger logrus.FieldLogger) error {
+	for _, cmd := range []string{
+		"sudo shutdown -r now &",
+	} {
+		logger.Debug("+ " + cmd)
+		if err := sshtools.RemoteCommand(client, cmd); err != nil {
+			return errors.Wrap(err, "error running command: "+cmd)
+		}
+	}
+
+	connected := make(chan bool)
+	cancel := make(chan bool)
+	go func() {
+		for {
+			select {
+			case <-time.After(5 * time.Second):
+				logger.Debug("attempting to establish ssh session")
+
+				if newClient, err := sshtools.SSHClient(
+					clust.SSHKey(),
+					strings.Split(client.RemoteAddr().String(), ":")[0],
+				); err != nil {
+					logger.Debug(err.Error())
+				} else {
+					newClient.Close()
+					close(connected)
+					return
+				}
+			case <-cancel:
+				return
+			}
+		}
+	}()
+
+	select {
+	case <-time.After(60 * time.Second):
+		close(cancel)
+		return errors.New("failed to reestablish ssh session after 60 seconds")
+	case <-connected:
+		logger.Debug("reestablished ssh session")
+	}
 
 	return nil
 }
