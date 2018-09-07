@@ -162,7 +162,7 @@ func deployToLoadtestInstance(instanceNum int, instanceAddr string, loadtestDist
 	for _, cmd := range []string{
 		"sudo apt-get update",
 		"sudo apt-get install -y jq",
-		"wget https://dl.google.com/go/go1.10.3.linux-amd64.tar.gz",
+		"curl -C - https://dl.google.com/go/go1.10.3.linux-amd64.tar.gz -o go1.10.3.linux-amd64.tar.gz",
 		"sudo tar -C /usr/local -xzf go1.10.3.linux-amd64.tar.gz",
 		"sudo ln -sf /usr/local/go/bin/go /usr/bin/go",
 		"sudo rm -rf /home/ubuntu/mattermost-load-test",
