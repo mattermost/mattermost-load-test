@@ -192,7 +192,7 @@ func deployToLoadtestInstance(instanceNum int, instanceAddr string, loadtestDist
 
 	appURL := appURLs[0]
 
-	siteURL, err := url.Parse(proxyURLs[instanceNum])
+	siteURL, err := url.Parse(proxyURLs[instanceNum%len(proxyURLs)])
 	if err != nil {
 		return errors.Wrap(err, "Can't parse site URL")
 	}
