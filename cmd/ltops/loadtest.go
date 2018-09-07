@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"path/filepath"
 
 	"github.com/mattermost/mattermost-load-test/ltops"
@@ -10,8 +11,16 @@ import (
 )
 
 var loadTest = &cobra.Command{
-	Use:   "loadtest -- [args...]",
+	Use:   "loadtest",
 	Short: "Runs a mattermost-load-test command against the given cluster",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if cmd.Flags().NFlag() == 0 {
+			cmd.Help()
+			os.Exit(0)
+		}
+
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		loadtestOptions := &ltops.LoadTestOptions{}
 		clusterName, _ := cmd.Flags().GetString("cluster")
@@ -48,6 +57,8 @@ func init() {
 
 	// TODO: Implement
 	//loadTest.Flags().StringP("config", "f", "", "a config file to use instead of the default (the ConnectionConfiguration section is mostly ignored)")
+
+	loadTest.Flags().SortFlags = false
 
 	rootCmd.AddCommand(loadTest)
 }

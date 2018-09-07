@@ -20,11 +20,19 @@ import (
 )
 
 func (c *Cluster) Deploy(options *ltops.DeployOptions) error {
-	if err := c.DeployMattermost(options.MattermostBinaryFile, options.LicenseFile); err != nil {
-		return err
+	if len(options.MattermostBinaryFile) > 0 {
+		if err := c.DeployMattermost(options.MattermostBinaryFile, options.LicenseFile); err != nil {
+			return errors.Wrap(err, "failed to deploy mattermost distribution")
+		}
 	}
 
-	return c.DeployLoadtests(options.LoadTestBinaryFile)
+	if len(options.LoadTestBinaryFile) > 0 {
+		if err := c.DeployLoadtests(options.LoadTestBinaryFile); err != nil {
+			return errors.Wrap(err, "failed to deploy loadtests")
+		}
+	}
+
+	return nil
 }
 
 func (c *Cluster) DeployMattermost(mattermostDistLocation string, licenceFileLocation string) error {
@@ -38,7 +46,7 @@ func (c *Cluster) DeployMattermost(mattermostDistLocation string, licenceFileLoc
 		return errors.Wrap(err, "Unable to get app instance addresses")
 	}
 
-	mattermostDist, err := ltops.GetFileOrURL(mattermostDistLocation)
+	mattermostDist, err := ltops.GetMattermostFileOrURL(mattermostDistLocation)
 	if err != nil {
 		return err
 	}
@@ -83,7 +91,7 @@ func (c *Cluster) DeployLoadtests(loadtestsDistLocation string) error {
 		return errors.Wrap(err, "Unable to get loadtest instance addresses")
 	}
 
-	loadtestsDist, err := ltops.GetFileOrURL(loadtestsDistLocation)
+	loadtestsDist, err := ltops.GetLoadtestFileOrURL(loadtestsDistLocation)
 	if err != nil {
 		return err
 	}

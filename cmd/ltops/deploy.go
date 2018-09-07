@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -15,6 +16,14 @@ var deploy = &cobra.Command{
 	Use:   "deploy",
 	Short: "Deploys an app distribution to a load test cluster",
 	Args:  cobra.ExactArgs(0),
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if cmd.Flags().NFlag() == 0 {
+			cmd.Help()
+			os.Exit(0)
+		}
+
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		deployOptions := &ltops.DeployOptions{}
 
@@ -36,11 +45,11 @@ var deploy = &cobra.Command{
 		}
 
 		if cluster.Type() == terraform.CLUSTER_TYPE {
-			if len(deployOptions.MattermostBinaryFile) == 0 {
-				return errors.New("required flag \"mattermost\" not set")
+			if len(deployOptions.MattermostBinaryFile) != 0 && len(deployOptions.LicenseFile) == 0 {
+				return errors.New("required flag \"license\" not set")
 			}
-			if len(deployOptions.LoadTestBinaryFile) == 0 {
-				return errors.New("required flag \"loadtests\" not set")
+			if len(deployOptions.MattermostBinaryFile) == 0 && len(deployOptions.LoadTestBinaryFile) == 0 {
+				return errors.New("one of \"mattermost\" or \"loadtest\" must be set for a terraform cluster")
 			}
 			if deployOptions.Users > 0 {
 				return errors.New("flag \"users\" not supported for type " + cluster.Type())
@@ -53,7 +62,7 @@ var deploy = &cobra.Command{
 				return errors.New("flag \"loadtests\" not supported for type " + cluster.Type())
 			}
 			if deployOptions.Users == 0 && len(deployOptions.HelmConfigFile) == 0 {
-				return errors.New("one of flags \"users\" or \"helm-config\" must be set")
+				return errors.New("one of flags \"users\" or \"helm-config\" must be set for a kubernetes cluster")
 			}
 		}
 
@@ -73,16 +82,14 @@ func init() {
 	deploy.Flags().StringP("cluster", "c", "", "cluster name (required)")
 	deploy.MarkFlagRequired("cluster")
 
-	deploy.Flags().StringP("mattermost", "m", "", "mattermost distribution to deploy. Can be local file or URL. (required for terraform)")
+	deploy.Flags().StringP("mattermost", "m", "", "mattermost distribution: local file, URL, 'master', branch or PR# (terraform)")
+	deploy.Flags().StringP("license", "l", "", "the license file: local file or URL (required with --mattermost)")
+	deploy.Flags().StringP("loadtests", "t", "", "the loadtests package: local file, URL, or 'master' (terraform)")
 
-	deploy.Flags().StringP("license", "l", "", "the license file to use (required)")
-	deploy.MarkFlagRequired("license")
+	deploy.Flags().IntP("users", "u", 0, "number of active users in the load test (kubernetes)")
+	deploy.Flags().StringP("helm-config", "f", "", "custom helm configuration to use (kubernetes)")
 
-	deploy.Flags().StringP("loadtests", "t", "", "the loadtests package to use (required for terraform)")
-
-	deploy.Flags().IntP("users", "u", 0, "number of active users in the load test (used for kubernetes)")
-
-	deploy.Flags().StringP("helm-config", "f", "", "custom helm configuration to use (used for kubernetes)")
+	deploy.Flags().SortFlags = false
 
 	rootCmd.AddCommand(deploy)
 }
