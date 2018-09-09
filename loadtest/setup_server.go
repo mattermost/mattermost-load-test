@@ -4,6 +4,8 @@
 package loadtest
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"net/http"
 	"os"
@@ -93,19 +95,61 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 		}
 		mlog.Info("Acquiring bulkload lock")
 		if getBulkloadLock(adminClient) {
+			defer releaseBulkloadLock(adminClient)
 			mlog.Info("Sending loadtest file.")
-			if err := cmdrun.SendLoadtestFile(&bulkloadResult.File); err != nil {
-				releaseBulkloadLock(adminClient)
+
+			// sendChunk sends and loads a subset of the whole bulkload file
+			sendChunk := func(chunk *bytes.Buffer, line int) error {
+				mlog.Info("Running bulk import on chunk", mlog.Int("line", line))
+				if err := cmdrun.SendLoadtestFile(chunk); err != nil {
+					return err
+				}
+				if success, output := cmdrun.RunPlatformCommand("import bulk --workers 64 --apply loadtestusers.json"); !success {
+					return fmt.Errorf("Failed to bulk import users: " + output)
+				} else {
+					mlog.Info(output)
+				}
+
+				return nil
+			}
+
+			// Chunk the bulkload file into 1000 line segments. This gives visibility
+			// into the long bulkloading process without requiring server changes, and
+			// theoretically allows us to resume a bulkloading in the future.
+			// None of this would be necessary if bulkloading was more performant.
+			var chunk bytes.Buffer
+			lineScanner := bufio.NewScanner(&bulkloadResult.File)
+			line := 1
+			var versionLine []byte
+			for lineScanner.Scan() {
+				if line == 1 {
+					// Save the version line for repeated use
+					versionLine = make([]byte, len(lineScanner.Bytes()))
+					copy(versionLine, lineScanner.Bytes())
+				}
+
+				chunk.Write(lineScanner.Bytes())
+				chunk.WriteString("\n")
+				line++
+
+				if line%1000 == 0 {
+					if err := sendChunk(&chunk, line); err != nil {
+						return nil, err
+					}
+
+					chunk.Reset()
+					chunk.Write(versionLine)
+					chunk.WriteString("\n")
+				}
+			}
+
+			if err := sendChunk(&chunk, line); err != nil {
 				return nil, err
 			}
-			mlog.Info("Running bulk import.")
-			if success, output := cmdrun.RunPlatformCommand("import bulk --workers 64 --apply loadtestusers.json"); !success {
-				releaseBulkloadLock(adminClient)
-				return nil, fmt.Errorf("Failed to bulk import users: " + output)
-			} else {
-				mlog.Info(output)
+
+			if err := cmdrun.SendLoadtestFile(&bulkloadResult.File); err != nil {
+				return nil, err
 			}
-			releaseBulkloadLock(adminClient)
 		}
 	}
 
