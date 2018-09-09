@@ -86,7 +86,7 @@ func actionGetStatuses(c *EntityConfig) {
 		channelId := c.ChannelMap[team.Name][channel.Name]
 
 		if channelId == "" {
-			mlog.Error("Unable to get channel from map")
+			mlog.Error("Unable to get channel from map", mlog.String("team", team.Name), mlog.String("channel", channel.Name))
 			return
 		}
 
@@ -119,7 +119,7 @@ func actionLeaveJoinTeam(c *EntityConfig) {
 
 	teamId := c.TeamMap[importTeam.Name]
 	if teamId == "" {
-		mlog.Error("Unable to get team from map")
+		mlog.Error("Unable to get team from map", mlog.String("team", importTeam.Name))
 		return
 	}
 
@@ -162,7 +162,7 @@ func actionPostToTownSquare(c *EntityConfig) {
 	channelId := c.TownSquareMap[team.Name]
 
 	if channelId == "" {
-		mlog.Error("Unable to get town-square from map")
+		mlog.Error("Unable to get town-square from map", mlog.String("team", team.Name))
 		return
 	}
 
@@ -178,7 +178,7 @@ func actionPost(c *EntityConfig) {
 	channelId := c.ChannelMap[team.Name][channel.Name]
 
 	if channelId == "" {
-		mlog.Error("Unable to get channel from map")
+		mlog.Error("Unable to get channel from map", mlog.String("team", team.Name), mlog.String("channel", channel.Name))
 		return
 	}
 
@@ -226,7 +226,12 @@ func actionGetChannel(c *EntityConfig) {
 	if team == nil || channel == nil {
 		return
 	}
+
 	channelId := c.ChannelMap[team.Name][channel.Name]
+	if channelId == "" {
+		mlog.Error("Unable to get channel from map", mlog.String("team", team.Name), mlog.String("channel", channel.Name))
+		return
+	}
 
 	if _, resp := c.Client.ViewChannel("me", &model.ChannelView{
 		ChannelId:     channelId,
@@ -716,7 +721,7 @@ func actionMoreChannels(c *EntityConfig) {
 
 	teamId := c.TeamMap[team.Name]
 	if teamId == "" {
-		mlog.Error("Unable to get team from map")
+		mlog.Error("Unable to get team from map", mlog.String("team", team.Name))
 		return
 	}
 
