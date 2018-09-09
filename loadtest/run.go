@@ -73,7 +73,7 @@ func RunTest(test *TestRun) error {
 		return err
 	}
 
-	// Stop channels and wait groups, to stop and wait verious things
+	// Stop channels and wait groups, to stop and wait various things
 	// For entity monitoring routines
 	stopMonitors := make(chan bool)
 	var waitMonitors sync.WaitGroup
@@ -82,9 +82,9 @@ func RunTest(test *TestRun) error {
 	var waitEntity sync.WaitGroup
 
 	// Data channels
-	// Channel to recieve user entity status reports
+	// Channel to receive user entity status reports
 	statusChannel := make(chan UserEntityStatusReport, 10000)
-	// Channels to recieve timing information from the clients
+	// Channels to receive timing information from the clients
 	clientTimingChannel := make(chan TimedRoundTripperReport, 10000)
 	clientTimingChannel3 := make(chan TimedRoundTripperReport, 10000)
 
