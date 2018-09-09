@@ -173,6 +173,20 @@ func (c *Cluster) DBInstanceCount() int {
 	return len(pods.Items)
 }
 
+func (c *Cluster) DBSettings() (*ltops.DBSettings, error) {
+	if len(c.Release()) == 0 {
+		return nil, errors.New("no release available")
+	}
+
+	return &ltops.DBSettings{
+		Username: "mmuser",
+		Password: "password",
+		Endpoint: fmt.Sprintf("%v-mysqlha-0.%v-mysqlha", c.Release(), c.Release()),
+		Port:     3306,
+		Database: "mattermost",
+	}, nil
+}
+
 func (c *Cluster) Destroy() error {
 	log.Info("Destroying cluster...")
 
