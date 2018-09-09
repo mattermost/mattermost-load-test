@@ -161,30 +161,35 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 	teamIdMap := make(map[string]string)
 	channelIdMap := make(map[string]map[string]string)
 	townSquareIdMap := make(map[string]string)
-	if teams, resp := adminClient.GetAllTeams("", 0, cfg.LoadtestEnviromentConfig.NumTeams+200); resp.Error != nil {
+	teams, resp := adminClient.GetAllTeams("", 0, cfg.LoadtestEnviromentConfig.NumTeams+200)
+	if resp.Error != nil {
 		return nil, resp.Error
-	} else {
-		for _, team := range teams {
-			channelIdMap[team.Name] = make(map[string]string)
+	}
 
-			teamIdMap[team.Name] = team.Id
-			numRecieved := 200
-			for page := 0; numRecieved == 200; page++ {
-				if channels, resp2 := adminClient.GetPublicChannelsForTeam(team.Id, page, 200, ""); resp2.Error != nil {
-					mlog.Error("Could not get public channels for team", mlog.String("team_id", team.Id), mlog.Err(resp2.Error))
-					return nil, resp2.Error
-				} else {
-					numRecieved = len(channels)
-					for _, channel := range channels {
-						channelIdMap[team.Name][channel.Name] = channel.Id
-						if channel.Name == "town-square" {
-							mlog.Info("Found town-square", mlog.String("team", team.Name))
-							townSquareIdMap[team.Name] = channel.Id
-						}
-					}
+	mlog.Info("Found teams", mlog.Int("teams", len(teams)))
+	for _, team := range teams {
+		channelIdMap[team.Name] = make(map[string]string)
+
+		teamIdMap[team.Name] = team.Id
+		numReceived := 200
+		for page := 0; numReceived == 200; page++ {
+			channels, resp2 := adminClient.GetPublicChannelsForTeam(team.Id, page, 200, "")
+			if resp2.Error != nil {
+				mlog.Error("Could not get public channels for team", mlog.String("team_id", team.Id), mlog.Err(resp2.Error))
+				return nil, resp2.Error
+			}
+
+			numReceived = len(channels)
+			for _, channel := range channels {
+				channelIdMap[team.Name][channel.Name] = channel.Id
+				if channel.Name == "town-square" {
+					mlog.Info("Found town-square", mlog.String("team", team.Name))
+					townSquareIdMap[team.Name] = channel.Id
 				}
 			}
 		}
+
+		mlog.Info("Found team channels", mlog.String("team", team.Name), mlog.Int("channels", len(channelIdMap[team.Name])))
 	}
 
 	return &ServerSetupData{
