@@ -4,10 +4,13 @@
 package loadtest
 
 import (
+	"fmt"
 	"math/rand"
 	"runtime/debug"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost-load-test/randutil"
 	"github.com/mattermost/mattermost-server/mlog"
@@ -178,4 +181,33 @@ func (config *EntityConfig) SendStatusActionRecieve(details string) {
 
 func (config *EntityConfig) SendStatusStopped(details string) {
 	config.SendStatus(STATUS_STOPPED, nil, details)
+}
+
+// channelMapLock makes it safe to update the ChannelMap below when multiple entities are in play.
+// This won't be necessary if we just enumerate all the private channels like we do public ones.
+var channelMapLock sync.Mutex
+
+func (config *EntityConfig) GetTeamChannelId(teamName, channelName string) (string, error) {
+	channelId := config.ChannelMap[teamName][channelName]
+	if channelId != "" {
+		return channelId, nil
+	}
+
+	teamId := config.TeamMap[teamName]
+	if teamId == "" {
+		return "", fmt.Errorf("unable to find team %s", teamName)
+	}
+
+	// Private channels won't have been fetched, so try to look it up on demand instead.
+	// Ideally, we expose a way to list all the channels on a team, not just the public ones.
+	channel, resp := config.AdminClient.GetChannelByName(channelName, teamId, "")
+	if resp.Error != nil {
+		return "", errors.Wrapf(resp.Error, "failed to get channel %s by name for team %s", channelName, teamId)
+	}
+
+	channelMapLock.Lock()
+	defer channelMapLock.Unlock()
+	config.ChannelMap[teamName][channelName] = channel.Id
+
+	return channel.Id, nil
 }

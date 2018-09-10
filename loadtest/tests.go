@@ -83,10 +83,9 @@ func actionGetStatuses(c *EntityConfig) {
 		if team == nil || channel == nil {
 			return
 		}
-		channelId := c.ChannelMap[team.Name][channel.Name]
-
-		if channelId == "" {
-			mlog.Error("Unable to get channel from map", mlog.String("team", team.Name), mlog.String("channel", channel.Name))
+		channelId, err := c.GetTeamChannelId(team.Name, channel.Name)
+		if err != nil {
+			mlog.Error("Unable to get channel from map", mlog.String("team", team.Name), mlog.String("channel", channel.Name), mlog.Err(err))
 			return
 		}
 
@@ -175,10 +174,9 @@ func actionPost(c *EntityConfig) {
 	if team == nil || channel == nil {
 		return
 	}
-	channelId := c.ChannelMap[team.Name][channel.Name]
-
-	if channelId == "" {
-		mlog.Error("Unable to get channel from map", mlog.String("team", team.Name), mlog.String("channel", channel.Name))
+	channelId, err := c.GetTeamChannelId(team.Name, channel.Name)
+	if err != nil {
+		mlog.Error("Unable to get channel from map", mlog.String("team", team.Name), mlog.String("channel", channel.Name), mlog.Err(err))
 		return
 	}
 
@@ -227,9 +225,9 @@ func actionGetChannel(c *EntityConfig) {
 		return
 	}
 
-	channelId := c.ChannelMap[team.Name][channel.Name]
-	if channelId == "" {
-		mlog.Error("Unable to get channel from map", mlog.String("team", team.Name), mlog.String("channel", channel.Name))
+	channelId, err := c.GetTeamChannelId(team.Name, channel.Name)
+	if err != nil {
+		mlog.Error("Unable to get channel from map", mlog.String("team", team.Name), mlog.String("channel", channel.Name), mlog.Err(err))
 		return
 	}
 
@@ -256,7 +254,11 @@ func actionGetChannel(c *EntityConfig) {
 	// one specified. Duplicate that behaviour here.
 	prevChannel := team.PickChannel(c.r)
 	if prevChannel != nil {
-		prevChannelId := c.ChannelMap[team.Name][prevChannel.Name]
+		prevChannelId, err := c.GetTeamChannelId(team.Name, prevChannel.Name)
+		if err != nil {
+			mlog.Error("Unable to get channel from map", mlog.String("team", team.Name), mlog.String("channel", channel.Name), mlog.Err(err))
+			return
+		}
 
 		if _, resp := c.Client.ViewChannel("me", &model.ChannelView{
 			ChannelId:     channelId,
@@ -416,7 +418,11 @@ func actionPostWebhook(c *EntityConfig) {
 		if team == nil || channel == nil {
 			return
 		}
-		channelId := c.ChannelMap[team.Name][channel.Name]
+		channelId, err := c.GetTeamChannelId(team.Name, channel.Name)
+		if err != nil {
+			mlog.Error("Unable to get channel from map", mlog.String("team", team.Name), mlog.String("channel", channel.Name), mlog.Err(err))
+			return
+		}
 
 		webhook, resp := c.Client.CreateIncomingWebhook(&model.IncomingWebhook{
 			ChannelId:   channelId,
