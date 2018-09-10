@@ -31,6 +31,8 @@ type EntityConfig struct {
 	StopChannel         <-chan bool
 	StopWaitGroup       *sync.WaitGroup
 	Info                map[string]interface{}
+
+	r *rand.Rand
 }
 
 func runEntity(ec *EntityConfig) {
@@ -60,7 +62,7 @@ func runEntity(ec *EntityConfig) {
 		case <-ec.StopChannel:
 			return
 		case <-timer.C:
-			action, err := randutil.WeightedChoice(ec.EntityActions)
+			action, err := randutil.WeightedChoice(ec.r, ec.EntityActions)
 			if err != nil {
 				mlog.Error("Failed to pick weighted choice", mlog.Err(err))
 				return

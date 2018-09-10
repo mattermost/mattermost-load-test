@@ -79,7 +79,7 @@ func actionGetStatuses(c *EntityConfig) {
 	idsI, ok := c.Info["statusUserIds"+c.UserData.Username]
 	var ids []string
 	if !ok {
-		team, channel := c.UserData.PickTeamChannel()
+		team, channel := c.UserData.PickTeamChannel(c.r)
 		if team == nil || channel == nil {
 			return
 		}
@@ -112,7 +112,7 @@ func actionGetStatuses(c *EntityConfig) {
 }
 
 func actionLeaveJoinTeam(c *EntityConfig) {
-	importTeam := c.UserData.PickTeam()
+	importTeam := c.UserData.PickTeam(c.r)
 	if importTeam == nil {
 		return
 	}
@@ -153,7 +153,7 @@ func actionLeaveJoinTeam(c *EntityConfig) {
 }
 
 func actionPostToTownSquare(c *EntityConfig) {
-	team := c.UserData.PickTeam()
+	team := c.UserData.PickTeam(c.r)
 	if team == nil {
 		mlog.Error("Unable to get team for town-square")
 		return
@@ -171,7 +171,7 @@ func actionPostToTownSquare(c *EntityConfig) {
 }
 
 func actionPost(c *EntityConfig) {
-	team, channel := c.UserData.PickTeamChannel()
+	team, channel := c.UserData.PickTeamChannel(c.r)
 	if team == nil || channel == nil {
 		return
 	}
@@ -192,7 +192,7 @@ func createPost(c *EntityConfig, team *UserTeamImportData, channelId string) {
 	}
 
 	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.ChannelLinkChance {
-		if channel := team.PickChannel(); channel != nil {
+		if channel := team.PickChannel(c.r); channel != nil {
 			post.Message = post.Message + " ~" + channel.Name
 		}
 	}
@@ -222,7 +222,7 @@ func createPost(c *EntityConfig, team *UserTeamImportData, channelId string) {
 }
 
 func actionGetChannel(c *EntityConfig) {
-	team, channel := c.UserData.PickTeamChannel()
+	team, channel := c.UserData.PickTeamChannel(c.r)
 	if team == nil || channel == nil {
 		return
 	}
@@ -254,7 +254,7 @@ func actionGetChannel(c *EntityConfig) {
 
 	// The webapp is observed to invoke ViewChannel once without a PrevChannelId, and once with
 	// one specified. Duplicate that behaviour here.
-	prevChannel := team.PickChannel()
+	prevChannel := team.PickChannel(c.r)
 	if prevChannel != nil {
 		prevChannelId := c.ChannelMap[team.Name][prevChannel.Name]
 
@@ -300,7 +300,7 @@ func actionGetChannel(c *EntityConfig) {
 			}
 
 			if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.CustomEmojiChance && c.LoadTestConfig.LoadtestEnviromentConfig.NumEmoji > 0 {
-				name := c.LoadTestConfig.LoadtestEnviromentConfig.PickEmoji()
+				name := c.LoadTestConfig.LoadtestEnviromentConfig.PickEmoji(c.r)
 				if _, resp := c.Client.GetEmojiByName(name); resp.Error != nil {
 					mlog.Error("Unable to get emoji.", mlog.String("emoji_name", name), mlog.String("user_id", post.UserId), mlog.Err(resp.Error))
 				}
@@ -348,7 +348,7 @@ func actionGetChannel(c *EntityConfig) {
 }
 
 func actionPerformSearch(c *EntityConfig) {
-	team, _ := c.UserData.PickTeamChannel()
+	team, _ := c.UserData.PickTeamChannel(c.r)
 	if team == nil {
 		return
 	}
@@ -362,7 +362,7 @@ func actionPerformSearch(c *EntityConfig) {
 }
 
 func actionAutocompleteChannel(c *EntityConfig) {
-	team, channel := c.UserData.PickTeamChannel()
+	team, channel := c.UserData.PickTeamChannel(c.r)
 	if team == nil || channel == nil {
 		return
 	}
@@ -383,7 +383,7 @@ func actionAutocompleteChannel(c *EntityConfig) {
 }
 
 func actionSearchChannel(c *EntityConfig) {
-	team, channel := c.UserData.PickTeamChannel()
+	team, channel := c.UserData.PickTeamChannel(c.r)
 	if team == nil || channel == nil {
 		return
 	}
@@ -412,7 +412,7 @@ func actionPostWebhook(c *EntityConfig) {
 	hookIdI, ok := c.Info[infokey]
 	hookId := ""
 	if !ok {
-		team, channel := c.UserData.PickTeamChannel()
+		team, channel := c.UserData.PickTeamChannel(c.r)
 		if team == nil || channel == nil {
 			return
 		}
@@ -714,7 +714,7 @@ const CHANNELS_CHUNK_SIZE = 50
 const CHANNELS_FETCH_SIZE = CHANNELS_CHUNK_SIZE * 2
 
 func actionMoreChannels(c *EntityConfig) {
-	team := c.UserData.PickTeam()
+	team := c.UserData.PickTeam(c.r)
 	if team == nil {
 		return
 	}

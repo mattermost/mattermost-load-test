@@ -204,15 +204,15 @@ type GenerateBulkloadFileResult struct {
 	Emojis   []EmojiImportData
 }
 
-func (c *LoadtestEnviromentConfig) PickEmoji() string {
-	return fmt.Sprintf("loadtestemoji%v", rand.Intn(c.NumEmoji-1))
+func (c *LoadtestEnviromentConfig) PickEmoji(r *rand.Rand) string {
+	return fmt.Sprintf("loadtestemoji%v", r.Intn(c.NumEmoji-1))
 }
 
-func (s *UserImportData) PickTeam() *UserTeamImportData {
+func (s *UserImportData) PickTeam(r *rand.Rand) *UserTeamImportData {
 	if len(s.TeamChoice) == 0 {
 		return nil
 	}
-	item, err := randutil.WeightedChoice(s.TeamChoice)
+	item, err := randutil.WeightedChoice(r, s.TeamChoice)
 	if err != nil {
 		panic(err)
 	}
@@ -222,20 +222,20 @@ func (s *UserImportData) PickTeam() *UserTeamImportData {
 	return team
 }
 
-func (s *UserImportData) PickTeamChannel() (*UserTeamImportData, *UserChannelImportData) {
-	team := s.PickTeam()
+func (s *UserImportData) PickTeamChannel(r *rand.Rand) (*UserTeamImportData, *UserChannelImportData) {
+	team := s.PickTeam(r)
 	if team == nil {
 		return nil, nil
 	}
 
-	return team, team.PickChannel()
+	return team, team.PickChannel(r)
 }
 
-func (team *UserTeamImportData) PickChannel() *UserChannelImportData {
+func (team *UserTeamImportData) PickChannel(r *rand.Rand) *UserChannelImportData {
 	if len(team.ChannelChoice) == 0 {
 		return nil
 	}
-	item2, err2 := randutil.WeightedChoice(team.ChannelChoice)
+	item2, err2 := randutil.WeightedChoice(r, team.ChannelChoice)
 	if err2 != nil {
 		panic(err2)
 	}
@@ -245,12 +245,12 @@ func (team *UserTeamImportData) PickChannel() *UserChannelImportData {
 	return channel
 }
 
-func generateTeams(numTeams int, percentCustomSchemeTeams float64, teamSchemes *[]SchemeImportData) []TeamImportData {
+func generateTeams(numTeams int, r *rand.Rand, percentCustomSchemeTeams float64, teamSchemes *[]SchemeImportData) []TeamImportData {
 	teams := make([]TeamImportData, 0, numTeams)
 
 	scheme := ""
-	if len(*teamSchemes) > 0 && rand.Float64() < percentCustomSchemeTeams {
-		scheme = (*teamSchemes)[rand.Intn(len(*teamSchemes))].Name
+	if len(*teamSchemes) > 0 && r.Float64() < percentCustomSchemeTeams {
+		scheme = (*teamSchemes)[r.Intn(len(*teamSchemes))].Name
 	}
 
 	for teamNum := 0; teamNum < numTeams; teamNum++ {
@@ -417,7 +417,7 @@ func makeGroupChannels(config *LoadtestEnviromentConfig, r *rand.Rand, users []U
 					return nil, fmt.Errorf("ran out of usernames picking %d random usernames", count)
 				}
 
-				index := rand.Intn(currentLength)
+				index := r.Intn(currentLength)
 				randomUsernames = append(randomUsernames, usernames[index])
 
 				// Eliminate the selected username from the next random selection.
@@ -444,7 +444,7 @@ func makeGroupChannels(config *LoadtestEnviromentConfig, r *rand.Rand, users []U
 	for i := 0; i < config.NumGroupMessageChannels; i++ {
 		// Generate at least 3 members, but randomly generate larger group sizes.
 		count := 3
-		for count < model.CHANNEL_GROUP_MAX_USERS && rand.Float32() < 0.05 {
+		for count < model.CHANNEL_GROUP_MAX_USERS && r.Float32() < 0.05 {
 			count++
 		}
 
@@ -468,6 +468,7 @@ func makeGroupChannels(config *LoadtestEnviromentConfig, r *rand.Rand, users []U
 
 func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFileResult {
 	r := rand.New(rand.NewSource(29))
+	fake.Seed(r.Int63())
 
 	users := make([]UserImportData, 0, config.NumUsers)
 
@@ -475,7 +476,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 	channels := make([]ChannelImportData, 0, totalChannelsPerTeam*config.NumTeams)
 
 	teamSchemes := generateTeamSchemes(config.NumTeamSchemes)
-	teams := generateTeams(config.NumTeams, config.PercentCustomSchemeTeams, teamSchemes)
+	teams := generateTeams(config.NumTeams, r, config.PercentCustomSchemeTeams, teamSchemes)
 
 	channelSchemes := generateChannelSchemes(config.NumChannelSchemes)
 
@@ -489,8 +490,8 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 
 		for channelNum := 0; channelNum < totalChannelsPerTeam; channelNum++ {
 			scheme := ""
-			if len(*channelSchemes) > 0 && rand.Float64() < config.PercentCustomSchemeChannels {
-				scheme = (*channelSchemes)[rand.Intn(len(*channelSchemes))].Name
+			if len(*channelSchemes) > 0 && r.Float64() < config.PercentCustomSchemeChannels {
+				scheme = (*channelSchemes)[r.Intn(len(*channelSchemes))].Name
 			}
 
 			channelType := model.CHANNEL_OPEN
@@ -709,6 +710,8 @@ func ConnectToDB(driverName, dataSource string) *sqlx.DB {
 }
 
 func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
+	fake.Seed(0)
+
 	mlog.Info("Loading posts")
 	db := ConnectToDB(driverName, dataSource)
 	if db == nil {

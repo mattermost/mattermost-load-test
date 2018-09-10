@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
@@ -27,6 +28,8 @@ import (
 )
 
 func RunTest(test *TestRun) error {
+	r := rand.New(rand.NewSource(0))
+
 	interruptChannel := make(chan os.Signal)
 	signal.Notify(interruptChannel, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
@@ -132,7 +135,7 @@ func RunTest(test *TestRun) error {
 		entityToken := tokens[i]
 
 		var usertype UserEntityWithRateMultiplier
-		if userTypeChoice, err := randutil.WeightedChoice(test.UserEntities); err != nil {
+		if userTypeChoice, err := randutil.WeightedChoice(r, test.UserEntities); err != nil {
 			mlog.Error("Failed to pick user entity", mlog.Int("entity_num", entityNum))
 			continue
 		} else {
@@ -174,6 +177,7 @@ func RunTest(test *TestRun) error {
 			StopChannel:         stopEntity,
 			StopWaitGroup:       &waitEntity,
 			Info:                make(map[string]interface{}),
+			r:                   rand.New(rand.NewSource(time.Now().UnixNano())),
 		}
 
 		waitEntity.Add(1)
