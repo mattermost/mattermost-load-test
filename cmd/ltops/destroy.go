@@ -12,11 +12,6 @@ var destroyCluster = &cobra.Command{
 	Use:   "destroy",
 	Short: "Destroys a previously created cluster",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if !cmd.Flag("cluster").Changed && len(args) > 0 {
-			if err := cmd.Flags().Set("cluster", args[0]); err != nil {
-				return err
-			}
-		}
 		if cmd.Flags().NFlag() == 0 {
 			cmd.Help()
 			os.Exit(0)
@@ -46,7 +41,6 @@ func init() {
 	destroyCluster.MarkFlagRequired("cluster")
 
 	destroyCluster.Flags().SortFlags = false
-	destroyCluster.Aliases = append(destroyCluster.Aliases, "delete")
 
 	rootCmd.AddCommand(destroyCluster)
 }

@@ -99,16 +99,20 @@ func SSHClient(sshKey []byte, addr string) (*ssh.Client, error) {
 	})
 }
 
-func RemoteCommand(client *ssh.Client, cmd string) error {
+func RemoteCommand(client *ssh.Client, cmd string, commandOutput io.Writer) error {
 	session, err := client.NewSession()
 	if err != nil {
 		return errors.Wrap(err, "unable to create ssh session")
 	}
 	defer session.Close()
 
+	sessionPipeReader, sessionPipeWriter := io.Pipe()
+	session.Stdout = sessionPipeWriter
+	session.Stderr = sessionPipeWriter
+	defer sessionPipeReader.Close()
+
 	output := &bytes.Buffer{}
-	session.Stdout = output
-	session.Stderr = output
+	go io.Copy(io.MultiWriter(output, commandOutput), sessionPipeReader)
 
 	if err := session.Run(cmd); err != nil {
 		return errors.Wrap(err, output.String())

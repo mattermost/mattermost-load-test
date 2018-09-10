@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/mattermost/mattermost-load-test/kubernetes"
 	"github.com/mattermost/mattermost-load-test/ltops"
@@ -22,22 +23,7 @@ var sshCommand = &cobra.Command{
 var sshAppCommand = &cobra.Command{
 	Use:   "app",
 	Short: "Connect to app instance via SSH",
-	Args:  cobra.MaximumNArgs(2),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if !cmd.Flag("cluster").Changed && len(args) > 0 {
-			if err := cmd.Flags().Set("cluster", args[0]); err != nil {
-				return err
-			}
-
-			args = args[1:]
-		}
-		if !cmd.Flag("instance").Changed && len(args) > 0 {
-			if err := cmd.Flags().Set("instance", args[0]); err != nil {
-				return err
-			}
-
-			args = args[1:]
-		}
 		if cmd.Flags().NFlag() == 0 {
 			cmd.Help()
 			os.Exit(0)
@@ -68,29 +54,14 @@ var sshAppCommand = &cobra.Command{
 			return fmt.Errorf("invalid instance number: %d", instanceNumber)
 		}
 
-		return ssh(cluster, "app instance", addrs[instanceNumber])
+		return ssh(cluster, "app instance", addrs[instanceNumber], strings.Join(args, " "))
 	},
 }
 
 var sshProxyCommand = &cobra.Command{
 	Use:   "proxy",
 	Short: "Connect to proxy instance via SSH",
-	Args:  cobra.MaximumNArgs(2),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if !cmd.Flag("cluster").Changed && len(args) > 0 {
-			if err := cmd.Flags().Set("cluster", args[0]); err != nil {
-				return err
-			}
-
-			args = args[1:]
-		}
-		if !cmd.Flag("instance").Changed && len(args) > 0 {
-			if err := cmd.Flags().Set("instance", args[0]); err != nil {
-				return err
-			}
-
-			args = args[1:]
-		}
 		if cmd.Flags().NFlag() == 0 {
 			cmd.Help()
 			os.Exit(0)
@@ -121,29 +92,14 @@ var sshProxyCommand = &cobra.Command{
 			return fmt.Errorf("invalid instance number: %d", instanceNumber)
 		}
 
-		return ssh(cluster, "proxy instance", addrs[instanceNumber])
+		return ssh(cluster, "proxy instance", addrs[instanceNumber], strings.Join(args, " "))
 	},
 }
 
 var sshLoadtestCommand = &cobra.Command{
 	Use:   "loadtest",
 	Short: "Connect to loadtest instance via SSH",
-	Args:  cobra.MaximumNArgs(2),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if !cmd.Flag("cluster").Changed && len(args) > 0 {
-			if err := cmd.Flags().Set("cluster", args[0]); err != nil {
-				return err
-			}
-
-			args = args[1:]
-		}
-		if !cmd.Flag("instance").Changed && len(args) > 0 {
-			if err := cmd.Flags().Set("instance", args[0]); err != nil {
-				return err
-			}
-
-			args = args[1:]
-		}
 		if cmd.Flags().NFlag() == 0 {
 			cmd.Help()
 			os.Exit(0)
@@ -174,7 +130,7 @@ var sshLoadtestCommand = &cobra.Command{
 			return fmt.Errorf("invalid instance number: %d", instanceNumber)
 		}
 
-		return ssh(cluster, "loadtest instance", addrs[instanceNumber])
+		return ssh(cluster, "loadtest instance", addrs[instanceNumber], strings.Join(args, " "))
 	},
 }
 
@@ -182,11 +138,6 @@ var sshMetricsCommand = &cobra.Command{
 	Use:   "metrics",
 	Short: "Connect to metrics instance",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if !cmd.Flag("cluster").Changed && len(args) > 0 {
-			if err := cmd.Flags().Set("cluster", args[0]); err != nil {
-				return err
-			}
-		}
 		if cmd.Flags().NFlag() == 0 {
 			cmd.Help()
 			os.Exit(0)
@@ -218,18 +169,30 @@ var sshMetricsCommand = &cobra.Command{
 			return errors.Wrap(err, "could not get metrics server address")
 		}
 
-		return ssh(cluster, "metrics instance", addr)
+		return ssh(cluster, "metrics instance", addr, strings.Join(args, " "))
 	},
 }
 
-func ssh(cluster ltops.Cluster, description, addr string) error {
+func ssh(cluster ltops.Cluster, description, addr, cmd string) error {
 	logrus.Infof("Connecting to %s at %s", description, addr)
 
 	if cluster.Type() == kubernetes.CLUSTER_TYPE {
 		return sshtools.SSHInteractiveKubesPod(addr)
 	}
 
-	return sshtools.SSHInteractiveTerminal(cluster.SSHKey(), addr)
+	if cmd == "" {
+		return sshtools.SSHInteractiveTerminal(cluster.SSHKey(), addr)
+	} else {
+		logrus.Debugf("Invoking: %s", cmd)
+
+		client, err := sshtools.SSHClient(cluster.SSHKey(), addr)
+		if err != nil {
+			return err
+		}
+		defer client.Close()
+
+		return sshtools.RemoteCommand(client, cmd, os.Stdout)
+	}
 }
 
 func init() {

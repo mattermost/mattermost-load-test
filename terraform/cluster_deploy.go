@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/url"
 	"strings"
 	"sync"
@@ -173,7 +174,7 @@ func deployToLoadtestInstance(instanceNum int, instanceAddr string, loadtestDist
 		"sudo chmod 600 /home/ubuntu/key.pem",
 	} {
 		logger.Debug("+ " + cmd)
-		if err := sshtools.RemoteCommand(client, cmd); err != nil {
+		if err := sshtools.RemoteCommand(client, cmd, ioutil.Discard); err != nil {
 			return errors.Wrap(err, "error running command: "+cmd)
 		}
 	}
@@ -237,7 +238,7 @@ func configureLoadtestInstance(instanceNum int, client *ssh.Client, cluster ltop
 		if err != nil {
 			return errors.Wrap(err, "invalid config value for key: "+k)
 		}
-		if err := sshtools.RemoteCommand(client, fmt.Sprintf(`jq '%s = %s' /home/ubuntu/mattermost-load-test/loadtestconfig.json > /tmp/ltconfig.json && mv /tmp/ltconfig.json /home/ubuntu/mattermost-load-test/loadtestconfig.json`, k, string(jsonValue))); err != nil {
+		if err := sshtools.RemoteCommand(client, fmt.Sprintf(`jq '%s = %s' /home/ubuntu/mattermost-load-test/loadtestconfig.json > /tmp/ltconfig.json && mv /tmp/ltconfig.json /home/ubuntu/mattermost-load-test/loadtestconfig.json`, k, string(jsonValue)), ioutil.Discard); err != nil {
 			return errors.Wrap(err, "error updating config: "+k)
 		}
 	}
@@ -262,7 +263,7 @@ func deployToProxyInstance(instanceAddr string, clust ltops.Cluster, logger logr
 		"sudo apt-get install -y nginx",
 	} {
 		logger.Debug("+ " + cmd)
-		if err := sshtools.RemoteCommand(client, cmd); err != nil {
+		if err := sshtools.RemoteCommand(client, cmd, ioutil.Discard); err != nil {
 			return errors.Wrap(err, "error running command: "+cmd)
 		}
 	}
@@ -285,7 +286,7 @@ func deployToProxyInstance(instanceAddr string, clust ltops.Cluster, logger logr
 		"sudo systemctl enable nginx",
 	} {
 		logger.Debug("+ " + cmd)
-		if err := sshtools.RemoteCommand(client, cmd); err != nil {
+		if err := sshtools.RemoteCommand(client, cmd, ioutil.Discard); err != nil {
 			return errors.Wrap(err, "error running command: "+cmd)
 		}
 	}
@@ -323,7 +324,7 @@ func deployToAppInstance(mattermostDistribution, license io.Reader, instanceAddr
 		"sudo apt-get install -y jq",
 	} {
 		logger.Debug("+ " + cmd)
-		if err := sshtools.RemoteCommand(client, cmd); err != nil {
+		if err := sshtools.RemoteCommand(client, cmd, ioutil.Discard); err != nil {
 			return errors.Wrap(err, "error running command: "+cmd)
 		}
 	}
@@ -383,7 +384,7 @@ func deployToAppInstance(mattermostDistribution, license io.Reader, instanceAddr
 		if err != nil {
 			return errors.Wrap(err, "invalid config value for key: "+k)
 		}
-		if err := sshtools.RemoteCommand(client, fmt.Sprintf(`jq '%s = %s' /opt/mattermost/config/config.json > /tmp/mmcfg.json && mv /tmp/mmcfg.json /opt/mattermost/config/config.json`, k, string(jsonValue))); err != nil {
+		if err := sshtools.RemoteCommand(client, fmt.Sprintf(`jq '%s = %s' /opt/mattermost/config/config.json > /tmp/mmcfg.json && mv /tmp/mmcfg.json /opt/mattermost/config/config.json`, k, string(jsonValue)), ioutil.Discard); err != nil {
 			return errors.Wrap(err, "error updating config: "+k)
 		}
 	}
@@ -396,7 +397,7 @@ func deployToAppInstance(mattermostDistribution, license io.Reader, instanceAddr
 		"sudo systemctl enable mattermost.service",
 	} {
 		logger.Debug("+ " + cmd)
-		if err := sshtools.RemoteCommand(client, cmd); err != nil {
+		if err := sshtools.RemoteCommand(client, cmd, ioutil.Discard); err != nil {
 			return errors.Wrap(err, "error running command: "+cmd)
 		}
 	}
@@ -556,7 +557,7 @@ func reboot(clust ltops.Cluster, client *ssh.Client, logger logrus.FieldLogger) 
 		"sudo shutdown -r now &",
 	} {
 		logger.Debug("+ " + cmd)
-		if err := sshtools.RemoteCommand(client, cmd); err != nil {
+		if err := sshtools.RemoteCommand(client, cmd, ioutil.Discard); err != nil {
 			return errors.Wrap(err, "error running command: "+cmd)
 		}
 	}

@@ -15,11 +15,6 @@ var createCluster = &cobra.Command{
 	Use:   "create",
 	Short: "Creates a cluster to run Mattermost on for load testing",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if cmd.Flag("name").Changed {
-			if err := cmd.Flags().Set("cluster", cmd.Flag("name").Value.String()); err != nil {
-				return err
-			}
-		}
 		if cmd.Flags().NFlag() == 0 {
 			cmd.Help()
 			os.Exit(0)
@@ -73,9 +68,6 @@ func createClusterCmd(cmd *cobra.Command, args []string) error {
 func init() {
 	createCluster.Flags().StringP("cluster", "c", "", "a unique name for the cluster (required)")
 	createCluster.MarkFlagRequired("cluster")
-
-	createCluster.Flags().String("name", "", "a unique name for the cluster (required)")
-	createCluster.Flags().MarkDeprecated("name", "use --cluster instead")
 
 	createCluster.Flags().StringP("type", "t", "", "the type of cluster, terraform or kubernetes (required)")
 	createCluster.MarkFlagRequired("type")
