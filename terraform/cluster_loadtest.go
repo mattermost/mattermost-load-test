@@ -73,8 +73,7 @@ func newLogrusWriter(logger logrus.FieldLogger) *logrusWriter {
 		if err := scanner.Err(); err != nil {
 			logrus.Errorf("failed to scan and log: %s", err.Error())
 
-			// Drain the reader, otherwise the ssh session won't end.
-			// TODO: Really, we still want to just dump a really long line, but this is a test.
+			// Drain the reader, otherwise the ssh session may not end.
 			io.Copy(ioutil.Discard, reader)
 		}
 		close(done)
@@ -89,7 +88,6 @@ func newLogrusWriter(logger logrus.FieldLogger) *logrusWriter {
 
 func (w *logrusWriter) Close() error {
 	w.PipeWriter.Close()
-	w.reader.Close()
 	<-w.done
 
 	return nil

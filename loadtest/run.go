@@ -230,7 +230,7 @@ func RunTest(test *TestRun) error {
 	close(stopMonitors)
 	waitWithTimeout(&waitMonitors, 10*time.Second)
 
-	clientTimingStats.CalcResults()
+	// clientTimingStats.CalcResults()
 	mlog.Info("Settings", mlog.String("tag", "report"), mlog.Any("configuration", *cfg))
 	mlog.Info("Timings", mlog.String("tag", "timings"), mlog.Any("timings", *clientTimingStats))
 
