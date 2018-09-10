@@ -324,7 +324,7 @@ func getBulkloadLock(adminClient *model.Client4) bool {
 		} else if updatedUser.Nickname == "" {
 			// Lock has been released
 			mlog.Info("Lock Released: " + time.Now().Format(time.UnixDate))
-			return false
+			return true
 		}
 	}
 }
