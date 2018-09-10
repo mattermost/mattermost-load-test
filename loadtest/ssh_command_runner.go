@@ -83,7 +83,6 @@ func (c *MattermostSSHConnection) RunCommand(command string) (bool, string) {
 	if err := session.Run(command); err != nil {
 		return false, "Unable to run command in session. Error: " + err.Error() + ". Output: " + b.String()
 	}
-	session.Close()
 
 	return true, b.String()
 }
