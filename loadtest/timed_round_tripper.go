@@ -9,6 +9,7 @@ import (
 )
 
 type TimedRoundTripperReport struct {
+	Method          string
 	Path            string
 	RequestDuration time.Duration
 	StatusCode      int
@@ -39,6 +40,7 @@ func (trt *TimedRoundTripper) RoundTrip(r *http.Request) (*http.Response, error)
 	}
 
 	trt.reportChan <- TimedRoundTripperReport{
+		Method:          r.Method,
 		Path:            r.URL.Path,
 		RequestDuration: requestEnd.Sub(requestStart),
 		StatusCode:      statuscode,

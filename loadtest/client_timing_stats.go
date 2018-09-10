@@ -4,6 +4,7 @@
 package loadtest
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 	"sync"
@@ -141,6 +142,7 @@ func (ts *ClientTimingStats) Merge(timings *ClientTimingStats) *ClientTimingStat
 var teamPathRegex *regexp.Regexp = regexp.MustCompile("/teams/[a-z0-9]{26}/")
 var emojiPathRegex *regexp.Regexp = regexp.MustCompile("/emoji/name/[A-Za-z0-9]+")
 var channelPathRegex *regexp.Regexp = regexp.MustCompile("/channels/[a-z0-9]{26}/")
+var channelNamePathRegex *regexp.Regexp = regexp.MustCompile("/channels/name/[^/]+")
 var postPathRegex *regexp.Regexp = regexp.MustCompile("/posts/[a-z0-9]{26}/")
 var filePathRegex *regexp.Regexp = regexp.MustCompile("/files/[a-z0-9]{26}/")
 var userPathRegex *regexp.Regexp = regexp.MustCompile("/users/[a-z0-9]{26}/")
@@ -149,21 +151,22 @@ var teamMembersForUserPathRegex *regexp.Regexp = regexp.MustCompile("/teams/[a-z
 
 func processCommonPaths(path string) string {
 	result := strings.TrimPrefix(path, model.API_URL_SUFFIX)
-	result = teamMembersForUserPathRegex.ReplaceAllString(result, "/teams/TID/members/UID")
-	result = teamPathRegex.ReplaceAllString(result, "/teams/TID/")
-	result = channelPathRegex.ReplaceAllString(result, "/channels/CID/")
-	result = postPathRegex.ReplaceAllString(result, "/posts/PID/")
-	result = filePathRegex.ReplaceAllString(result, "/files/PID/")
-	result = userPathRegex.ReplaceAllString(result, "/users/UID/")
-	result = userEmailPathRegex.ReplaceAllString(result, "/users/email/UID")
-	result = emojiPathRegex.ReplaceAllString(result, "/emoji/name/NAME")
+	result = teamMembersForUserPathRegex.ReplaceAllString(result, "/teams/[team id]/members/[user id]")
+	result = teamPathRegex.ReplaceAllString(result, "/teams/[team id]/")
+	result = channelPathRegex.ReplaceAllString(result, "/channels/[channel id]/")
+	result = channelNamePathRegex.ReplaceAllString(result, "/channels/name/[channel name]/")
+	result = postPathRegex.ReplaceAllString(result, "/posts/[post id]/")
+	result = filePathRegex.ReplaceAllString(result, "/files/[post id]/")
+	result = userPathRegex.ReplaceAllString(result, "/users/[user id]/")
+	result = userEmailPathRegex.ReplaceAllString(result, "/users/email/[email]")
+	result = emojiPathRegex.ReplaceAllString(result, "/emoji/name/[emoji name]")
 
 	return result
 }
 
 func (ts *ClientTimingStats) AddTimingReport(timingReport TimedRoundTripperReport) {
 	path := processCommonPaths(timingReport.Path)
-	ts.AddRouteSample(path, int64(timingReport.RequestDuration/time.Millisecond), timingReport.StatusCode)
+	ts.AddRouteSample(fmt.Sprintf("%s %s", timingReport.Method, path), int64(timingReport.RequestDuration/time.Millisecond), timingReport.StatusCode)
 }
 
 // Score is the average of the 95th percentile, median and interquartile range of all routes.
