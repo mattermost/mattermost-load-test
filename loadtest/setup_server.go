@@ -9,8 +9,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost-server/mlog"
 	"github.com/mattermost/mattermost-server/model"
@@ -142,13 +143,12 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 					chunk.WriteString("\n")
 				}
 			}
-
-			if err := sendChunk(&chunk, line); err != nil {
-				return nil, err
+			if err := lineScanner.Err(); err != nil {
+				return nil, errors.Wrapf(err, "failed to scan bulkload result at line %d", line)
 			}
 
-			if err := cmdrun.SendLoadtestFile(&bulkloadResult.File); err != nil {
-				return nil, err
+			if err := sendChunk(&chunk, line); err != nil {
+				return nil, errors.Wrap(err, "failed to send bulkload result chunk")
 			}
 		}
 	}

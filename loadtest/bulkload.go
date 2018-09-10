@@ -608,7 +608,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 		jenc := json.NewEncoder(&output)
 		for lineObject := range lineObjectsChan {
 			if err := jenc.Encode(lineObject); err != nil {
-				fmt.Println("Probablem marshaling: " + err.Error())
+				fmt.Println("Problem marshaling: " + err.Error())
 			}
 		}
 		close(doneChan)
@@ -653,19 +653,30 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 		}
 	}
 
+	usersTeams := make([][]UserTeamImportData, len(users))
 	for i := range users {
+		// The Mattermost server currently chokes on users with a large number of channel
+		// memberships, but only because the bufio.Scanner has a fixed-size buffer and
+		// fails on longer lines. As a temporary workaround that requires no server
+		// changes, we chunk the channel membership data across multiple, "duplicate"
+		// users. The caveat is that lines are loaded in parallel, which can result in
+		// import errors if the user has not yet been created. Avoid this by sending a
+		// "different type" of import line between users and memberships.
+
+		usersTeams[i] = users[i].Teams
+		users[i].Teams = make([]UserTeamImportData, 0, len(usersTeams[i]))
+		for _, userTeam := range usersTeams[i] {
+			users[i].Teams = append(users[i].Teams, UserTeamImportData{
+				Name:  userTeam.Name,
+				Roles: userTeam.Roles,
+			})
+		}
+
+		// Output a version of the user without any channel memberships.
 		lineObjectsChan <- &LineImportData{
 			Type:    "user",
 			User:    &users[i],
 			Version: 1,
-		}
-	}
-
-	for i := range directChannels {
-		lineObjectsChan <- &LineImportData{
-			Type:          "direct_channel",
-			DirectChannel: &directChannels[i],
-			Version:       1,
 		}
 	}
 
@@ -674,6 +685,61 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 			Type:    "emoji",
 			Emoji:   &emojis[i],
 			Version: 1,
+		}
+	}
+
+	for i := range users {
+		// See chunking strategy above.
+		users[i].Teams = usersTeams[i]
+
+		for _, userTeam := range users[i].Teams {
+			channels := []UserChannelImportData{}
+
+			sendChannelsChunk := func(channels []UserChannelImportData) {
+				teamChannels := make([]UserChannelImportData, len(channels))
+				copy(teamChannels, channels)
+
+				user := UserImportData{
+					Username: users[i].Username,
+					Email:    users[i].Email,
+					Roles:    users[i].Roles,
+					Password: users[i].Password,
+
+					Teams: []UserTeamImportData{
+						{
+							Name:     userTeam.Name,
+							Roles:    userTeam.Roles,
+							Channels: teamChannels,
+						},
+					},
+				}
+
+				lineObjectsChan <- &LineImportData{
+					Type:    "user",
+					User:    &user,
+					Version: 1,
+				}
+			}
+
+			for _, userTeamChannel := range userTeam.Channels {
+				channels = append(channels, userTeamChannel)
+				if len(channels) >= 100 {
+					sendChannelsChunk(channels)
+					channels = channels[:0]
+				}
+			}
+			if len(channels) > 0 {
+				sendChannelsChunk(channels)
+				channels = channels[:0]
+			}
+		}
+	}
+
+	for i := range directChannels {
+		lineObjectsChan <- &LineImportData{
+			Type:          "direct_channel",
+			DirectChannel: &directChannels[i],
+			Version:       1,
 		}
 	}
 
