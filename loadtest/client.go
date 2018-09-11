@@ -51,7 +51,7 @@ func loginAsUsers(cfg *LoadTestConfig, adminClient *model.Client4, entityStartNu
 		} else if _, response := client.Login(email, "Loadtestpassword1"); response != nil && response.Error != nil {
 			mlog.Error("Entity %v failed to login as user", mlog.Int("entity_num", entityNum), mlog.String("email", email), mlog.Err(response.Error))
 		} else {
-			mlog.Info("Entity has logged in", mlog.Int("entity_num", entityNum), mlog.String("email", email))
+			mlog.Info("Entity has logged in", mlog.Int("entity_num", entityNum), mlog.String("email", email), mlog.String("token", client.AuthToken))
 			tokens[i] = client.AuthToken
 		}
 	})
