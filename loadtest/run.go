@@ -234,29 +234,6 @@ func RunTest(test *TestRun) error {
 	mlog.Info("Settings", mlog.String("tag", "report"), mlog.Any("configuration", *cfg))
 	mlog.Info("Timings", mlog.String("tag", "timings"), mlog.Any("timings", *clientTimingStats))
 
-	// ioutil.WriteFile("results.txt", []byte(report), 0644)
-
-	// files := []string{
-	// 	"results.txt",
-	// 	"loadtest.log",
-	// }
-
-	// if cfg.ResultsConfiguration.PProfDelayMinutes != 0 {
-	// 	files = append(files, "goroutine.svg", "block.svg", "profile.svg")
-	// }
-
-	// if cfg.ResultsConfiguration.SendReportToMMServer {
-	// 	mlog.Info("Sending results to mm server.")
-	// 	sendResultsToMMServer(
-	// 		cfg.ResultsConfiguration.ResultsServerURL,
-	// 		cfg.ResultsConfiguration.ResultsUsername,
-	// 		cfg.ResultsConfiguration.ResultsPassword,
-	// 		cfg.ResultsConfiguration.ResultsChannelId,
-	// 		cfg.ResultsConfiguration.CustomReportText,
-	// 		files,
-	// 	)
-	// }
-
 	mlog.Info("DONE!")
 
 	return nil
