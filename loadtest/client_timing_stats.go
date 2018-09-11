@@ -95,12 +95,12 @@ func (s *RouteStats) CalcResults() {
 		s.Min, _ = stats.Min(s.Duration)
 		s.Mean, _ = stats.Mean(s.Duration)
 		s.Median, _ = stats.Median(s.Duration)
-		s.InterQuartileRange, _ = stats.InterQuartileRange(s.Duration)
 	}
 
 	// github.com/montanaflynn/stats has an odd implementation of Percentile that fails to
 	// handle small datasets. Avoid NaN for now.
 	if len(s.Duration) > 2 {
+		s.InterQuartileRange, _ = stats.InterQuartileRange(s.Duration)
 		s.Percentile90, _ = stats.Percentile(s.Duration, 90)
 		s.Percentile95, _ = stats.Percentile(s.Duration, 95)
 	}
