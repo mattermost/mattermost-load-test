@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os"
 	"path/filepath"
 
 	"github.com/mattermost/mattermost-load-test/kubernetes"
@@ -12,16 +11,9 @@ import (
 )
 
 var loadTest = &cobra.Command{
-	Use:   "loadtest",
-	Short: "Runs a mattermost-load-test command against the given cluster",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if cmd.Flags().NFlag() == 0 {
-			cmd.Help()
-			os.Exit(0)
-		}
-
-		return nil
-	},
+	Use:     "loadtest",
+	Short:   "Runs a mattermost-load-test command against the given cluster",
+	PreRunE: showHelpIfNoFlags,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clusterName, _ := cmd.Flags().GetString("cluster")
 

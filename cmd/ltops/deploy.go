@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -13,17 +12,10 @@ import (
 )
 
 var deploy = &cobra.Command{
-	Use:   "deploy",
-	Short: "Deploys an app distribution to a load test cluster",
-	Args:  cobra.ExactArgs(0),
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if cmd.Flags().NFlag() == 0 {
-			cmd.Help()
-			os.Exit(0)
-		}
-
-		return nil
-	},
+	Use:     "deploy",
+	Short:   "Deploys an app distribution to a load test cluster",
+	Args:    cobra.ExactArgs(0),
+	PreRunE: showHelpIfNoFlags,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		deployOptions := &ltops.DeployOptions{}
 

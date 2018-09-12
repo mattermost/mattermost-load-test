@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -9,16 +8,9 @@ import (
 )
 
 var destroyCluster = &cobra.Command{
-	Use:   "destroy",
-	Short: "Destroys a previously created cluster",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if cmd.Flags().NFlag() == 0 {
-			cmd.Help()
-			os.Exit(0)
-		}
-
-		return nil
-	},
+	Use:     "destroy",
+	Short:   "Destroys a previously created cluster",
+	PreRunE: showHelpIfNoFlags,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name, _ := cmd.Flags().GetString("cluster")
 

@@ -21,16 +21,9 @@ var sshCommand = &cobra.Command{
 }
 
 var sshAppCommand = &cobra.Command{
-	Use:   "app",
-	Short: "Connect to app instance via SSH",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if cmd.Flags().NFlag() == 0 {
-			cmd.Help()
-			os.Exit(0)
-		}
-
-		return nil
-	},
+	Use:     "app",
+	Short:   "Connect to app instance via SSH",
+	PreRunE: showHelpIfNoFlags,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clusterName, _ := cmd.Flags().GetString("cluster")
 		instanceNumber, _ := cmd.Flags().GetInt("instance")
@@ -59,16 +52,9 @@ var sshAppCommand = &cobra.Command{
 }
 
 var sshProxyCommand = &cobra.Command{
-	Use:   "proxy",
-	Short: "Connect to proxy instance via SSH",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if cmd.Flags().NFlag() == 0 {
-			cmd.Help()
-			os.Exit(0)
-		}
-
-		return nil
-	},
+	Use:     "proxy",
+	Short:   "Connect to proxy instance via SSH",
+	PreRunE: showHelpIfNoFlags,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clusterName, _ := cmd.Flags().GetString("cluster")
 		instanceNumber, _ := cmd.Flags().GetInt("instance")
@@ -97,16 +83,9 @@ var sshProxyCommand = &cobra.Command{
 }
 
 var sshLoadtestCommand = &cobra.Command{
-	Use:   "loadtest",
-	Short: "Connect to loadtest instance via SSH",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if cmd.Flags().NFlag() == 0 {
-			cmd.Help()
-			os.Exit(0)
-		}
-
-		return nil
-	},
+	Use:     "loadtest",
+	Short:   "Connect to loadtest instance via SSH",
+	PreRunE: showHelpIfNoFlags,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clusterName, _ := cmd.Flags().GetString("cluster")
 		instanceNumber, _ := cmd.Flags().GetInt("instance")
@@ -135,16 +114,9 @@ var sshLoadtestCommand = &cobra.Command{
 }
 
 var sshMetricsCommand = &cobra.Command{
-	Use:   "metrics",
-	Short: "Connect to metrics instance",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if cmd.Flags().NFlag() == 0 {
-			cmd.Help()
-			os.Exit(0)
-		}
-
-		return nil
-	},
+	Use:     "metrics",
+	Short:   "Connect to metrics instance",
+	PreRunE: showHelpIfNoFlags,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clusterName, _ := cmd.Flags().GetString("cluster")
 

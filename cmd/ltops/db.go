@@ -14,16 +14,9 @@ import (
 )
 
 var dbCommand = &cobra.Command{
-	Use:   "db",
-	Short: "Launches mysql connected to the cluster database",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if cmd.Flags().NFlag() == 0 {
-			cmd.Help()
-			os.Exit(0)
-		}
-
-		return nil
-	},
+	Use:     "db",
+	Short:   "Launches mysql connected to the cluster database",
+	PreRunE: showHelpIfNoFlags,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clusterName, _ := cmd.Flags().GetString("cluster")
 

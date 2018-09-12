@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os"
 	"path/filepath"
 
 	"github.com/mattermost/mattermost-load-test/kubernetes"
@@ -12,17 +11,10 @@ import (
 )
 
 var createCluster = &cobra.Command{
-	Use:   "create",
-	Short: "Creates a cluster to run Mattermost on for load testing",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if cmd.Flags().NFlag() == 0 {
-			cmd.Help()
-			os.Exit(0)
-		}
-
-		return nil
-	},
-	RunE: createClusterCmd,
+	Use:     "create",
+	Short:   "Creates a cluster to run Mattermost on for load testing",
+	PreRunE: showHelpIfNoFlags,
+	RunE:    createClusterCmd,
 }
 
 func createClusterCmd(cmd *cobra.Command, args []string) error {
