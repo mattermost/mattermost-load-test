@@ -42,7 +42,7 @@ func sortedRoutes(routesMap map[string]*loadtest.RouteStats) []*loadtest.RouteSt
 }
 
 func parseTimings(input io.Reader) ([]*loadtest.ClientTimingStats, error) {
-	allTimings := []*loadtest.ClientTimingStats{}
+	allTimings := make(map[string]*loadtest.ClientTimingStats)
 	decoder := json.NewDecoder(input)
 	foundStructuredLogs := false
 	for decoder.More() {
@@ -59,7 +59,15 @@ func parseTimings(input io.Reader) ([]*loadtest.ClientTimingStats, error) {
 				continue
 			}
 
-			allTimings = append(allTimings, timings)
+			var instanceId string
+			if instanceIdValue := log["instance_id"]; instanceIdValue != nil {
+				instanceId = instanceIdValue.(string)
+			}
+			if instanceId == "" {
+				instanceId = "default"
+			}
+
+			allTimings[instanceId] = allTimings[instanceId].Merge(timings)
 		}
 	}
 
@@ -70,7 +78,12 @@ func parseTimings(input io.Reader) ([]*loadtest.ClientTimingStats, error) {
 		return nil, errors.New("failed to find results")
 	}
 
-	return allTimings, nil
+	allTimingsList := make([]*loadtest.ClientTimingStats, 0, len(allTimings))
+	for _, timings := range allTimings {
+		allTimingsList = append(allTimingsList, timings)
+	}
+
+	return allTimingsList, nil
 }
 
 func ParseResults(config *ResultsConfig) error {

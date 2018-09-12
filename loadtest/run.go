@@ -60,6 +60,7 @@ func RunTest(test *TestRun) error {
 		mlog.Int("entity_start_num", loadtestInstance.EntityStartNum),
 		mlog.Int64("seed", loadtestInstance.Seed),
 	)
+	mlog.Info("Settings", mlog.String("tag", "report"), mlog.Any("configuration", *cfg), mlog.String("instance_id", loadtestInstance.Id))
 
 	if loadtestInstance.EntityStartNum+cfg.UserEntitiesConfiguration.NumActiveEntities > cfg.LoadtestEnviromentConfig.NumUsers {
 		return fmt.Errorf(
@@ -78,7 +79,6 @@ func RunTest(test *TestRun) error {
 
 	// Stop channels and wait groups, to stop and wait various things
 	// For entity monitoring routines
-	stopMonitors := make(chan bool)
 	var waitMonitors sync.WaitGroup
 	// For entities
 	stopEntity := make(chan bool)
@@ -89,10 +89,25 @@ func RunTest(test *TestRun) error {
 	statusChannel := make(chan UserEntityStatusReport, 10000)
 	// Channels to receive timing information from the clients
 	clientTimingChannel := make(chan TimedRoundTripperReport, 10000)
-	clientTimingChannel3 := make(chan TimedRoundTripperReport, 10000)
 
 	waitMonitors.Add(1)
-	go ProcessClientRoundTripReports(clientTimingStats, clientTimingChannel3, clientTimingChannel, stopMonitors, &waitMonitors)
+	go func() {
+		defer waitMonitors.Done()
+
+		for timingReport := range clientTimingChannel {
+			clientTimingStats.AddTimingReport(timingReport)
+
+			if clientTimingStats.CountResults() > 100 {
+				mlog.Info("Timings", mlog.String("tag", "timings"), mlog.Any("timings", *clientTimingStats), mlog.String("instance_id", loadtestInstance.Id))
+				clientTimingStats.Reset()
+			}
+		}
+
+		if clientTimingStats.CountResults() > 0 {
+			mlog.Info("Timings", mlog.String("tag", "timings"), mlog.Any("timings", *clientTimingStats), mlog.String("instance_id", loadtestInstance.Id))
+			clientTimingStats.Reset()
+		}
+	}()
 
 	// Mirror http.DefaultTransport to start
 	transport := &http.Transport{
@@ -227,14 +242,10 @@ func RunTest(test *TestRun) error {
 	waitWithTimeout(&waitEntity, 10*time.Second)
 
 	mlog.Info("Stopping monitor routines. Timeout is 10 seconds.")
-	close(stopMonitors)
+	close(clientTimingChannel)
 	waitWithTimeout(&waitMonitors, 10*time.Second)
 
-	// clientTimingStats.CalcResults()
-	mlog.Info("Settings", mlog.String("tag", "report"), mlog.Any("configuration", *cfg))
-	mlog.Info("Timings", mlog.String("tag", "timings"), mlog.Any("timings", *clientTimingStats))
-
-	mlog.Info("DONE!")
+	mlog.Info("Finished loadtest")
 
 	return nil
 }

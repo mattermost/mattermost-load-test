@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/mattermost/mattermost-server/model"
@@ -193,25 +192,18 @@ func (ts *ClientTimingStats) CalcResults() {
 	}
 }
 
-func ProcessClientRoundTripReports(stats *ClientTimingStats, v3chan <-chan TimedRoundTripperReport, v4chan <-chan TimedRoundTripperReport, stopChan <-chan bool, stopWait *sync.WaitGroup) {
-	defer stopWait.Done()
-
-	// This strange thing makes sure that the statusChan is drained before it will listen to the stopChan
-	for {
-		select {
-		case timingReport := <-v3chan:
-			stats.AddTimingReport(timingReport)
-		case timingReport := <-v4chan:
-			stats.AddTimingReport(timingReport)
-		default:
-			select {
-			case timingReport := <-v3chan:
-				stats.AddTimingReport(timingReport)
-			case timingReport := <-v4chan:
-				stats.AddTimingReport(timingReport)
-			case <-stopChan:
-				return
-			}
-		}
+// CountResults returns the total number of results measure across all routes.
+func (ts *ClientTimingStats) CountResults() int {
+	count := 0
+	for _, route := range ts.Routes {
+		count += len(route.Duration)
 	}
+
+	return count
+}
+
+// Reset removes all measured results.
+func (ts *ClientTimingStats) Reset() {
+	ts.Routes = make(map[string]*RouteStats)
+
 }
