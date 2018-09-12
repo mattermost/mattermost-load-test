@@ -334,7 +334,7 @@ func releaseBulkloadLock(adminClient *model.Client4) {
 	if user, resp := adminClient.GetMe(""); resp.Error != nil {
 		mlog.Error("Unable to get admin user while trying to release lock. Note that system will be in a bad state. You need to change the system admin user's nickname to blank to fix things.", mlog.Err(resp.Error))
 	} else if user.Nickname == "" {
-		mlog.Error("Unable to get admin user while trying to get lock 1", mlog.Err(resp.Error))
+		mlog.Warn("Bulkload lock was already released")
 	} else {
 		user.Nickname = ""
 		if _, resp := adminClient.UpdateUser(user); resp.Error != nil {
