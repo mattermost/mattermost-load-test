@@ -33,6 +33,7 @@ func init() {
 	destroyCluster.MarkFlagRequired("cluster")
 
 	destroyCluster.Flags().SortFlags = false
+	destroyCluster.Aliases = append(destroyCluster.Aliases, "delete")
 
 	rootCmd.AddCommand(destroyCluster)
 }
