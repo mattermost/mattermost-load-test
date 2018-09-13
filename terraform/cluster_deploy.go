@@ -146,6 +146,9 @@ func doDeploy(wg *sync.WaitGroup, failed chan bool, addresses []string, addresse
 var remoteSSHKeyPath = "/home/ubuntu/key.pem"
 
 func deployToLoadtestInstance(instanceNum int, instanceAddr string, loadtestDistribution io.Reader, cluster ltops.Cluster, logger logrus.FieldLogger) error {
+	debugLogWriter := newLogrusWriter(logger, logrus.DebugLevel)
+	defer debugLogWriter.Close()
+
 	client, err := sshtools.SSHClient(cluster.SSHKey(), instanceAddr)
 	if err != nil {
 		return errors.Wrap(err, "unable to connect to server via ssh")
@@ -154,11 +157,11 @@ func deployToLoadtestInstance(instanceNum int, instanceAddr string, loadtestDist
 
 	logger.Debug("uploading distribution...")
 	remoteDistributionPath := "/home/ubuntu/mattermost-load-test.tar.gz"
-	if err := sshtools.UploadReader(client, loadtestDistribution, remoteDistributionPath); err != nil {
+	if err := sshtools.UploadReader(client, loadtestDistribution, remoteDistributionPath, debugLogWriter); err != nil {
 		return errors.Wrap(err, "unable to upload loadtest distribution.")
 	}
 
-	if err := sshtools.UploadBytes(client, cluster.SSHKey(), remoteSSHKeyPath); err != nil {
+	if err := sshtools.UploadBytes(client, cluster.SSHKey(), remoteSSHKeyPath, debugLogWriter); err != nil {
 		return errors.Wrap(err, "unable to upload ssh key")
 	}
 
@@ -299,16 +302,19 @@ func deployToProxyInstance(instanceAddr string, clust ltops.Cluster, logger logr
 }
 
 func deployToAppInstance(mattermostDistribution, license io.Reader, instanceAddr string, clust *Cluster, logger logrus.FieldLogger) error {
+	debugLogWriter := newLogrusWriter(logger, logrus.DebugLevel)
+	defer debugLogWriter.Close()
+
 	client, err := sshtools.SSHClient(clust.SSHKey(), instanceAddr)
 	if err != nil {
 		return errors.Wrap(err, "unable to connect to server via ssh")
 	}
 	defer client.Close()
 
-	logger.Debug("uploading distribution...")
+	logger.Debug("uploading distribution")
 	remoteDistributionPath := "/tmp/mattermost.tar.gz"
-	if err := sshtools.UploadReader(client, mattermostDistribution, remoteDistributionPath); err != nil {
-		return errors.Wrap(err, "unable to upload distribution.")
+	if err := sshtools.UploadReader(client, mattermostDistribution, remoteDistributionPath, debugLogWriter); err != nil {
+		return errors.Wrap(err, "unable to upload distribution")
 	}
 
 	if err := uploadSystemdFile(client); err != nil {
@@ -325,24 +331,24 @@ func deployToAppInstance(mattermostDistribution, license io.Reader, instanceAddr
 	} {
 		logger.Debug("+ " + cmd)
 		if err := sshtools.RemoteCommand(client, cmd, ioutil.Discard); err != nil {
-			return errors.Wrap(err, "error running command: "+cmd)
+			return errors.Wrapf(err, "error running command: %s", cmd)
 		}
 	}
 
 	logger.Debug("uploading license file...")
 	remoteLicenseFilePath := "/opt/mattermost/config/mattermost.mattermost-license"
-	if err := sshtools.UploadReader(client, license, remoteLicenseFilePath); err != nil {
+	if err := sshtools.UploadReader(client, license, remoteLicenseFilePath, debugLogWriter); err != nil {
 		return errors.Wrap(err, "unable to upload license file")
 	}
 
 	logger.Debug("uploading limits config...")
 	if err := uploadLimitsConfig(client); err != nil {
-		return errors.Wrap(err, "Unable to upload limits config")
+		return errors.Wrap(err, "unable to upload limits config")
 	}
 
 	outputParams, err := clust.Env.getOuptutParams()
 	if err != nil {
-		return errors.Wrap(err, "Can't get output parameters")
+		return errors.Wrap(err, "failed to get output parameters")
 	}
 
 	s3AccessKeyId := outputParams.S3AccessKeyId.Value
@@ -398,7 +404,7 @@ func deployToAppInstance(mattermostDistribution, license io.Reader, instanceAddr
 	} {
 		logger.Debug("+ " + cmd)
 		if err := sshtools.RemoteCommand(client, cmd, ioutil.Discard); err != nil {
-			return errors.Wrap(err, "error running command: "+cmd)
+			return errors.Wrapf(err, "error running command: %s", cmd)
 		}
 	}
 

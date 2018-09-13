@@ -1,10 +1,7 @@
 package terraform
 
 import (
-	"bufio"
-	"encoding/json"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -17,83 +14,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type logrusWriter struct {
-	*io.PipeWriter
-
-	reader *io.PipeReader
-	done   chan bool
-}
-
-func newLogrusWriter(logger logrus.FieldLogger) *logrusWriter {
-	reader, writer := io.Pipe()
-	done := make(chan bool)
-
-	go func() {
-		// Log lines one at a time and mapped into logrus calls for visual clarity. The
-		// raw output written to the file will be unaffected.
-		scanner := bufio.NewScanner(reader)
-		for scanner.Scan() {
-			var jsonText interface{}
-			if err := json.Unmarshal(scanner.Bytes(), &jsonText); err != nil {
-				logger.Info(scanner.Text())
-			} else if jsonTextMap, ok := jsonText.(map[string]interface{}); !ok {
-				logger.Info(scanner.Text())
-			} else {
-				level, _ := jsonTextMap["level"].(string)
-				msg, _ := jsonTextMap["msg"].(string)
-
-				// Clean up unused fields
-				delete(jsonTextMap, "msg")
-				delete(jsonTextMap, "level")
-				delete(jsonTextMap, "ts")
-				delete(jsonTextMap, "caller")
-
-				// Special case timings output. This will still be available
-				// in the results for use by ltparse.
-				if msg == "Timings" {
-					jsonTextMap["timings"] = "(omitted)"
-				}
-
-				loggerWithFields := logger.WithFields(logrus.Fields(jsonTextMap))
-
-				switch level {
-				case "debug":
-					loggerWithFields.Debug(msg)
-				case "info":
-					loggerWithFields.Info(msg)
-				case "warn":
-					loggerWithFields.Warn(msg)
-				case "error":
-					fallthrough
-				default:
-					loggerWithFields.Error(msg)
-				}
-			}
-		}
-		if err := scanner.Err(); err != nil {
-			logrus.Errorf("failed to scan and log: %s", err.Error())
-
-			// Drain the reader, otherwise the ssh session may not end.
-			io.Copy(ioutil.Discard, reader)
-		}
-		close(done)
-	}()
-
-	return &logrusWriter{
-		PipeWriter: writer,
-		reader:     reader,
-		done:       done,
-	}
-}
-
-func (w *logrusWriter) Close() error {
-	w.PipeWriter.Close()
-	<-w.done
-
-	return nil
-}
-
 func (c *Cluster) loadtestInstance(logger logrus.FieldLogger, addr string, instanceNum int, configFile []byte) error {
+	debugLogWriter := newLogrusWriter(logger, logrus.DebugLevel)
+	defer debugLogWriter.Close()
+
 	client, err := sshtools.SSHClient(c.SSHKey(), addr)
 	if err != nil {
 		return errors.Wrap(err, "unable to connect to loadtest instance via ssh")
@@ -107,7 +31,7 @@ func (c *Cluster) loadtestInstance(logger logrus.FieldLogger, addr string, insta
 	defer session.Close()
 
 	if len(configFile) > 0 {
-		if err := sshtools.UploadBytes(client, configFile, "mattermost-load-test/loadtestconfig.json"); err != nil {
+		if err := sshtools.UploadBytes(client, configFile, "mattermost-load-test/loadtestconfig.json", debugLogWriter); err != nil {
 			return errors.Wrap(err, "failed to upload config file")
 		}
 	}
@@ -136,9 +60,9 @@ func (c *Cluster) loadtestInstance(logger logrus.FieldLogger, addr string, insta
 	session.Stderr = sessionPipeWriter
 	defer sessionPipeWriter.Close()
 
-	logrusWriter := newLogrusWriter(logger)
-	defer logrusWriter.Close()
-	go io.Copy(io.MultiWriter(outfile, logrusWriter), sessionPipeReader)
+	infoLogWriter := newLogrusWriter(logger, logrus.InfoLevel)
+	defer infoLogWriter.Close()
+	go io.Copy(io.MultiWriter(outfile, infoLogWriter), sessionPipeReader)
 
 	logger.Info("Running loadtest")
 	if err := session.Run("cd mattermost-load-test && ./bin/loadtest all"); err != nil {

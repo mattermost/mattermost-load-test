@@ -121,21 +121,21 @@ func RemoteCommand(client *ssh.Client, cmd string, commandOutput io.Writer) erro
 	return nil
 }
 
-func UploadFile(client *ssh.Client, source, destination string) error {
+func UploadFile(client *ssh.Client, source, destination string, commandOutput io.Writer) error {
 	f, err := os.Open(source)
 	if err != nil {
 		return errors.Wrap(err, "unable to open source file")
 	}
 	defer f.Close()
 
-	return UploadReader(client, f, destination)
+	return UploadReader(client, f, destination, commandOutput)
 }
 
-func UploadBytes(client *ssh.Client, source []byte, destination string) error {
-	return UploadReader(client, bytes.NewReader(source), destination)
+func UploadBytes(client *ssh.Client, source []byte, destination string, commandOutput io.Writer) error {
+	return UploadReader(client, bytes.NewReader(source), destination, commandOutput)
 }
 
-func UploadReader(client *ssh.Client, source io.Reader, destination string) error {
+func UploadReader(client *ssh.Client, source io.Reader, destination string, commandOutput io.Writer) error {
 	session, err := client.NewSession()
 	if err != nil {
 		return errors.Wrap(err, "unable to create ssh session")
@@ -143,6 +143,14 @@ func UploadReader(client *ssh.Client, source io.Reader, destination string) erro
 	defer session.Close()
 
 	session.Stdin = source
+
+	sessionPipeReader, sessionPipeWriter := io.Pipe()
+	session.Stdout = sessionPipeWriter
+	session.Stderr = sessionPipeWriter
+	defer sessionPipeReader.Close()
+
+	go io.Copy(commandOutput, sessionPipeReader)
+
 	if err := session.Run("cat > " + shellQuote(destination)); err != nil {
 		return err
 	}
