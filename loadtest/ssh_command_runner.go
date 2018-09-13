@@ -77,22 +77,19 @@ func (c *MattermostSSHConnection) RunCommand(command string) (bool, string) {
 	}
 	defer session.Close()
 
-	var b bytes.Buffer
-	session.Stdout = &b
-	session.Stderr = session.Stdout
-	if err := session.Run(command); err != nil {
-		return false, "Unable to run command in session. Error: " + err.Error() + ". Output: " + b.String()
+	output, err := session.CombinedOutput(command)
+	if err != nil {
+		return false, "Unable to run command in session. Error: " + err.Error() + ". Output: " + string(output)
 	}
-	session.Close()
 
-	return true, b.String()
+	return true, string(output)
 }
 
 func (c *MattermostSSHConnection) RunPlatformCommand(args string) (bool, string) {
 	if c.configFileLoc != "" {
-		return c.RunCommand("cd " + c.mattermostInstallDir + " && ./bin/platform " + args + " --config " + c.configFileLoc)
+		return c.RunCommand("cd " + c.mattermostInstallDir + " && ./bin/mattermost " + args + " --config " + c.configFileLoc)
 	} else {
-		return c.RunCommand("cd " + c.mattermostInstallDir + " && ./bin/platform " + args)
+		return c.RunCommand("cd " + c.mattermostInstallDir + " && ./bin/mattermost " + args)
 	}
 }
 

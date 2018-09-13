@@ -11,14 +11,15 @@ import (
 )
 
 var createCluster = &cobra.Command{
-	Use:   "create",
-	Short: "Creates a cluster to run Mattermost on for load testing",
-	RunE:  createClusterCmd,
+	Use:     "create",
+	Short:   "Creates a cluster to run Mattermost on for load testing",
+	PreRunE: showHelpIfNoFlags,
+	RunE:    createClusterCmd,
 }
 
 func createClusterCmd(cmd *cobra.Command, args []string) error {
 	var config ltops.ClusterConfig
-	config.Name, _ = cmd.Flags().GetString("name")
+	config.Name, _ = cmd.Flags().GetString("cluster")
 	config.AppInstanceType, _ = cmd.Flags().GetString("app-type")
 	config.AppInstanceCount, _ = cmd.Flags().GetInt("app-count")
 	config.DBInstanceType, _ = cmd.Flags().GetString("db-type")
@@ -57,8 +58,8 @@ func createClusterCmd(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
-	createCluster.Flags().StringP("name", "c", "", "a unique name for the cluster (required)")
-	createCluster.MarkFlagRequired("name")
+	createCluster.Flags().StringP("cluster", "c", "", "a unique name for the cluster (required)")
+	createCluster.MarkFlagRequired("cluster")
 
 	createCluster.Flags().StringP("type", "t", "", "the type of cluster, terraform or kubernetes (required)")
 	createCluster.MarkFlagRequired("type")
@@ -72,6 +73,8 @@ func init() {
 	createCluster.Flags().Int("db-count", 1, "the number of db instances")
 
 	createCluster.Flags().Int("loadtest-count", 1, "the number of loadtest instances")
+
+	createCluster.Flags().SortFlags = false
 
 	rootCmd.AddCommand(createCluster)
 }

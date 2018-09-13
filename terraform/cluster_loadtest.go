@@ -14,7 +14,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (c *Cluster) loadtestInstance(addr string, resultsOutput io.Writer) error {
+func (c *Cluster) loadtestInstance(logger logrus.FieldLogger, addr string, instanceNum int, configFile []byte) error {
+	debugLogWriter := newLogrusWriter(logger, logrus.DebugLevel)
+	defer debugLogWriter.Close()
+
 	client, err := sshtools.SSHClient(c.SSHKey(), addr)
 	if err != nil {
 		return errors.Wrap(err, "unable to connect to loadtest instance via ssh")
@@ -27,7 +30,19 @@ func (c *Cluster) loadtestInstance(addr string, resultsOutput io.Writer) error {
 	}
 	defer session.Close()
 
+	if len(configFile) > 0 {
+		if err := sshtools.UploadBytes(client, configFile, "mattermost-load-test/loadtestconfig.json", debugLogWriter); err != nil {
+			return errors.Wrap(err, "failed to upload config file")
+		}
+	}
+
+	if err := configureLoadtestInstance(instanceNum, client, c, logger); err != nil {
+		return errors.Wrap(err, "failed to configure loadtest instance")
+	}
+
 	commandOutputFile := filepath.Join(c.Env.WorkingDirectory, "results", "loadtest-out-"+addr+".txt")
+	logger.Infof("Logging to %s", commandOutputFile)
+
 	if err := os.MkdirAll(filepath.Dir(commandOutputFile), 0700); err != nil {
 		return errors.Wrap(err, "Unable to create results directory.")
 	}
@@ -35,15 +50,21 @@ func (c *Cluster) loadtestInstance(addr string, resultsOutput io.Writer) error {
 	if err != nil {
 		return errors.Wrap(err, "Unable to create loadtest results file.")
 	}
+	defer outfile.Close()
 
-	if resultsOutput != nil {
-		session.Stdout = io.MultiWriter(outfile, resultsOutput)
-	} else {
-		session.Stdout = outfile
-	}
-	session.Stderr = outfile
+	// Unlike os.Exec, there's a data race if session.Stdout == session.Stderr.
+	// https://github.com/golang/go/issues/5582. Avoid this by using a pipe, which is safe
+	// when written to concurrently.
+	sessionPipeReader, sessionPipeWriter := io.Pipe()
+	session.Stdout = sessionPipeWriter
+	session.Stderr = sessionPipeWriter
+	defer sessionPipeWriter.Close()
 
-	logrus.Info("Running loadtest on " + addr)
+	infoLogWriter := newLogrusWriter(logger, logrus.InfoLevel)
+	defer infoLogWriter.Close()
+	go io.Copy(io.MultiWriter(outfile, infoLogWriter), sessionPipeReader)
+
+	logger.Info("Running loadtest")
 	if err := session.Run("cd mattermost-load-test && ./bin/loadtest all"); err != nil {
 		return err
 	}
@@ -57,28 +78,34 @@ func (c *Cluster) Loadtest(options *ltops.LoadTestOptions) error {
 		return errors.Wrap(err, "Unable to get loadtest instance addresses")
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(len(loadtestInstancesAddrs))
+	var configFile []byte
+	if len(options.ConfigFile) > 0 {
+		data, err := ltops.GetFileOrURL(options.ConfigFile)
+		if err != nil {
+			return errors.Wrap(err, "failed to load config file")
+		}
 
-	for i, addr := range loadtestInstancesAddrs {
+		configFile = data
+	}
+
+	var wg sync.WaitGroup
+	for instanceNum, addr := range loadtestInstancesAddrs {
+		if instanceNum > 0 {
+			// Stagger the instance starts to avoid races.
+			time.Sleep(time.Second * 10)
+		}
+
 		addr := addr
+		wg.Add(1)
 		go func() {
-			var err error
-			if i == 0 {
-				err = c.loadtestInstance(addr, options.ResultsWriter)
-			} else {
-				err = c.loadtestInstance(addr, nil)
-			}
-			if err != nil {
+			logger := logrus.StandardLogger().WithField("instance", addr)
+			if err = c.loadtestInstance(logger, addr, instanceNum, configFile); err != nil {
 				logrus.Error(err)
 			}
 			wg.Done()
 		}()
-		// Give some time between instances just to avoid any races
-		time.Sleep(time.Second * 10)
 	}
 
-	logrus.Info("Wating for loadtests to complete. See: " + filepath.Join(c.Env.WorkingDirectory, "results") + " for results.")
 	wg.Wait()
 
 	return nil

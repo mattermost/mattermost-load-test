@@ -204,15 +204,15 @@ type GenerateBulkloadFileResult struct {
 	Emojis   []EmojiImportData
 }
 
-func (c *LoadtestEnviromentConfig) PickEmoji() string {
-	return fmt.Sprintf("loadtestemoji%v", rand.Intn(c.NumEmoji-1))
+func (c *LoadtestEnviromentConfig) PickEmoji(r *rand.Rand) string {
+	return fmt.Sprintf("loadtestemoji%v", r.Intn(c.NumEmoji-1))
 }
 
-func (s *UserImportData) PickTeam() *UserTeamImportData {
+func (s *UserImportData) PickTeam(r *rand.Rand) *UserTeamImportData {
 	if len(s.TeamChoice) == 0 {
 		return nil
 	}
-	item, err := randutil.WeightedChoice(s.TeamChoice)
+	item, err := randutil.WeightedChoice(r, s.TeamChoice)
 	if err != nil {
 		panic(err)
 	}
@@ -222,20 +222,20 @@ func (s *UserImportData) PickTeam() *UserTeamImportData {
 	return team
 }
 
-func (s *UserImportData) PickTeamChannel() (*UserTeamImportData, *UserChannelImportData) {
-	team := s.PickTeam()
+func (s *UserImportData) PickTeamChannel(r *rand.Rand) (*UserTeamImportData, *UserChannelImportData) {
+	team := s.PickTeam(r)
 	if team == nil {
 		return nil, nil
 	}
 
-	return team, team.PickChannel()
+	return team, team.PickChannel(r)
 }
 
-func (team *UserTeamImportData) PickChannel() *UserChannelImportData {
+func (team *UserTeamImportData) PickChannel(r *rand.Rand) *UserChannelImportData {
 	if len(team.ChannelChoice) == 0 {
 		return nil
 	}
-	item2, err2 := randutil.WeightedChoice(team.ChannelChoice)
+	item2, err2 := randutil.WeightedChoice(r, team.ChannelChoice)
 	if err2 != nil {
 		panic(err2)
 	}
@@ -245,12 +245,12 @@ func (team *UserTeamImportData) PickChannel() *UserChannelImportData {
 	return channel
 }
 
-func generateTeams(numTeams int, percentCustomSchemeTeams float64, teamSchemes *[]SchemeImportData) []TeamImportData {
+func generateTeams(numTeams int, r *rand.Rand, percentCustomSchemeTeams float64, teamSchemes *[]SchemeImportData) []TeamImportData {
 	teams := make([]TeamImportData, 0, numTeams)
 
 	scheme := ""
-	if len(*teamSchemes) > 0 && rand.Float64() < percentCustomSchemeTeams {
-		scheme = (*teamSchemes)[rand.Intn(len(*teamSchemes))].Name
+	if len(*teamSchemes) > 0 && r.Float64() < percentCustomSchemeTeams {
+		scheme = (*teamSchemes)[r.Intn(len(*teamSchemes))].Name
 	}
 
 	for teamNum := 0; teamNum < numTeams; teamNum++ {
@@ -417,7 +417,7 @@ func makeGroupChannels(config *LoadtestEnviromentConfig, r *rand.Rand, users []U
 					return nil, fmt.Errorf("ran out of usernames picking %d random usernames", count)
 				}
 
-				index := rand.Intn(currentLength)
+				index := r.Intn(currentLength)
 				randomUsernames = append(randomUsernames, usernames[index])
 
 				// Eliminate the selected username from the next random selection.
@@ -444,7 +444,7 @@ func makeGroupChannels(config *LoadtestEnviromentConfig, r *rand.Rand, users []U
 	for i := 0; i < config.NumGroupMessageChannels; i++ {
 		// Generate at least 3 members, but randomly generate larger group sizes.
 		count := 3
-		for count < model.CHANNEL_GROUP_MAX_USERS && rand.Float32() < 0.05 {
+		for count < model.CHANNEL_GROUP_MAX_USERS && r.Float32() < 0.05 {
 			count++
 		}
 
@@ -468,6 +468,7 @@ func makeGroupChannels(config *LoadtestEnviromentConfig, r *rand.Rand, users []U
 
 func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFileResult {
 	r := rand.New(rand.NewSource(29))
+	fake.Seed(r.Int63())
 
 	users := make([]UserImportData, 0, config.NumUsers)
 
@@ -475,7 +476,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 	channels := make([]ChannelImportData, 0, totalChannelsPerTeam*config.NumTeams)
 
 	teamSchemes := generateTeamSchemes(config.NumTeamSchemes)
-	teams := generateTeams(config.NumTeams, config.PercentCustomSchemeTeams, teamSchemes)
+	teams := generateTeams(config.NumTeams, r, config.PercentCustomSchemeTeams, teamSchemes)
 
 	channelSchemes := generateChannelSchemes(config.NumChannelSchemes)
 
@@ -489,8 +490,8 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 
 		for channelNum := 0; channelNum < totalChannelsPerTeam; channelNum++ {
 			scheme := ""
-			if len(*channelSchemes) > 0 && rand.Float64() < config.PercentCustomSchemeChannels {
-				scheme = (*channelSchemes)[rand.Intn(len(*channelSchemes))].Name
+			if len(*channelSchemes) > 0 && r.Float64() < config.PercentCustomSchemeChannels {
+				scheme = (*channelSchemes)[r.Intn(len(*channelSchemes))].Name
 			}
 
 			channelType := model.CHANNEL_OPEN
@@ -607,7 +608,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 		jenc := json.NewEncoder(&output)
 		for lineObject := range lineObjectsChan {
 			if err := jenc.Encode(lineObject); err != nil {
-				fmt.Println("Probablem marshaling: " + err.Error())
+				fmt.Println("Problem marshaling: " + err.Error())
 			}
 		}
 		close(doneChan)
@@ -652,19 +653,30 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 		}
 	}
 
+	usersTeams := make([][]UserTeamImportData, len(users))
 	for i := range users {
+		// The Mattermost server currently chokes on users with a large number of channel
+		// memberships, but only because the bufio.Scanner has a fixed-size buffer and
+		// fails on longer lines. As a temporary workaround that requires no server
+		// changes, we chunk the channel membership data across multiple, "duplicate"
+		// users. The caveat is that lines are loaded in parallel, which can result in
+		// import errors if the user has not yet been created. Avoid this by sending a
+		// "different type" of import line between users and memberships.
+
+		usersTeams[i] = users[i].Teams
+		users[i].Teams = make([]UserTeamImportData, 0, len(usersTeams[i]))
+		for _, userTeam := range usersTeams[i] {
+			users[i].Teams = append(users[i].Teams, UserTeamImportData{
+				Name:  userTeam.Name,
+				Roles: userTeam.Roles,
+			})
+		}
+
+		// Output a version of the user without any channel memberships.
 		lineObjectsChan <- &LineImportData{
 			Type:    "user",
 			User:    &users[i],
 			Version: 1,
-		}
-	}
-
-	for i := range directChannels {
-		lineObjectsChan <- &LineImportData{
-			Type:          "direct_channel",
-			DirectChannel: &directChannels[i],
-			Version:       1,
 		}
 	}
 
@@ -673,6 +685,61 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 			Type:    "emoji",
 			Emoji:   &emojis[i],
 			Version: 1,
+		}
+	}
+
+	for i := range users {
+		// See chunking strategy above.
+		users[i].Teams = usersTeams[i]
+
+		for _, userTeam := range users[i].Teams {
+			channels := []UserChannelImportData{}
+
+			sendChannelsChunk := func(channels []UserChannelImportData) {
+				teamChannels := make([]UserChannelImportData, len(channels))
+				copy(teamChannels, channels)
+
+				user := UserImportData{
+					Username: users[i].Username,
+					Email:    users[i].Email,
+					Roles:    users[i].Roles,
+					Password: users[i].Password,
+
+					Teams: []UserTeamImportData{
+						{
+							Name:     userTeam.Name,
+							Roles:    userTeam.Roles,
+							Channels: teamChannels,
+						},
+					},
+				}
+
+				lineObjectsChan <- &LineImportData{
+					Type:    "user",
+					User:    &user,
+					Version: 1,
+				}
+			}
+
+			for _, userTeamChannel := range userTeam.Channels {
+				channels = append(channels, userTeamChannel)
+				if len(channels) >= 100 {
+					sendChannelsChunk(channels)
+					channels = channels[:0]
+				}
+			}
+			if len(channels) > 0 {
+				sendChannelsChunk(channels)
+				channels = channels[:0]
+			}
+		}
+	}
+
+	for i := range directChannels {
+		lineObjectsChan <- &LineImportData{
+			Type:          "direct_channel",
+			DirectChannel: &directChannels[i],
+			Version:       1,
 		}
 	}
 
@@ -709,6 +776,8 @@ func ConnectToDB(driverName, dataSource string) *sqlx.DB {
 }
 
 func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
+	fake.Seed(0)
+
 	mlog.Info("Loading posts")
 	db := ConnectToDB(driverName, dataSource)
 	if db == nil {
@@ -798,7 +867,7 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 		}
 
 		mlog.Info("Thread splitting", mlog.String("team", team.Name))
-		ThreadSplit(len(channels), 4, PrintCounter, func(channelNum int) {
+		ThreadSplit(len(channels), 4, func(channelNum int) {
 			mlog.Info("Thread", mlog.Int("channel_num", channelNum))
 			// Only recognizes multiples of 100
 			type rootPost struct {

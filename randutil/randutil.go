@@ -4,19 +4,19 @@
 package randutil
 
 import (
-	"crypto/rand"
 	"errors"
 	"fmt"
-	"math/big"
+	"math/rand"
 	"reflect"
 )
 
 type Choice struct {
+	Rand   *rand.Rand
 	Weight int
 	Item   interface{}
 }
 
-func IntRange(min, max int) (int, error) {
+func IntRange(r *rand.Rand, min, max int) (int, error) {
 	var result int
 	switch {
 	case min > max:
@@ -26,28 +26,24 @@ func IntRange(min, max int) (int, error) {
 		result = max
 	case max > min:
 		maxRand := max - min
-		b, err := rand.Int(rand.Reader, big.NewInt(int64(maxRand)))
-		if err != nil {
-			return result, err
-		}
-		result = min + int(b.Int64())
+		result = min + r.Intn(maxRand)
 	}
 	return result, nil
 }
 
 // Shuffle funtion from: https://stackoverflow.com/questions/12264789/shuffle-array-in-go
-func Shuffle(slice interface{}) {
+func Shuffle(r *rand.Rand, slice interface{}) {
 	rv := reflect.ValueOf(slice)
 	swap := reflect.Swapper(slice)
 	length := rv.Len()
 	for i := length - 1; i > 0; i-- {
-		j, _ := IntRange(0, i+1)
+		j, _ := IntRange(r, 0, i+1)
 		swap(i, j)
 	}
 }
 
 // Modified version of weighted choice from https://github.com/jmcvetta/randutil
-func WeightedChoice(choices []Choice) (Choice, error) {
+func WeightedChoice(r *rand.Rand, choices []Choice) (Choice, error) {
 	// Based on this algorithm:
 	//     http://eli.thegreenplace.net/2010/01/22/weighted-random-generation-in-python/
 	var ret Choice
@@ -63,13 +59,13 @@ func WeightedChoice(choices []Choice) (Choice, error) {
 	for _, c := range choices {
 		sum += c.Weight
 	}
-	r, err := IntRange(0, sum)
+	randomInt, err := IntRange(r, 0, sum)
 	if err != nil {
 		return ret, err
 	}
 	for _, c := range choices {
-		r -= c.Weight
-		if r < 0 {
+		randomInt -= c.Weight
+		if randomInt < 0 {
 			return c, nil
 		}
 	}

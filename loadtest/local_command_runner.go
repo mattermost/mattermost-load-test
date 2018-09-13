@@ -31,15 +31,13 @@ func (c *MattermostLocalConnection) RunCommand(command string) (bool, string) {
 	mlog.Info("Running local command: " + command)
 	split := strings.Fields(command)
 	cmd := exec.Command(split[0], split[1:]...)
-	var b bytes.Buffer
-	cmd.Stdout = &b
-	cmd.Stderr = cmd.Stdout
 
-	if err := cmd.Run(); err != nil {
-		return false, err.Error() + " : " + b.String()
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, err.Error() + " : " + string(output)
 	}
 
-	return true, b.String()
+	return true, string(output)
 }
 
 func (c *MattermostLocalConnection) RunPlatformCommand(args string) (bool, string) {

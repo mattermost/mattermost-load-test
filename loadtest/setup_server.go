@@ -4,11 +4,14 @@
 package loadtest
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"net/http"
 	"os"
-
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/mattermost/mattermost-server/mlog"
 	"github.com/mattermost/mattermost-server/model"
@@ -93,19 +96,60 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 		}
 		mlog.Info("Acquiring bulkload lock")
 		if getBulkloadLock(adminClient) {
+			defer releaseBulkloadLock(adminClient)
 			mlog.Info("Sending loadtest file.")
-			if err := cmdrun.SendLoadtestFile(&bulkloadResult.File); err != nil {
-				releaseBulkloadLock(adminClient)
-				return nil, err
+
+			// sendChunk sends and loads a subset of the whole bulkload file
+			sendChunk := func(chunk *bytes.Buffer, line int) error {
+				mlog.Info("Running bulk import on chunk", mlog.Int("line", line))
+				if err := cmdrun.SendLoadtestFile(chunk); err != nil {
+					return err
+				}
+				if success, output := cmdrun.RunPlatformCommand("import bulk --workers 64 --apply loadtestusers.json"); !success {
+					return fmt.Errorf("Failed to bulk import users: " + output)
+				} else {
+					mlog.Info(output)
+				}
+
+				return nil
 			}
-			mlog.Info("Running bulk import.")
-			if success, output := cmdrun.RunPlatformCommand("import bulk --workers 64 --apply loadtestusers.json"); !success {
-				releaseBulkloadLock(adminClient)
-				return nil, fmt.Errorf("Failed to bulk import users: " + output)
-			} else {
-				mlog.Info(output)
+
+			// Chunk the bulkload file into 1000 line segments. This gives visibility
+			// into the long bulkloading process without requiring server changes, and
+			// theoretically allows us to resume a bulkloading in the future.
+			// None of this would be necessary if bulkloading was more performant.
+			var chunk bytes.Buffer
+			lineScanner := bufio.NewScanner(&bulkloadResult.File)
+			line := 1
+			var versionLine []byte
+			for lineScanner.Scan() {
+				if line == 1 {
+					// Save the version line for repeated use
+					versionLine = make([]byte, len(lineScanner.Bytes()))
+					copy(versionLine, lineScanner.Bytes())
+				}
+
+				chunk.Write(lineScanner.Bytes())
+				chunk.WriteString("\n")
+				line++
+
+				if line%1000 == 0 {
+					if err := sendChunk(&chunk, line); err != nil {
+						return nil, err
+					}
+
+					chunk.Reset()
+					chunk.Write(versionLine)
+					chunk.WriteString("\n")
+				}
 			}
-			releaseBulkloadLock(adminClient)
+			if err := lineScanner.Err(); err != nil {
+				return nil, errors.Wrapf(err, "failed to scan bulkload result at line %d", line)
+			}
+
+			if err := sendChunk(&chunk, line); err != nil {
+				return nil, errors.Wrap(err, "failed to send bulkload result chunk")
+			}
 		}
 	}
 
@@ -117,30 +161,35 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 	teamIdMap := make(map[string]string)
 	channelIdMap := make(map[string]map[string]string)
 	townSquareIdMap := make(map[string]string)
-	if teams, resp := adminClient.GetAllTeams("", 0, cfg.LoadtestEnviromentConfig.NumTeams+200); resp.Error != nil {
+	teams, resp := adminClient.GetAllTeams("", 0, cfg.LoadtestEnviromentConfig.NumTeams+200)
+	if resp.Error != nil {
 		return nil, resp.Error
-	} else {
-		for _, team := range teams {
-			channelIdMap[team.Name] = make(map[string]string)
+	}
 
-			teamIdMap[team.Name] = team.Id
-			numRecieved := 200
-			for page := 0; numRecieved == 200; page++ {
-				if channels, resp2 := adminClient.GetPublicChannelsForTeam(team.Id, page, 200, ""); resp2.Error != nil {
-					mlog.Error("Could not get public channels for team", mlog.String("team_id", team.Id), mlog.Err(resp2.Error))
-					return nil, resp2.Error
-				} else {
-					numRecieved = len(channels)
-					for _, channel := range channels {
-						channelIdMap[team.Name][channel.Name] = channel.Id
-						if channel.Name == "town-square" {
-							mlog.Info("Found town-square", mlog.String("team", team.Name))
-							townSquareIdMap[team.Name] = channel.Id
-						}
-					}
+	mlog.Info("Found teams", mlog.Int("teams", len(teams)))
+	for _, team := range teams {
+		channelIdMap[team.Name] = make(map[string]string)
+
+		teamIdMap[team.Name] = team.Id
+		numReceived := 200
+		for page := 0; numReceived == 200; page++ {
+			channels, resp2 := adminClient.GetPublicChannelsForTeam(team.Id, page, 200, "")
+			if resp2.Error != nil {
+				mlog.Error("Could not get public channels for team", mlog.String("team_id", team.Id), mlog.Err(resp2.Error))
+				return nil, resp2.Error
+			}
+
+			numReceived = len(channels)
+			for _, channel := range channels {
+				channelIdMap[team.Name][channel.Name] = channel.Id
+				if channel.Name == "town-square" {
+					mlog.Info("Found town-square", mlog.String("team", team.Name))
+					townSquareIdMap[team.Name] = channel.Id
 				}
 			}
 		}
+
+		mlog.Info("Found team channels", mlog.String("team", team.Name), mlog.Int("channels", len(channelIdMap[team.Name])))
 	}
 
 	return &ServerSetupData{
@@ -275,7 +324,7 @@ func getBulkloadLock(adminClient *model.Client4) bool {
 		} else if updatedUser.Nickname == "" {
 			// Lock has been released
 			mlog.Info("Lock Released: " + time.Now().Format(time.UnixDate))
-			return false
+			return true
 		}
 	}
 }
@@ -285,7 +334,7 @@ func releaseBulkloadLock(adminClient *model.Client4) {
 	if user, resp := adminClient.GetMe(""); resp.Error != nil {
 		mlog.Error("Unable to get admin user while trying to release lock. Note that system will be in a bad state. You need to change the system admin user's nickname to blank to fix things.", mlog.Err(resp.Error))
 	} else if user.Nickname == "" {
-		mlog.Error("Unable to get admin user while trying to get lock 1", mlog.Err(resp.Error))
+		mlog.Warn("Bulkload lock was already released")
 	} else {
 		user.Nickname = ""
 		if _, resp := adminClient.UpdateUser(user); resp.Error != nil {

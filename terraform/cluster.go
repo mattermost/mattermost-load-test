@@ -102,6 +102,21 @@ func (c *Cluster) DBInstanceCount() int {
 	return c.Config.DBInstanceCount
 }
 
+func (c *Cluster) DBSettings() (*ltops.DBSettings, error) {
+	params, err := c.Env.getOuptutParams()
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get output parameters for DBConnectionString")
+	}
+
+	return &ltops.DBSettings{
+		Username: "mmuser",
+		Password: c.DBPassword,
+		Endpoint: params.DBEndpoint.Value,
+		Port:     3306,
+		Database: "mattermost",
+	}, nil
+}
+
 func (c *Cluster) Destroy() error {
 	logrus.Info("Destroying cluster...")
 	if err := c.Env.destroy(); err != nil {

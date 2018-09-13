@@ -4,9 +4,9 @@
 package loadtest
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/mattermost/mattermost-server/model"
@@ -94,12 +94,12 @@ func (s *RouteStats) CalcResults() {
 		s.Min, _ = stats.Min(s.Duration)
 		s.Mean, _ = stats.Mean(s.Duration)
 		s.Median, _ = stats.Median(s.Duration)
-		s.InterQuartileRange, _ = stats.InterQuartileRange(s.Duration)
 	}
 
 	// github.com/montanaflynn/stats has an odd implementation of Percentile that fails to
 	// handle small datasets. Avoid NaN for now.
 	if len(s.Duration) > 2 {
+		s.InterQuartileRange, _ = stats.InterQuartileRange(s.Duration)
 		s.Percentile90, _ = stats.Percentile(s.Duration, 90)
 		s.Percentile95, _ = stats.Percentile(s.Duration, 95)
 	}
@@ -141,6 +141,7 @@ func (ts *ClientTimingStats) Merge(timings *ClientTimingStats) *ClientTimingStat
 var teamPathRegex *regexp.Regexp = regexp.MustCompile("/teams/[a-z0-9]{26}/")
 var emojiPathRegex *regexp.Regexp = regexp.MustCompile("/emoji/name/[A-Za-z0-9]+")
 var channelPathRegex *regexp.Regexp = regexp.MustCompile("/channels/[a-z0-9]{26}/")
+var channelNamePathRegex *regexp.Regexp = regexp.MustCompile("/channels/name/[^/]+")
 var postPathRegex *regexp.Regexp = regexp.MustCompile("/posts/[a-z0-9]{26}/")
 var filePathRegex *regexp.Regexp = regexp.MustCompile("/files/[a-z0-9]{26}/")
 var userPathRegex *regexp.Regexp = regexp.MustCompile("/users/[a-z0-9]{26}/")
@@ -149,21 +150,22 @@ var teamMembersForUserPathRegex *regexp.Regexp = regexp.MustCompile("/teams/[a-z
 
 func processCommonPaths(path string) string {
 	result := strings.TrimPrefix(path, model.API_URL_SUFFIX)
-	result = teamMembersForUserPathRegex.ReplaceAllString(result, "/teams/TID/members/UID")
-	result = teamPathRegex.ReplaceAllString(result, "/teams/TID/")
-	result = channelPathRegex.ReplaceAllString(result, "/channels/CID/")
-	result = postPathRegex.ReplaceAllString(result, "/posts/PID/")
-	result = filePathRegex.ReplaceAllString(result, "/files/PID/")
-	result = userPathRegex.ReplaceAllString(result, "/users/UID/")
-	result = userEmailPathRegex.ReplaceAllString(result, "/users/email/UID")
-	result = emojiPathRegex.ReplaceAllString(result, "/emoji/name/NAME")
+	result = teamMembersForUserPathRegex.ReplaceAllString(result, "/teams/[team id]/members/[user id]")
+	result = teamPathRegex.ReplaceAllString(result, "/teams/[team id]/")
+	result = channelPathRegex.ReplaceAllString(result, "/channels/[channel id]/")
+	result = channelNamePathRegex.ReplaceAllString(result, "/channels/name/[channel name]/")
+	result = postPathRegex.ReplaceAllString(result, "/posts/[post id]/")
+	result = filePathRegex.ReplaceAllString(result, "/files/[post id]/")
+	result = userPathRegex.ReplaceAllString(result, "/users/[user id]/")
+	result = userEmailPathRegex.ReplaceAllString(result, "/users/email/[email]")
+	result = emojiPathRegex.ReplaceAllString(result, "/emoji/name/[emoji name]")
 
 	return result
 }
 
 func (ts *ClientTimingStats) AddTimingReport(timingReport TimedRoundTripperReport) {
 	path := processCommonPaths(timingReport.Path)
-	ts.AddRouteSample(path, int64(timingReport.RequestDuration/time.Millisecond), timingReport.StatusCode)
+	ts.AddRouteSample(fmt.Sprintf("%s %s", timingReport.Method, path), int64(timingReport.RequestDuration/time.Millisecond), timingReport.StatusCode)
 }
 
 // Score is the average of the 95th percentile, median and interquartile range of all routes.
@@ -190,25 +192,18 @@ func (ts *ClientTimingStats) CalcResults() {
 	}
 }
 
-func ProcessClientRoundTripReports(stats *ClientTimingStats, v3chan <-chan TimedRoundTripperReport, v4chan <-chan TimedRoundTripperReport, stopChan <-chan bool, stopWait *sync.WaitGroup) {
-	defer stopWait.Done()
-
-	// This strange thing makes sure that the statusChan is drained before it will listen to the stopChan
-	for {
-		select {
-		case timingReport := <-v3chan:
-			stats.AddTimingReport(timingReport)
-		case timingReport := <-v4chan:
-			stats.AddTimingReport(timingReport)
-		default:
-			select {
-			case timingReport := <-v3chan:
-				stats.AddTimingReport(timingReport)
-			case timingReport := <-v4chan:
-				stats.AddTimingReport(timingReport)
-			case <-stopChan:
-				return
-			}
-		}
+// CountResults returns the total number of results measure across all routes.
+func (ts *ClientTimingStats) CountResults() int {
+	count := 0
+	for _, route := range ts.Routes {
+		count += len(route.Duration)
 	}
+
+	return count
+}
+
+// Reset removes all measured results.
+func (ts *ClientTimingStats) Reset() {
+	ts.Routes = make(map[string]*RouteStats)
+
 }

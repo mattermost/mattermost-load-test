@@ -14,6 +14,14 @@ type ClusterConfig struct {
 	BulkLoadComplete      bool
 }
 
+type DBSettings struct {
+	Username string
+	Password string
+	Endpoint string
+	Port     int
+	Database string
+}
+
 // Cluster represents an active cluster
 type Cluster interface {
 	// Returns the name of the cluster
@@ -51,6 +59,9 @@ type Cluster interface {
 
 	// Returns a count of DB instances
 	DBInstanceCount() int
+
+	// DBSettings returns the database settings for the cluster
+	DBSettings() (*DBSettings, error)
 
 	// Deploys a load test cluster
 	Deploy(options *DeployOptions) error

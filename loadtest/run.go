@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
@@ -27,6 +28,8 @@ import (
 )
 
 func RunTest(test *TestRun) error {
+	r := rand.New(rand.NewSource(0))
+
 	interruptChannel := make(chan os.Signal)
 	signal.Notify(interruptChannel, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
@@ -57,6 +60,7 @@ func RunTest(test *TestRun) error {
 		mlog.Int("entity_start_num", loadtestInstance.EntityStartNum),
 		mlog.Int64("seed", loadtestInstance.Seed),
 	)
+	mlog.Info("Settings", mlog.String("tag", "report"), mlog.Any("configuration", *cfg), mlog.String("instance_id", loadtestInstance.Id))
 
 	if loadtestInstance.EntityStartNum+cfg.UserEntitiesConfiguration.NumActiveEntities > cfg.LoadtestEnviromentConfig.NumUsers {
 		return fmt.Errorf(
@@ -73,23 +77,37 @@ func RunTest(test *TestRun) error {
 		return err
 	}
 
-	// Stop channels and wait groups, to stop and wait verious things
+	// Stop channels and wait groups, to stop and wait various things
 	// For entity monitoring routines
-	stopMonitors := make(chan bool)
 	var waitMonitors sync.WaitGroup
 	// For entities
 	stopEntity := make(chan bool)
 	var waitEntity sync.WaitGroup
 
 	// Data channels
-	// Channel to recieve user entity status reports
+	// Channel to receive user entity status reports
 	statusChannel := make(chan UserEntityStatusReport, 10000)
-	// Channels to recieve timing information from the clients
+	// Channels to receive timing information from the clients
 	clientTimingChannel := make(chan TimedRoundTripperReport, 10000)
-	clientTimingChannel3 := make(chan TimedRoundTripperReport, 10000)
 
 	waitMonitors.Add(1)
-	go ProcessClientRoundTripReports(clientTimingStats, clientTimingChannel3, clientTimingChannel, stopMonitors, &waitMonitors)
+	go func() {
+		defer waitMonitors.Done()
+
+		for timingReport := range clientTimingChannel {
+			clientTimingStats.AddTimingReport(timingReport)
+
+			if clientTimingStats.CountResults() > 100 {
+				mlog.Info("Timings", mlog.String("tag", "timings"), mlog.Any("timings", *clientTimingStats), mlog.String("instance_id", loadtestInstance.Id))
+				clientTimingStats.Reset()
+			}
+		}
+
+		if clientTimingStats.CountResults() > 0 {
+			mlog.Info("Timings", mlog.String("tag", "timings"), mlog.Any("timings", *clientTimingStats), mlog.String("instance_id", loadtestInstance.Id))
+			clientTimingStats.Reset()
+		}
+	}()
 
 	// Mirror http.DefaultTransport to start
 	transport := &http.Transport{
@@ -132,7 +150,7 @@ func RunTest(test *TestRun) error {
 		entityToken := tokens[i]
 
 		var usertype UserEntityWithRateMultiplier
-		if userTypeChoice, err := randutil.WeightedChoice(test.UserEntities); err != nil {
+		if userTypeChoice, err := randutil.WeightedChoice(r, test.UserEntities); err != nil {
 			mlog.Error("Failed to pick user entity", mlog.Int("entity_num", entityNum))
 			continue
 		} else {
@@ -174,6 +192,7 @@ func RunTest(test *TestRun) error {
 			StopChannel:         stopEntity,
 			StopWaitGroup:       &waitEntity,
 			Info:                make(map[string]interface{}),
+			r:                   rand.New(rand.NewSource(time.Now().UnixNano())),
 		}
 
 		waitEntity.Add(1)
@@ -223,37 +242,10 @@ func RunTest(test *TestRun) error {
 	waitWithTimeout(&waitEntity, 10*time.Second)
 
 	mlog.Info("Stopping monitor routines. Timeout is 10 seconds.")
-	close(stopMonitors)
+	close(clientTimingChannel)
 	waitWithTimeout(&waitMonitors, 10*time.Second)
 
-	clientTimingStats.CalcResults()
-	mlog.Info("Settings", mlog.String("tag", "report"), mlog.Any("configuration", *cfg))
-	mlog.Info("Timings", mlog.String("tag", "timings"), mlog.Any("timings", *clientTimingStats))
-
-	// ioutil.WriteFile("results.txt", []byte(report), 0644)
-
-	// files := []string{
-	// 	"results.txt",
-	// 	"loadtest.log",
-	// }
-
-	// if cfg.ResultsConfiguration.PProfDelayMinutes != 0 {
-	// 	files = append(files, "goroutine.svg", "block.svg", "profile.svg")
-	// }
-
-	// if cfg.ResultsConfiguration.SendReportToMMServer {
-	// 	mlog.Info("Sending results to mm server.")
-	// 	sendResultsToMMServer(
-	// 		cfg.ResultsConfiguration.ResultsServerURL,
-	// 		cfg.ResultsConfiguration.ResultsUsername,
-	// 		cfg.ResultsConfiguration.ResultsPassword,
-	// 		cfg.ResultsConfiguration.ResultsChannelId,
-	// 		cfg.ResultsConfiguration.CustomReportText,
-	// 		files,
-	// 	)
-	// }
-
-	mlog.Info("DONE!")
+	mlog.Info("Finished loadtest")
 
 	return nil
 }

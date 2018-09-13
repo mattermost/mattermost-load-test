@@ -108,7 +108,7 @@ The score is the average of the 95th percentile, median and interquartile ranges
 	))
 
 	comparisonTimingWithoutBaselineTemplate = template.Must(template.New("comparisonTimingWithoutBaselineTemplate").Funcs(funcMap).Parse(
-		`#### {{.Name}}
+		`#### {{.Actual.Name}}
 | Metric | Baseline | Actual | Delta |
 | --- | --- | --- | --- |
 | Hits | - | {{.Actual.NumHits}} | - |
