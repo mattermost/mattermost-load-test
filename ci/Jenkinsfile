@@ -72,9 +72,11 @@ pipeline {
                         if [ "${BRANCH_NAME}" = "master" ]; then
                           echo "Building Docker image for master"
                           export LOADTEST_BINARY=https://releases.mattermost.com/mattermost-load-test/mattermost-load-test.tar.gz
+                          export DOCKER_TAG="master"
                         else
                           echo "Building Docker image for prs"
                           export LOADTEST_BINARY="https://releases.mattermost.com/loadtest-pr/${CHANGE_BRANCH}/mattermost-load-test.tar.gz"
+                          export DOCKER_TAG=${CHANGE_BRANCH}
                         fi
 
                         export MM_BINARY=https://releases.mattermost.com/mattermost-platform/master/mattermost-enterprise-linux-amd64.tar.gz
@@ -84,13 +86,13 @@ pipeline {
 
                         cd docker/loadtest/
 
-                        docker build --build-arg MM_BINARY=$MM_BINARY --build-arg LOADTEST_BINARY=$LOADTEST_BINARY -t mattermost/mattermost-loadtest:${CHANGE_BRANCH} . --no-cache
+                        docker build --build-arg MM_BINARY=$MM_BINARY --build-arg LOADTEST_BINARY=$LOADTEST_BINARY -t mattermost/mattermost-loadtest:${DOCKER_TAG} . --no-cache
 
                         docker login --username ${DOCKER_USER} --password ${DOCKER_PASS}
-                        docker push mattermost/mattermost-loadtest:${CHANGE_BRANCH}
+                        docker push mattermost/mattermost-loadtest:${DOCKER_TAG}
                         docker logout
 
-                        docker rmi -f mattermost/mattermost-loadtest:${CHANGE_BRANCH}
+                        docker rmi -f mattermost/mattermost-loadtest:${DOCKER_TAG}
                         '''
                     }
                 }
