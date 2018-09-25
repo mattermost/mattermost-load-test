@@ -138,8 +138,12 @@ pipeline {
                                 sed -i'.bak' 's|siteUrl:|siteUrl: "http://'\${BRANCH}-${BUILD_NUMBER}'.azure.k8s.mattermost.com"|g' ci/loadtest-helm-config.yaml
                                 sed -i'.bak' 's|- loadtest.azure.k8s.mattermost.com|- '\${BRANCH}-${BUILD_NUMBER}.azure.k8s.mattermost.com'|g' ci/loadtest-helm-config.yaml
                                 sed -i'.bak' 's|mattermostLicense:|mattermostLicense: '$MMLICENSETEXT'|g' ci/loadtest-helm-config.yaml
-                                sed -i'.bak' 's|tag: latest|tag: '${CHANGE_BRANCH}'|g' ci/loadtest-helm-config.yaml
 
+                                if [ "${BRANCH_NAME}" = "master" ]; then
+                                    sed -i'.bak' 's|tag: latest|tag: '${BRANCH_NAME}'|g' ci/loadtest-helm-config.yaml
+                                else
+                                    sed -i'.bak' 's|tag: latest|tag: '${CHANGE_BRANCH}'|g' ci/loadtest-helm-config.yaml
+                                fi
                                 ltops create -c ${BRANCH}-${BUILD_NUMBER} --type kubernetes
 
                                 ltops deploy -c ${BRANCH}-${BUILD_NUMBER} --license $MMLICENSE --helm-config ci/loadtest-helm-config.yaml
