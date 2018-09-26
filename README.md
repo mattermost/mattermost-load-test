@@ -217,17 +217,17 @@ For Kubernetes, this will open an interactive shell to pods in the cluster.
 
 SSH into app server 0:
 ```
-ltops ssh app myloadtestcluster 0
+ltops ssh app --cluster myloadtestcluster --instance 0
 ```
 
 SSH into proxy server 1:
 ```
-ltops ssh proxy myloadtestcluster 1
+ltops ssh proxy --cluster myloadtestcluster --instance 1
 ```
 
 SSH into loadtest server 0:
 ```
-ltops ssh loadtest myloadtestcluster 0
+ltops ssh loadtest --cluster myloadtestcluster --instance 0
 ```
 
 ### Get status of clusters
