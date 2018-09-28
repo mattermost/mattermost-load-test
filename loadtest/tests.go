@@ -405,6 +405,56 @@ func actionSearchChannel(c *EntityConfig) {
 	}
 }
 
+func actionAutocompleteUserInChannel(c *EntityConfig) {
+	team, channel := c.UserData.PickTeamChannel(c.r)
+	if team == nil || channel == nil {
+		return
+	}
+	teamId := c.TeamMap[team.Name]
+
+	channelId, err := c.GetTeamChannelId(team.Name, channel.Name)
+	if err != nil {
+		mlog.Error("Unable to get channel from map", mlog.String("team", team.Name), mlog.String("channel", channel.Name), mlog.Err(err))
+		return
+	}
+
+	// Select a random fraction of a potential username to actually type.
+	username := fake.Word()
+	typedName := channel.Name[:rand.Intn(len(username))]
+
+	for i := 1; i <= len(typedName); i++ {
+		currentSubstring := typedName[:i]
+		go func() {
+			if _, resp := c.Client.AutocompleteUsersInChannel(teamId, channelId, currentSubstring, ""); resp.Error != nil {
+				mlog.Error("Unable to autocomplete user in channel", mlog.String("team_name", team.Name), mlog.String("channel_name", channel.Name), mlog.String("fragment", currentSubstring))
+			}
+		}()
+		time.Sleep(time.Millisecond * 150)
+	}
+}
+
+func actionSearchUser(c *EntityConfig) {
+	team, channel := c.UserData.PickTeamChannel(c.r)
+	if team == nil || channel == nil {
+		return
+	}
+	teamId := c.TeamMap[team.Name]
+
+	// Select a random fraction of a potential username to actually type.
+	username := fake.Word()
+	typedName := channel.Name[:rand.Intn(len(username))]
+
+	for i := 1; i <= len(typedName); i++ {
+		currentSubstring := typedName[:i]
+		go func() {
+			if _, resp := c.Client.SearchUsers(&model.UserSearch{TeamId: teamId, Term: currentSubstring}); resp.Error != nil {
+				mlog.Error("Unable to search user", mlog.String("team_name", team.Name), mlog.String("fragment", currentSubstring))
+			}
+		}()
+		time.Sleep(time.Millisecond * 150)
+	}
+}
+
 func actionDisconnectWebsocket(c *EntityConfig) {
 	c.WebSocketClient.Close()
 }
@@ -788,6 +838,14 @@ var autocompleterUserEntity UserEntity = UserEntity{
 		{
 			Item:   actionAutocompleteChannel,
 			Weight: 1,
+		},
+		{
+			Item:   actionSearchUser,
+			Weight: 1,
+		},
+		{
+			Item:   actionAutocompleteUserInChannel,
+			Weight: 5,
 		},
 	},
 }
