@@ -338,6 +338,10 @@ func generateEmoji(numEmoji int) []EmojiImportData {
 	return emojis
 }
 
+func makeUsername(userNumber int) string {
+	return fake.Word() + "_" + strconv.Itoa(userNumber)
+}
+
 func makeChannelName(channelNumber int) string {
 	return strings.Join(strings.Fields(fake.WordsN(2)), "-") + "-loadtestchannel" + strconv.Itoa(channelNumber)
 }
@@ -514,7 +518,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 
 	for userNum := 0; userNum < config.NumUsers; userNum++ {
 		users = append(users, UserImportData{
-			Username: "user" + strconv.Itoa(userNum),
+			Username: makeUsername(userNum),
 			Roles:    "system_user",
 			Email:    "success+user" + strconv.Itoa(userNum) + "@simulator.amazonses.com",
 			Password: "Loadtestpassword1",
