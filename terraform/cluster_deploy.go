@@ -362,6 +362,7 @@ func deployToAppInstance(mattermostDistribution, license io.Reader, instanceAddr
 		".ServiceSettings.SiteURL":                     clust.SiteURL(),
 		".ServiceSettings.EnableAPIv3":                 true,
 		".ServiceSettings.EnableLinkPreviews":          true,
+		".ServiceSettings.EnableSecurityFixAlert":      false,
 		".SqlSettings.DriverName":                      "mysql",
 		".SqlSettings.DataSource":                      clust.DBConnectionString(),
 		".SqlSettings.DataSourceReplicas":              clust.DBReaderConnectionStrings(),
