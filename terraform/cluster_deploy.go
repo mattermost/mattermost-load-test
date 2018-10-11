@@ -384,6 +384,7 @@ func deployToAppInstance(mattermostDistribution, license io.Reader, instanceAddr
 		".ServiceSettings.EnableOnlyAdminIntegrations": false,
 		".PluginSettings.Enable":                       true,
 		".PluginSettings.EnableUploads":                true,
+		".LogSettings.EnableDiagnostics":               false,
 	} {
 		logger.Debug("updating config: " + k)
 		jsonValue, err := json.Marshal(v)
