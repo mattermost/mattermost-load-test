@@ -31,10 +31,8 @@ pipeline {
                         export GOPATH=$WORKSPACE
                         export PATH=$PATH:$GOPATH/bin
                         mkdir -p $GOPATH/bin
-                        go get -u github.com/golang/dep/cmd/dep
 
                         make install
-
                         make package
                     '''
                 }

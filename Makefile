@@ -14,7 +14,7 @@ all: install
 
 vendor:
 	go get -u github.com/golang/dep/cmd/dep
-	$(shell go env GOPATH)/bin/dep ensure
+	$(shell go env GOPATH)/bin/dep ensure -update
 
 build-linux: vendor
 	@echo Build Linux amd64
