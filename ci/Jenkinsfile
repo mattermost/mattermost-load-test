@@ -205,7 +205,7 @@ pipeline {
 
                         ltops destroy -c ${BRANCH}-${BUILD_NUMBER} || echo 0
 
-                        kubectl delete --all deploy,svc,pod,configmap,secrets,statefulset
+                        kubectl delete --all deploy,svc,pod,statefulset
                         '''
                     }
                 }
