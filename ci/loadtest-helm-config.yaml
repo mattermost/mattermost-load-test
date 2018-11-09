@@ -82,7 +82,7 @@ mattermostApp:
   replicaCount: 2
   image:
     repository: mattermost/mattermost-enterprise-edition
-    tag: 5.3.1
+    tag: 5.4.0
     pullPolicy: Always
 
   service:
