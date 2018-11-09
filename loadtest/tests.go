@@ -405,6 +405,48 @@ func actionSearchChannel(c *EntityConfig) {
 	}
 }
 
+func actionSearchUser(c *EntityConfig) {
+	team := c.UserData.PickTeam(c.r)
+	if team == nil {
+		return
+	}
+	teamId := c.TeamMap[team.Name]
+
+	// Select a random field to search by
+	var searchField string
+	r := rand.Intn(4)
+	switch r {
+	case 0:
+		searchField = c.UserData.Username
+	case 1:
+		searchField = c.UserData.FirstName
+	case 2:
+		searchField = c.UserData.LastName
+	case 3:
+		searchField = c.UserData.Nickname
+	}
+	// but use username if the other fields aren't set
+	if searchField == "" {
+		searchField = c.UserData.Username
+	}
+	if searchField == "" {
+		return
+	}
+
+	// Select a random fraction of the username to actually type
+	typedName := searchField[:(rand.Intn(len(searchField) + 1))]
+
+	for i := 1; i <= len(typedName); i++ {
+		currentSubstring := typedName[:i]
+		go func() {
+			if _, resp := c.Client.SearchUsers(&model.UserSearch{TeamId: teamId, Term: currentSubstring}); resp.Error != nil {
+				mlog.Error("Unable to search users", mlog.String("team_name", team.Name), mlog.String("term", currentSubstring))
+			}
+		}()
+		time.Sleep(time.Millisecond * 150)
+	}
+}
+
 func actionDisconnectWebsocket(c *EntityConfig) {
 	c.WebSocketClient.Close()
 }
@@ -533,6 +575,28 @@ var TestSearch TestRun = TestRun{
 	},
 }
 
+var searchUsersEntity UserEntity = UserEntity{
+	Name: "Search Users",
+	Actions: []randutil.Choice{
+		{
+			Item:   actionSearchUser,
+			Weight: 1,
+		},
+	},
+}
+
+var TestSearchUsers TestRun = TestRun{
+	UserEntities: []randutil.Choice{
+		{
+			Item: UserEntityWithRateMultiplier{
+				Entity:         searchUsersEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 100,
+		},
+	},
+}
+
 var standardUserEntity UserEntity = UserEntity{
 	Name: "Standard",
 	Actions: []randutil.Choice{
@@ -567,6 +631,10 @@ var standardUserEntity UserEntity = UserEntity{
 		{
 			Item:   actionMoreChannels,
 			Weight: 4,
+		},
+		{
+			Item:   actionSearchUser,
+			Weight: 2,
 		},
 	},
 }
