@@ -761,7 +761,9 @@ func ConnectToDB(driverName, dataSource string) *sqlx.DB {
 		fmt.Println("Unable to parse datasource: " + err.Error())
 		return nil
 	}
-	url.RawQuery = "charset=utf8mb4,utf8"
+	if driverName == "mysql" {
+		url.RawQuery = "charset=utf8mb4,utf8"
+	}
 	db, err := sqlx.Open(driverName, url.String())
 	if err != nil {
 		fmt.Println("Unable to open database: " + err.Error())
