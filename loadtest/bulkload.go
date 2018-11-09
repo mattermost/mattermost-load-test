@@ -338,6 +338,10 @@ func generateEmoji(numEmoji int) []EmojiImportData {
 	return emojis
 }
 
+func makeUserName(userNumber int) string {
+	return strings.ToLower(fake.UserName()) + "-" + strconv.Itoa(userNumber)
+}
+
 func makeChannelName(channelNumber int) string {
 	return strings.Join(strings.Fields(fake.WordsN(2)), "-") + "-loadtestchannel" + strconv.Itoa(channelNumber)
 }
@@ -513,12 +517,22 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 	}
 
 	for userNum := 0; userNum < config.NumUsers; userNum++ {
-		users = append(users, UserImportData{
-			Username: "user" + strconv.Itoa(userNum),
+		user := UserImportData{
+			Username: makeUserName(userNum),
 			Roles:    "system_user",
+			// email is fixed pattern, must match loginAsUsers()
 			Email:    "success+user" + strconv.Itoa(userNum) + "@simulator.amazonses.com",
 			Password: "Loadtestpassword1",
-		})
+		}
+		// give 30% of users a name and/or nickname
+		if r.Intn(10) < 3 {
+			user.FirstName = fake.FirstName()
+			user.LastName = fake.LastName()
+		}
+		if r.Intn(10) < 3 {
+			user.Nickname = fake.Word()
+		}
+		users = append(users, user)
 	}
 
 	numHighVolumeTeams := int(math.Floor(float64(config.NumTeams) * config.PercentHighVolumeTeams))

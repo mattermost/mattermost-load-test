@@ -38,6 +38,11 @@ var tests []TestItem = []TestItem{
 		Test:      &loadtest.TestSearch,
 	},
 	{
+		Name:      "search-users",
+		ShortDesc: "Test search users",
+		Test:      &loadtest.TestSearchUsers,
+	},
+	{
 		Name:      "getchannel",
 		ShortDesc: "Test get channel",
 		Test:      &loadtest.TestGetChannel,
