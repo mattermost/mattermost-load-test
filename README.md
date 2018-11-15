@@ -65,7 +65,7 @@ Make sure helm is configured on your cluster and locally by running `helm init -
 
 1. Set up a cluster:
 ```
-ltops create --name myloadtestcluster --type kubernetes
+ltops create -c myloadtestcluster --type kubernetes
 ```
 
 2. Deploy and configure the helm chart:
@@ -101,7 +101,7 @@ More info on setting up the credentials file here: https://docs.aws.amazon.com/c
 
 1. Create a cluster:
 ```
-ltops create --name myloadtestcluster --type terraform --app-count 1 --db-count 1 --loadtest-count 1 --app-type m4.large --db-type db.r4.large
+ltops create -c myloadtestcluster --type terraform --app-count 1 --db-count 1 --loadtest-count 1 --app-type m4.large --db-type db.r4.large
 ```
 
 2. Deploy Mattermost, configure proxy, loadtest. Note that the options support local files and URLs. Make sure to replace the path to the license.
