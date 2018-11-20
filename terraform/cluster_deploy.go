@@ -232,7 +232,6 @@ func configureLoadtestInstance(instanceNum int, client *ssh.Client, cluster ltop
 		".ConnectionConfiguration.SSHUsername":          "ubuntu",
 		".ConnectionConfiguration.SSHKey":               remoteSSHKeyPath,
 		".ConnectionConfiguration.MattermostInstallDir": "/opt/mattermost",
-		".ConnectionConfiguration.WaitForServerStart":   false,
 		".LoadtestEnviromentConfig.NumEmoji":            0,
 		".LoadtestEnviromentConfig.NumPlugins":          0,
 	} {

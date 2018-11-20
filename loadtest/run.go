@@ -131,9 +131,7 @@ func RunTest(test *TestRun) error {
 		return fmt.Errorf("Unable create admin client.")
 	}
 
-	if cfg.UserEntitiesConfiguration.EnableRequestTiming {
-		adminClient.HttpClient.Transport = NewTimedRoundTripper(clientTimingChannel)
-	}
+	adminClient.HttpClient.Transport = NewTimedRoundTripper(clientTimingChannel)
 
 	mlog.Info("Logging in as users.")
 	tokens := loginAsUsers(cfg, adminClient, loadtestInstance.EntityStartNum, loadtestInstance.Seed)
@@ -161,9 +159,7 @@ func RunTest(test *TestRun) error {
 
 		// Create some clients
 		userClient := newClientFromToken(httpClient, entityToken, cfg.ConnectionConfiguration.ServerURL)
-		if cfg.UserEntitiesConfiguration.EnableRequestTiming {
-			userClient.HttpClient.Transport = NewTimedRoundTripper(clientTimingChannel)
-		}
+		userClient.HttpClient.Transport = NewTimedRoundTripper(clientTimingChannel)
 
 		// Websocket client
 		websocketURL := cfg.ConnectionConfiguration.WebsocketURL

@@ -52,21 +52,14 @@ type ConnectionConfiguration struct {
 	AdminEmail                  string
 	AdminPassword               string
 	SkipBulkload                bool
-	WaitForServerStart          bool
 	MaxIdleConns                int
 	MaxIdleConnsPerHost         int
 	IdleConnTimeoutMilliseconds int
 }
 
 type ResultsConfiguration struct {
-	CustomReportText     string
-	SendReportToMMServer bool
-	ResultsServerURL     string
-	ResultsChannelId     string
-	ResultsUsername      string
-	ResultsPassword      string
-	PProfDelayMinutes    int
-	PProfLength          int
+	PProfDelayMinutes int
+	PProfLength       int
 }
 
 type LoggerSettings struct {

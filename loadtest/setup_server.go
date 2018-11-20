@@ -29,10 +29,6 @@ type ServerSetupData struct {
 }
 
 func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
-	if cfg.ConnectionConfiguration.WaitForServerStart {
-		WaitForServer(cfg.ConnectionConfiguration.ServerURL)
-	}
-
 	var cmdrun ServerCLICommandRunner
 	var cmderr error
 	if cfg.ConnectionConfiguration.LocalCommands {
@@ -276,20 +272,6 @@ func checkConfigForLoadtests(adminClient *model.Client4) error {
 	}
 
 	return nil
-}
-
-func WaitForServer(serverURL string) {
-	numSuccess := 0
-	waitClient := model.NewAPIv4Client(serverURL)
-	for numSuccess < 5 {
-		for success, resp := waitClient.GetPing(); resp.Error != nil || success != "OK"; success, resp = waitClient.GetPing() {
-			numSuccess = 0
-			mlog.Info("Waiting for server to be up")
-			time.Sleep(5 * time.Second)
-		}
-		mlog.Info(fmt.Sprintf("Success %v", numSuccess))
-		numSuccess++
-	}
 }
 
 func getBulkloadLock(adminClient *model.Client4) bool {
