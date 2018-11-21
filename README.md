@@ -24,7 +24,7 @@ The best way to profile the mattermost-server is to set up an [AWS cluster using
 
 Feel free to experiment with profiling a Mattermost [Kubernetes cluster](docs/kubernetes.md) using the `ltops` tool, but recognize that this is still in beta. There may also be some tooling differences between Kubernetes and the more stable Terraform setup.
 
-The `loadtest` tool may be run [manually against an existing cluster](docs/manual.md), regardless of how that cluster is deployed. Note that care is required to tune an arbitrary cluster to perform well under load,. This method of profiling is also suitable for basic `localhost` profiling, especially when developing against mattermost-load-test itself.
+The `loadtest` tool may be run [manually against an existing cluster](docs/manual.md), regardless of how that cluster is deployed. Note that care is required to tune an arbitrary cluster to perform well under load. This method of profiling is also suitable for basic `localhost` profiling, especially when developing against mattermost-load-test itself.
 
 ## Development
 
