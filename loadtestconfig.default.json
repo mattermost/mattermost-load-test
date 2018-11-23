@@ -15,7 +15,6 @@
         "AdminEmail": "success+ltadmin@simulator.amazonses.com",
         "AdminPassword": "ltpassword",
         "SkipBulkload": false,
-        "WaitForServerStart": false,
         "MaxIdleConns": 100,
         "MaxIdleConnsPerHost": 128,
         "IdleConnTimeoutMilliseconds": 90000
@@ -60,7 +59,6 @@
         "NumActiveEntities": 500,
         "ActionRateMilliseconds": 240000,
         "ActionRateMaxVarianceMilliseconds": 1500,
-        "EnableRequestTiming": true,
         "ChannelLinkChance": 0.02,
         "UploadImageChance": 0.01,
         "LinkPreviewChance": 0.2,
@@ -72,12 +70,6 @@
         "RandomizeEntitySelection": false
     },
     "ResultsConfiguration": {
-        "CustomReportText": "",
-        "SendReportToMMServer": false,
-        "ResultsServerURL": "",
-        "ResultsChannelId": "",
-        "ResultsUsername": "",
-        "ResultsPassword": "",
         "PProfDelayMinutes": 15,
         "PProfLength": 240
     },
