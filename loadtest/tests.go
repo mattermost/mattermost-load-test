@@ -222,7 +222,7 @@ func createPost(c *EntityConfig, team *UserTeamImportData, channelId string) {
 		post.Message = post.Message + " :" + name + ":"
 	}
 
-	_, resp := c.Client.CreatePost(post)
+	post, resp := c.Client.CreatePost(post)
 	if resp.Error != nil {
 		mlog.Info("Failed to post", mlog.String("team_name", team.Name), mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.String("auth_token", c.Client.AuthToken), mlog.Err(resp.Error))
 	}
