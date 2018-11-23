@@ -28,6 +28,8 @@ type UserEntitiesConfiguration struct {
 	UploadImageChance                 float64
 	LinkPreviewChance                 float64
 	CustomEmojiChance                 float64
+	CustomEmojiReactionChance         float64
+	SystemEmojiReactionChance         float64
 	NeedsProfilesByIdChance           float64
 	NeedsProfilesByUsernameChance     float64
 	NeedsProfileStatusChance          float64

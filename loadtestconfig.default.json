@@ -63,6 +63,8 @@
         "UploadImageChance": 0.01,
         "LinkPreviewChance": 0.2,
         "CustomEmojiChance": 0.2,
+        "CustomEmojiReactionChance": 0.05,
+        "SystemEmojiReactionChance": 0.1,
         "NeedsProfilesByUsernameChance": 0.38,
         "NeedsProfilesByIdChance": 0.22,
         "NeedsProfileStatusChance": 0.80,

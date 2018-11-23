@@ -213,9 +213,40 @@ func createPost(c *EntityConfig, team *UserTeamImportData, channelId string) {
 		post.FileIds = fileIds
 	}
 
+	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.LinkPreviewChance {
+		post.Message = post.Message + " " + OPENGRAPH_TEST_URL
+	}
+
+	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.CustomEmojiChance && c.LoadTestConfig.LoadtestEnviromentConfig.NumEmoji > 0 {
+		name := c.LoadTestConfig.LoadtestEnviromentConfig.PickEmoji(c.r)
+		post.Message = post.Message + " :" + name + ":"
+	}
+
 	_, resp := c.Client.CreatePost(post)
 	if resp.Error != nil {
 		mlog.Info("Failed to post", mlog.String("team_name", team.Name), mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.String("auth_token", c.Client.AuthToken), mlog.Err(resp.Error))
+	}
+
+	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.CustomEmojiReactionChance && c.LoadTestConfig.LoadtestEnviromentConfig.NumEmoji > 0 {
+		name := c.LoadTestConfig.LoadtestEnviromentConfig.PickEmoji(c.r)
+		addReaction(c, post, name)
+	}
+
+	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.SystemEmojiReactionChance {
+		addReaction(c, post, "smile")
+	}
+}
+
+func addReaction(c *EntityConfig, post *model.Post, name string) {
+	reaction := &model.Reaction{
+		UserId:    post.UserId,
+		PostId:    post.Id,
+		EmojiName: name,
+	}
+
+	_, resp := c.Client.SaveReaction(reaction)
+	if resp.Error != nil {
+		mlog.Info("Failed to save reaction", mlog.String("user_id", reaction.UserId), mlog.String("post_id", reaction.PostId), mlog.String("emoji_name", reaction.EmojiName))
 	}
 }
 
@@ -276,35 +307,45 @@ func actionGetChannel(c *EntityConfig) {
 			return
 		}
 		for _, post := range posts.Posts {
-			if post.HasReactions {
-				if _, resp := c.Client.GetReactions(post.Id); resp.Error != nil {
-					mlog.Error("Unable to get reactions for post.", mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.String("post_id", post.Id), mlog.Err(resp.Error))
+			if post.Metadata != nil {
+				for _, file := range post.Metadata.Files {
+					if file.IsImage() {
+						if _, resp := c.Client.GetFileThumbnail(file.Id); resp.Error != nil {
+							mlog.Error("Unable to get file thumbnail for file.", mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.String("post_id", post.Id), mlog.String("file_id", file.Id), mlog.Err(resp.Error))
+						}
+					}
 				}
-			}
-			if len(post.FileIds) > 0 {
-				if files, resp := c.Client.GetFileInfosForPost(post.Id, ""); resp.Error != nil {
-					mlog.Error("Unable to get file infos for post.", mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.String("post_id", post.Id), mlog.Err(resp.Error))
-				} else {
-					for _, file := range files {
-						if file.IsImage() {
-							if _, resp := c.Client.GetFileThumbnail(file.Id); resp.Error != nil {
-								mlog.Error("Unable to get file thumbnail for file.", mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.String("post_id", post.Id), mlog.String("file_id", file.Id), mlog.Err(resp.Error))
+			} else {
+				if post.HasReactions {
+					if _, resp := c.Client.GetReactions(post.Id); resp.Error != nil {
+						mlog.Error("Unable to get reactions for post.", mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.String("post_id", post.Id), mlog.Err(resp.Error))
+					}
+				}
+				if len(post.FileIds) > 0 {
+					if files, resp := c.Client.GetFileInfosForPost(post.Id, ""); resp.Error != nil {
+						mlog.Error("Unable to get file infos for post.", mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.String("post_id", post.Id), mlog.Err(resp.Error))
+					} else {
+						for _, file := range files {
+							if file.IsImage() {
+								if _, resp := c.Client.GetFileThumbnail(file.Id); resp.Error != nil {
+									mlog.Error("Unable to get file thumbnail for file.", mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.String("post_id", post.Id), mlog.String("file_id", file.Id), mlog.Err(resp.Error))
+								}
 							}
 						}
 					}
 				}
-			}
 
-			if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.LinkPreviewChance {
-				if _, resp := c.Client.OpenGraph(OPENGRAPH_TEST_URL); resp.Error != nil {
-					mlog.Error("Unable to get open graph for url.", mlog.String("url", OPENGRAPH_TEST_URL), mlog.String("user_id", post.UserId), mlog.Err(resp.Error))
+				if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.LinkPreviewChance {
+					if _, resp := c.Client.OpenGraph(OPENGRAPH_TEST_URL); resp.Error != nil {
+						mlog.Error("Unable to get open graph for url.", mlog.String("url", OPENGRAPH_TEST_URL), mlog.String("user_id", post.UserId), mlog.Err(resp.Error))
+					}
 				}
-			}
 
-			if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.CustomEmojiChance && c.LoadTestConfig.LoadtestEnviromentConfig.NumEmoji > 0 {
-				name := c.LoadTestConfig.LoadtestEnviromentConfig.PickEmoji(c.r)
-				if _, resp := c.Client.GetEmojiByName(name); resp.Error != nil {
-					mlog.Error("Unable to get emoji.", mlog.String("emoji_name", name), mlog.String("user_id", post.UserId), mlog.Err(resp.Error))
+				if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.CustomEmojiChance && c.LoadTestConfig.LoadtestEnviromentConfig.NumEmoji > 0 {
+					name := c.LoadTestConfig.LoadtestEnviromentConfig.PickEmoji(c.r)
+					if _, resp := c.Client.GetEmojiByName(name); resp.Error != nil {
+						mlog.Error("Unable to get emoji.", mlog.String("emoji_name", name), mlog.String("user_id", post.UserId), mlog.Err(resp.Error))
+					}
 				}
 			}
 		}
