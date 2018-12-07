@@ -146,7 +146,6 @@ pipeline {
 
                                 ltops deploy -c ${BRANCH}-${BUILD_NUMBER} --license $MMLICENSE --helm-config ci/loadtest-helm-config.yaml
 
-
                                 STATUS=\$(kubectl get pods --field-selector=status.phase!=Running)
                                 while [ "\$STATUS" != "" ]; do
                                   echo "Waiting to pods come up."
