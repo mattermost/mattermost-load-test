@@ -83,7 +83,7 @@ func (c *Cluster) bulkLoad(loadtestPod string, appPod string, workers int, force
 	}
 
 	// If this command fails, assume user was already created
-	cmd = exec.Command("kubectl", "exec", appPod, "--", "./bin/platform", "user", "create", "--email", "success+ltadmin@simulator.amazonses.com", "--username", "ltadmin", "--password", "ltpassword", "--system_admin")
+	cmd = exec.Command("kubectl", "exec", appPod, "--", "./bin/mattermost", "user", "create", "--email", "success+ltadmin@simulator.amazonses.com", "--username", "ltadmin", "--password", "ltpassword", "--system_admin")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Info(fmt.Sprintf("system admin already created or failed to create err=%v output=%v", err, string(out)))
@@ -91,7 +91,7 @@ func (c *Cluster) bulkLoad(loadtestPod string, appPod string, workers int, force
 
 	log.Info("bulk import...")
 	startBulkload := time.Now()
-	cmd = exec.Command("kubectl", "exec", appPod, "--", "./bin/platform", "import", "bulk", "--workers", strconv.Itoa(workers), "--apply", "./loadtestbulkload.json")
+	cmd = exec.Command("kubectl", "exec", appPod, "--", "./bin/mattermost", "import", "bulk", "--workers", strconv.Itoa(workers), "--apply", "./loadtestbulkload.json")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		log.Info("Import failed after: %s", time.Since(startBulkload))
 		return errors.Wrap(err, "bulk import failed: "+string(out))

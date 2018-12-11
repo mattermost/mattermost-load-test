@@ -39,12 +39,12 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 		cmdrun, cmderr = ConnectSSH(cfg.ConnectionConfiguration.SSHHostnamePort, cfg.ConnectionConfiguration.SSHKey, cfg.ConnectionConfiguration.SSHUsername, cfg.ConnectionConfiguration.SSHPassword, cfg.ConnectionConfiguration.MattermostInstallDir, cfg.ConnectionConfiguration.ConfigFileLoc)
 	}
 	if cmderr != nil {
-		mlog.Error("Unable to connect issue platform commands. Continuing anyway... Got error: " + cmderr.Error())
+		mlog.Error("Unable to connect issue mattermost commands. Continuing anyway... Got error: " + cmderr.Error())
 		cmdrun = nil
 	} else {
 		mlog.Info("Testing ability to run commands.")
 		if success, output := cmdrun.RunPlatformCommand("version"); !success {
-			mlog.Error("Unable to connect issue platform commands. Continuing anyway... Got Output: " + output)
+			mlog.Error("Unable to connect issue mattermost commands. Continuing anyway... Got Output: " + output)
 			cmdrun.Close()
 			cmdrun = nil
 		}
@@ -88,7 +88,7 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 
 	if !cfg.ConnectionConfiguration.SkipBulkload {
 		if cmdrun == nil {
-			return nil, fmt.Errorf("Failed to bulk import users because was unable to connect to app server to issue platform CLI commands. Please fill in SSH info and see errors above. You can also use `loadtest genbulkload` to load the users manually without having to provide SSH info.")
+			return nil, fmt.Errorf("Failed to bulk import users because was unable to connect to app server to issue mattermost CLI commands. Please fill in SSH info and see errors above. You can also use `loadtest genbulkload` to load the users manually without having to provide SSH info.")
 		}
 		mlog.Info("Acquiring bulkload lock")
 		if getBulkloadLock(adminClient) {
