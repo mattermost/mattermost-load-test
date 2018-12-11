@@ -20,6 +20,5 @@ You can manually generate and load the test users into the Mattermost server man
 
 1. Run `loadtest genbulkload`. A file called `loadtestbulkload.json` should be created.
 2. Upload this file to the Mattermost app server.
-3. On the Mattermost app server run `./bin/platform import bulk --workers 64 --apply loadtestbulkload.json`
+3. On the Mattermost app server run `./bin/mattermost import bulk --workers 64 --apply loadtestbulkload.json`
 4. Make sure you set the configuration setting "SkipBulkLoad" to true.
-

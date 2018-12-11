@@ -90,7 +90,7 @@ func getAdminClient(httpClient *http.Client, serverURL string, adminEmail string
 		mlog.Info(fmt.Sprintf("Failed to login as admin user: %s", resp.Error.Error()))
 		if cmdrun == nil {
 			mlog.Error("Unable to create admin user because was not able to connect to app server. Please create the admin user manually or fill in SSH information.")
-			mlog.Error(fmt.Sprintf("Command to create admin user: ./bin/platform user create --email %v --password %v --system_admin --username ltadmin", adminEmail, adminPass))
+			mlog.Error(fmt.Sprintf("Command to create admin user: ./bin/mattermost user create --email %v --password %v --system_admin --username ltadmin", adminEmail, adminPass))
 			return nil
 		}
 		mlog.Info("Attempting to create admin user.")
@@ -115,7 +115,7 @@ func getAdminClient(httpClient *http.Client, serverURL string, adminEmail string
 
 	if !adminUser.IsInRole(model.PERMISSIONS_SYSTEM_ADMIN) {
 		mlog.Error(fmt.Sprintf("%v is not a system admin, please run the command", adminUser.Email))
-		mlog.Error(fmt.Sprintf("'./bin/platform roles system_admin %v", adminUser.Username))
+		mlog.Error(fmt.Sprintf("'./bin/mattermost roles system_admin %v", adminUser.Username))
 		return nil
 	}
 

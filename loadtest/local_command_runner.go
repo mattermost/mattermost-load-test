@@ -5,13 +5,10 @@ package loadtest
 
 import (
 	"bytes"
+	"io/ioutil"
+	"os"
 	"os/exec"
 	"path"
-
-	"io/ioutil"
-
-	"os"
-
 	"strings"
 
 	"github.com/mattermost/mattermost-server/mlog"
@@ -46,7 +43,7 @@ func (c *MattermostLocalConnection) RunPlatformCommand(args string) (bool, strin
 		mlog.Warn("Unable to get working directory", mlog.Err(err))
 	}
 	os.Chdir(c.mattermostInstallDir)
-	success, result := c.RunCommand("./bin/platform " + args)
+	success, result := c.RunCommand("./bin/mattermost " + args)
 	os.Chdir(wd)
 	return success, result
 }
