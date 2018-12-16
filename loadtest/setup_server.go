@@ -245,9 +245,9 @@ func checkConfigForLoadtests(adminClient *model.Client4) error {
 
 		mlog.Info("EnableIncomingWebhooks is true")
 
-		if *serverConfig.ServiceSettings.EnableOnlyAdminIntegrations {
+		if *serverConfig.ServiceSettings.DEPRECATED_DO_NOT_USE_EnableOnlyAdminIntegrations {
 			mlog.Info("Disabling only admin integrations for loadtest.")
-			*serverConfig.ServiceSettings.EnableOnlyAdminIntegrations = false
+			*serverConfig.ServiceSettings.DEPRECATED_DO_NOT_USE_EnableOnlyAdminIntegrations = false
 			if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
 				mlog.Error("Failed to set EnableOnlyAdminIntegrations", mlog.Err(resp.Error))
 				return resp.Error

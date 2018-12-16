@@ -10,10 +10,16 @@ DIST_PATH=$(DIST_ROOT)/$(DIST_FOLDER_NAME)
 # GOOS/GOARCH of the build host, used to determine whether we're cross-compiling or not
 BUILDER_GOOS_GOARCH="$(shell $(GO) env GOOS)_$(shell $(GO) env GOARCH)"
 
+# Ensure that dep is installed.
+ifneq ($(HAS_SERVER),)
+ifeq ($(DEP),)
+    $(error "dep is not available: see https://golang.github.io/dep/docs/installation.html")
+endif
+endif
+
 all: install
 
 vendor:
-	go get -u github.com/golang/dep/cmd/dep
 	$(shell go env GOPATH)/bin/dep ensure -update
 
 build-linux: vendor

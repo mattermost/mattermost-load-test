@@ -10,6 +10,14 @@
   version = "v1.1.1"
 
 [[projects]]
+  digest = "1:705c40022f5c03bf96ffeb6477858d88565064485a513abcd0f11a0911546cb6"
+  name = "github.com/blang/semver"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "2ee87856327ba09384cabd113bc6b5d174e9ec0f"
+  version = "v3.5.1"
+
+[[projects]]
   digest = "1:86909a5b1e4522ad763f86327cfa65e51d7eb838d4adb3d6f68069fede181122"
   name = "github.com/corpix/uarand"
   packages = ["."]
@@ -42,15 +50,15 @@
   version = "v1.4.1"
 
 [[projects]]
-  digest = "1:34e709f36fd4f868fb00dbaf8a6cab4c1ae685832d392874ba9d7c5dec2429d1"
+  digest = "1:b402bb9a24d108a9405a6f34675091b036c8b056aac843bf6ef2389a65c5cf48"
   name = "github.com/gogo/protobuf"
   packages = [
     "proto",
     "sortkeys",
   ]
   pruneopts = "UT"
-  revision = "636bf0302bc95575d69441b25a2603156ffdddf1"
-  version = "v1.1.1"
+  revision = "4cbf7e384e768b4e01799441fdf2a706a5635ae7"
+  version = "v1.2.0"
 
 [[projects]]
   digest = "1:4c0989ca0bcd10799064318923b9bc2db6b4d6338dd75f3f2d86c3511aaaf5cf"
@@ -103,12 +111,12 @@
   version = "v0.2.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:521455a43b348afa7e4deb79c471f3ed8ff04a71d7d9b88ab0d149b9eb905fe2"
+  digest = "1:7b5c6e2eeaa9ae5907c391a91c132abfd5c9e8a784a341b5625e750c67e6825d"
   name = "github.com/gorilla/websocket"
   packages = ["."]
   pruneopts = "UT"
-  revision = "95ba29eb981bbb27d92e1f70bf8a1949452d926b"
+  revision = "66b9c49e59c6c48f0ffce28c2d8b8a5678502c6d"
+  version = "v1.4.0"
 
 [[projects]]
   branch = "master"
@@ -211,7 +219,7 @@
   version = "v1.8.0"
 
 [[projects]]
-  digest = "1:4468f8498a51d54f613d6d2139f468eab6777829cef11d7ba009d7a5eaeaf1da"
+  digest = "1:0f81ae62160859fd48690f6c0bda2ad33828ebb670145045effba8e381c0f5f7"
   name = "github.com/mattermost/mattermost-server"
   packages = [
     "einterfaces",
@@ -222,8 +230,8 @@
     "utils/markdown",
   ]
   pruneopts = "UT"
-  revision = "826252252404c13bf564a8c4fd51616fc2cc4df9"
-  version = "v5.5.1"
+  revision = "0c1207215852a8726c3f09dea157d597fec368df"
+  version = "v5.6.0"
 
 [[projects]]
   branch = "mattermost"
@@ -387,12 +395,12 @@
   version = "v1.0.3"
 
 [[projects]]
-  digest = "1:34c2a71c3317bd76711f66330d7846597bea8cd26c9df5bfd4603d156503e1bf"
+  digest = "1:de37e343c64582d7026bf8ab6ac5b22a72eac54f3a57020db31524affed9f423"
   name = "github.com/spf13/viper"
   packages = ["."]
   pruneopts = "UT"
-  revision = "41cd1c3aa32b2685fae6c296e6f044bc68922c0e"
-  version = "v1.3.0"
+  revision = "6d33b5a963d922d182c91e8a1c88d81fd150cfd4"
+  version = "v1.3.1"
 
 [[projects]]
   digest = "1:c40d65817cdd41fac9aa7af8bed56927bb2d6d47e4fea566a74880f5c2b1c41e"
@@ -457,7 +465,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:5ffe01f60749b563c400f28080868cc0524b2cdf0eaca587dac2ae79f362f160"
+  digest = "1:37f4a0712bbf9b111cf2951fe0efeea300ce87f7915047d4d1d5806a256ca634"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -468,7 +476,7 @@
     "idna",
   ]
   pruneopts = "UT"
-  revision = "351d144fa1fc0bd934e2408202be0c29f25e35a0"
+  revision = "891ebc4b82d6e74f468c533b06f983c7be918a96"
 
 [[projects]]
   branch = "master"
@@ -483,14 +491,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:b9dceb1408ba5105803d5859193bc7d89ac3199b611cf8681dbaa0aa09c10d9c"
+  digest = "1:ba8cbf57cfd92d5f8592b4aca1a35d92c162363d32aeabd5b12555f8896635e7"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "70b957f3b65e069b4930ea94e2721eefa0f8f695"
+  revision = "4d1cda033e0619309c606fc686de3adcf599539e"
 
 [[projects]]
   digest = "1:a2ab62866c75542dd18d2b069fec854577a20211d7c0ea6ae746072a1dccdd18"
@@ -607,7 +615,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:5b5367cdf901d7d22843185f0f00b13652b84835fb6a3622a41b92e788993235"
+  digest = "1:0d9bf4c072699dbbaf6a664bc4f42752e3482d1a73ed5c4b12dfcf285ee36ca3"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/errors",
@@ -647,7 +655,7 @@
     "third_party/forked/golang/reflect",
   ]
   pruneopts = "UT"
-  revision = "eb8c8024849baa3681995b2b0bd4da7ea1734ace"
+  revision = "4d029f0333996cf231080e108e0bd1ece2a94d9f"
 
 [[projects]]
   digest = "1:20f641257f6c0c69ddf455a15b63b20bac524b08d90745da796d633724758bac"
