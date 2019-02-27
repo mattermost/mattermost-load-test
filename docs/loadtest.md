@@ -42,12 +42,12 @@ Provided the `ltops` command stays running, loadtest logs against a cluster name
 
 To generate a textual summary:
 ```
-ltparse results --file $HOME/.mattermost-load-test-ops/myloadtestcluster/results/*.txt --display text
+ltparse results --file $HOME/.mattermost-load-test-ops/cluster-name/results/*.txt --display text
 ```
 
 To generate a markdown summary:
 ```
-ltparse results --file $HOME~/.mattermost-load-test-ops/myloadtestcluster/results/*.txt --display markdown
+ltparse results --file $HOME~/.mattermost-load-test-ops/cluster-name/results/*.txt --display markdown
 ```
 
 To aggregate results from multiple test runs:
@@ -57,7 +57,7 @@ cat /path/to/results/1 /path/to/results/2 /path/to/results/3 | ltparse results -
 
 To generate a markdown summary comparing the results with a previous results file representing a baseline:
 ```
-ltparse results --file $HOME/.mattermost-load-test-ops/myloadtestcluster/results --display markdown --baseline /path/to/baseline/results
+ltparse results --file $HOME/.mattermost-load-test-ops/cluster-name/results --display markdown --baseline /path/to/baseline/results
 ```
 
 Examining the individual API results. A successful loadtest has low error rates (below 1%), otherwise the system was likely overloaded during the load test. Timing will vary based on the configuration parameters, network setup and infrastructure, but should be within your target threshold to be considered successful.
