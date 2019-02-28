@@ -466,7 +466,7 @@ func actionPostWebhook(c *EntityConfig) {
 			return
 		}
 
-		webhook, resp := c.Client.CreateIncomingWebhook(&model.IncomingWebhook{
+		webhook, resp := c.AdminClient.CreateIncomingWebhook(&model.IncomingWebhook{
 			ChannelId:   channelId,
 			DisplayName: model.NewId(),
 			Description: model.NewId(),

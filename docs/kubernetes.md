@@ -61,7 +61,7 @@ Note that the Kubernetes cluster does not yet support the `--config` flag to cus
 
 To generate a markdown summary of the loadtest results:
 ```
-ltparse results --file $HOME/.mattermost-load-test-ops/myloadtestcluster/results/*.txt --display markdown
+ltparse results --file $HOME/.mattermost-load-test-ops/cluster-name/results/*.txt --display markdown
 ```
 
 Consult [loadtest.md](loadtest.md#Results) for more details.

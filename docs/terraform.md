@@ -78,10 +78,10 @@ The optional `--config` flag supports a local file path to customize your loadte
 
 To generate a markdown summary of the loadtest results:
 ```
-ltparse results --file $HOME/.mattermost-load-test-ops/myloadtestcluster/results/*.txt --display markdown
+ltparse results --file $HOME/.mattermost-load-test-ops/cluster-name/results/*.txt --display markdown
 ```
 
-Consult [loadtest.md#Results] for more details.
+Consult [loadtest.md](loadtest.md#Results) for more details.
 
 ## Debugging your loadtest cluster
 
