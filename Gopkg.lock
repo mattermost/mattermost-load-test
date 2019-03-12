@@ -34,6 +34,14 @@
   version = "v1.1.1"
 
 [[projects]]
+  branch = "master"
+  digest = "1:665c8850f673be8d358fe61ab00412049e685202aa7466ae5c72ad50d89c84f7"
+  name = "github.com/dyatlov/go-opengraph"
+  packages = ["opengraph"]
+  pruneopts = "UT"
+  revision = "816b6608b3c8c1e871bc9cf777f390e2532081fe"
+
+[[projects]]
   digest = "1:abeb38ade3f32a92943e5be54f55ed6d6e3b6602761d74b4aab4c9dd45c18abd"
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
@@ -219,19 +227,21 @@
   version = "v1.8.0"
 
 [[projects]]
-  digest = "1:0f81ae62160859fd48690f6c0bda2ad33828ebb670145045effba8e381c0f5f7"
+  digest = "1:a09a961271cca00abaa0bbc5fc86611a9b59aee221265bbdbadff682c6a6aa63"
   name = "github.com/mattermost/mattermost-server"
   packages = [
     "einterfaces",
     "mlog",
     "model",
+    "services/timezones",
     "utils",
+    "utils/fileutils",
     "utils/jsonutils",
     "utils/markdown",
   ]
   pruneopts = "UT"
-  revision = "0c1207215852a8726c3f09dea157d597fec368df"
-  version = "v5.6.0"
+  revision = "24f11a12758fe75ce06269be7f9fb7bb790aec43"
+  version = "v5.8.0"
 
 [[projects]]
   branch = "mattermost"
@@ -465,11 +475,13 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:37f4a0712bbf9b111cf2951fe0efeea300ce87f7915047d4d1d5806a256ca634"
+  digest = "1:cf72e63beb1abf4680faae56c109f4291408bdff4328d270c4340796ebf6f211"
   name = "golang.org/x/net"
   packages = [
     "context",
     "context/ctxhttp",
+    "html",
+    "html/atom",
     "http/httpguts",
     "http2",
     "http2/hpack",
