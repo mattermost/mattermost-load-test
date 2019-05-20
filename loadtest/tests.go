@@ -20,7 +20,7 @@ import (
 	"github.com/mattermost/mattermost-load-test/randutil"
 	"github.com/mattermost/mattermost-server/mlog"
 	"github.com/mattermost/mattermost-server/model"
-	"github.com/mattermost/mattermost-server/utils"
+	"github.com/mattermost/mattermost-server/utils/fileutils"
 )
 
 const (
@@ -42,7 +42,7 @@ type UserEntity struct {
 }
 
 func readTestFile(name string) ([]byte, error) {
-	path, _ := utils.FindDir("testfiles")
+	path, _ := fileutils.FindDir("testfiles")
 	file, err := os.Open(path + "/" + name)
 	if err != nil {
 		return nil, err
@@ -58,7 +58,7 @@ func readTestFile(name string) ([]byte, error) {
 }
 
 func readRandomTestFile() ([]byte, error, string) {
-	path, _ := utils.FindDir("testfiles")
+	path, _ := fileutils.FindDir("testfiles")
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		panic("Can't read testfiles directory.")
