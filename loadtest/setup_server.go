@@ -234,9 +234,9 @@ func checkConfigForLoadtests(adminClient *model.Client4) error {
 
 		mlog.Info(fmt.Sprintf("MaxChannelsPerTeam is %v", *serverConfig.TeamSettings.MaxChannelsPerTeam))
 
-		if !serverConfig.ServiceSettings.EnableIncomingWebhooks {
+		if !*serverConfig.ServiceSettings.EnableIncomingWebhooks {
 			mlog.Info("Enabing incoming webhooks for the load test...")
-			serverConfig.ServiceSettings.EnableIncomingWebhooks = true
+			*serverConfig.ServiceSettings.EnableIncomingWebhooks = true
 			if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
 				mlog.Error("Failed to set EnableIncomingWebhooks", mlog.Err(resp.Error))
 				return resp.Error

@@ -20,7 +20,7 @@ endif
 all: install
 
 vendor:
-	$(shell go env GOPATH)/bin/dep ensure -update
+	$(shell go env GOPATH)/bin/dep ensure
 
 build-linux: vendor
 	@echo Build Linux amd64

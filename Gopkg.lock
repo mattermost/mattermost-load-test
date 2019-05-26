@@ -34,12 +34,28 @@
   version = "v1.1.1"
 
 [[projects]]
+  branch = "master"
+  digest = "1:665c8850f673be8d358fe61ab00412049e685202aa7466ae5c72ad50d89c84f7"
+  name = "github.com/dyatlov/go-opengraph"
+  packages = ["opengraph"]
+  pruneopts = "UT"
+  revision = "816b6608b3c8c1e871bc9cf777f390e2532081fe"
+
+[[projects]]
   digest = "1:abeb38ade3f32a92943e5be54f55ed6d6e3b6602761d74b4aab4c9dd45c18abd"
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
   pruneopts = "UT"
   revision = "c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9"
   version = "v1.4.7"
+
+[[projects]]
+  digest = "1:e9a0fa7c2dfc90e0fae16be5825ad98074d8704f5fcebfdc289a8e8fb0f8e4b5"
+  name = "github.com/go-ldap/ldap"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "9f0d712775a0973b7824a1585a86a4ea1d5263d9"
+  version = "v3.0.3"
 
 [[projects]]
   digest = "1:ec6f9bf5e274c833c911923c9193867f3f18788c461f76f05f62bb1510e0ae65"
@@ -219,28 +235,20 @@
   version = "v1.8.0"
 
 [[projects]]
-  digest = "1:0f81ae62160859fd48690f6c0bda2ad33828ebb670145045effba8e381c0f5f7"
+  digest = "1:8f2d896c1123765b5ba16311e9dbb8d626f5765a017fc6234db5e30e09249304"
   name = "github.com/mattermost/mattermost-server"
   packages = [
-    "einterfaces",
     "mlog",
     "model",
+    "services/timezones",
     "utils",
+    "utils/fileutils",
     "utils/jsonutils",
     "utils/markdown",
   ]
   pruneopts = "UT"
-  revision = "0c1207215852a8726c3f09dea157d597fec368df"
-  version = "v5.6.0"
-
-[[projects]]
-  branch = "mattermost"
-  digest = "1:c6cbc44e897fdfaae297ca38aab2d6d62867761bdf811af0225bfb8b9d95e0f2"
-  name = "github.com/mattermost/viper"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "f99c30686b8675673ed42548816de2b0ff751c01"
-  source = "https://github.com/mattermost/viper"
+  revision = "692d1be91eafb64328ce21bcd18671288eb5139b"
+  version = "v5.11.0"
 
 [[projects]]
   digest = "1:53bc4cd4914cd7cd52139990d5170d6dc99067ae31c56530621b18b35fc30318"
@@ -465,11 +473,13 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:37f4a0712bbf9b111cf2951fe0efeea300ce87f7915047d4d1d5806a256ca634"
+  digest = "1:cf72e63beb1abf4680faae56c109f4291408bdff4328d270c4340796ebf6f211"
   name = "golang.org/x/net"
   packages = [
     "context",
     "context/ctxhttp",
+    "html",
+    "html/atom",
     "http/httpguts",
     "http2",
     "http2/hpack",
@@ -547,6 +557,14 @@
   pruneopts = "UT"
   revision = "4a4468ece617fc8205e99368fa2200e9d1fad421"
   version = "v1.3.0"
+
+[[projects]]
+  digest = "1:af07c44dc04418be522bfd4e21ca9130d58169ea084e3a883e23772003a381c4"
+  name = "gopkg.in/asn1-ber.v1"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "f715ec2f112d1e4195b827ad68cf44017a3ef2b1"
+  version = "v1.3"
 
 [[projects]]
   digest = "1:2d1fbdc6777e5408cabeb02bf336305e724b925ff4546ded0fa8715a7267922a"
