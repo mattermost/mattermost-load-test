@@ -57,7 +57,7 @@ func (c *Cluster) Deploy(options *ltops.DeployOptions) error {
 		}
 
 		// Delete the loadtest pods to make sure they pick up config changes
-		cmd = exec.Command("kubectl", "delete", "po", "-l", fmt.Sprintf("release=%v,appmattermost-enterprise-edition-loadtest", c.Release()))
+		cmd = exec.Command("kubectl", "delete", "po", "-l", fmt.Sprintf("release=%v,app=mattermost-enterprise-edition-loadtest", c.Release()))
 		if out, err := cmd.CombinedOutput(); err != nil {
 			return errors.Wrap(err, "unable to restart loadtest pods, error from kubectl: "+string(out))
 		}
