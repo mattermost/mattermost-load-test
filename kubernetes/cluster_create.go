@@ -41,7 +41,7 @@ func CreateCluster(cfg *ltops.ClusterConfig) (ltops.Cluster, error) {
 		return nil, errors.Wrap(err, "unable to add incubator helm repo")
 	}
 
-	cmd = exec.Command("helm", "repo", "add", "mattermost", "https://releases.mattermost.com/helm")
+	cmd = exec.Command("helm", "repo", "add", "mattermost", "https://helm.mattermost.com")
 	err = cmd.Run()
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to add mattermost helm repo")
