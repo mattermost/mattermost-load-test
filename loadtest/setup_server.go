@@ -197,79 +197,80 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 }
 
 func checkConfigForLoadtests(adminClient *model.Client4) error {
-	if serverConfig, resp := adminClient.GetConfig(); serverConfig == nil {
+	serverConfig, resp := adminClient.GetConfig()
+	if serverConfig == nil {
 		mlog.Error("Failed to get the server config", mlog.Err(resp.Error))
 		return resp.Error
-	} else {
-		if !*serverConfig.TeamSettings.EnableOpenServer {
-			mlog.Info("EnableOpenServer is false, attempt to set to true for the load test...")
-			*serverConfig.TeamSettings.EnableOpenServer = true
-			if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
-				mlog.Error("Failed to set EnableOpenServer", mlog.Err(resp.Error))
-				return resp.Error
-			}
-		}
-
-		mlog.Info("EnableOpenServer is true")
-
-		if *serverConfig.TeamSettings.MaxUsersPerTeam < 50000 {
-			mlog.Info("Attempting to set MaxUsersPerTeam to 50000 for the load test.", mlog.Int("old_max_users_per_team", *serverConfig.TeamSettings.MaxUsersPerTeam))
-			*serverConfig.TeamSettings.MaxUsersPerTeam = 50000
-			if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
-				mlog.Error("Failed to set MaxUsersPerTeam", mlog.Err(resp.Error))
-				return resp.Error
-			}
-		}
-
-		mlog.Info(fmt.Sprintf("MaxUsersPerTeam is %v", *serverConfig.TeamSettings.MaxUsersPerTeam))
-
-		if *serverConfig.TeamSettings.MaxChannelsPerTeam < 50000 {
-			mlog.Info("Attempting to set MaxChannelsPerTeam to 50000 for the load test.", mlog.Int64("old_max_channels_per_team", *serverConfig.TeamSettings.MaxChannelsPerTeam))
-			*serverConfig.TeamSettings.MaxChannelsPerTeam = 50000
-			if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
-				mlog.Error("Failed to set MaxChannelsPerTeam", mlog.Err(resp.Error))
-				return resp.Error
-			}
-		}
-
-		mlog.Info(fmt.Sprintf("MaxChannelsPerTeam is %v", *serverConfig.TeamSettings.MaxChannelsPerTeam))
-
-		if !*serverConfig.ServiceSettings.EnableIncomingWebhooks {
-			mlog.Info("Enabing incoming webhooks for the load test...")
-			*serverConfig.ServiceSettings.EnableIncomingWebhooks = true
-			if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
-				mlog.Error("Failed to set EnableIncomingWebhooks", mlog.Err(resp.Error))
-				return resp.Error
-			}
-		}
-
-		mlog.Info("EnableIncomingWebhooks is true")
-
-		if *serverConfig.ServiceSettings.DEPRECATED_DO_NOT_USE_EnableOnlyAdminIntegrations {
-			mlog.Info("Disabling only admin integrations for loadtest.")
-			*serverConfig.ServiceSettings.DEPRECATED_DO_NOT_USE_EnableOnlyAdminIntegrations = false
-			if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
-				mlog.Error("Failed to set EnableOnlyAdminIntegrations", mlog.Err(resp.Error))
-				return resp.Error
-			}
-		}
-		mlog.Info("EnableOnlyAdminIntegrations is false")
-
-		if !*serverConfig.PluginSettings.Enable {
-			mlog.Info("Enabling plugins for loadtest.")
-			*serverConfig.PluginSettings.Enable = true
-			if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
-				mlog.Error("Failed to set PluginSettings.Enable", mlog.Err(resp.Error))
-				return resp.Error
-			}
-		}
-		mlog.Info("PluginSettings.Enable is true")
-
-		if !*serverConfig.PluginSettings.EnableUploads {
-			mlog.Warn("Cannot enable plugin uploads via API. Must manually enable to test with plugins.")
-		}
-		mlog.Info("PluginSettings.EnableUploads is true")
 	}
+
+	if !*serverConfig.TeamSettings.EnableOpenServer {
+		mlog.Info("EnableOpenServer is false, attempt to set to true for the load test...")
+		*serverConfig.TeamSettings.EnableOpenServer = true
+		if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
+			mlog.Error("Failed to set EnableOpenServer", mlog.Err(resp.Error))
+			return resp.Error
+		}
+	}
+
+	mlog.Info("EnableOpenServer is true")
+
+	if *serverConfig.TeamSettings.MaxUsersPerTeam < 50000 {
+		mlog.Info("Attempting to set MaxUsersPerTeam to 50000 for the load test.", mlog.Int("old_max_users_per_team", *serverConfig.TeamSettings.MaxUsersPerTeam))
+		*serverConfig.TeamSettings.MaxUsersPerTeam = 50000
+		if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
+			mlog.Error("Failed to set MaxUsersPerTeam", mlog.Err(resp.Error))
+			return resp.Error
+		}
+	}
+
+	mlog.Info(fmt.Sprintf("MaxUsersPerTeam is %v", *serverConfig.TeamSettings.MaxUsersPerTeam))
+
+	if *serverConfig.TeamSettings.MaxChannelsPerTeam < 50000 {
+		mlog.Info("Attempting to set MaxChannelsPerTeam to 50000 for the load test.", mlog.Int64("old_max_channels_per_team", *serverConfig.TeamSettings.MaxChannelsPerTeam))
+		*serverConfig.TeamSettings.MaxChannelsPerTeam = 50000
+		if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
+			mlog.Error("Failed to set MaxChannelsPerTeam", mlog.Err(resp.Error))
+			return resp.Error
+		}
+	}
+
+	mlog.Info(fmt.Sprintf("MaxChannelsPerTeam is %v", *serverConfig.TeamSettings.MaxChannelsPerTeam))
+
+	if !*serverConfig.ServiceSettings.EnableIncomingWebhooks {
+		mlog.Info("Enabing incoming webhooks for the load test...")
+		*serverConfig.ServiceSettings.EnableIncomingWebhooks = true
+		if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
+			mlog.Error("Failed to set EnableIncomingWebhooks", mlog.Err(resp.Error))
+			return resp.Error
+		}
+	}
+
+	mlog.Info("EnableIncomingWebhooks is true")
+
+	if *serverConfig.ServiceSettings.DEPRECATED_DO_NOT_USE_EnableOnlyAdminIntegrations {
+		mlog.Info("Disabling only admin integrations for loadtest.")
+		*serverConfig.ServiceSettings.DEPRECATED_DO_NOT_USE_EnableOnlyAdminIntegrations = false
+		if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
+			mlog.Error("Failed to set EnableOnlyAdminIntegrations", mlog.Err(resp.Error))
+			return resp.Error
+		}
+	}
+	mlog.Info("EnableOnlyAdminIntegrations is false")
+
+	if !*serverConfig.PluginSettings.Enable {
+		mlog.Info("Enabling plugins for loadtest.")
+		*serverConfig.PluginSettings.Enable = true
+		if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
+			mlog.Error("Failed to set PluginSettings.Enable", mlog.Err(resp.Error))
+			return resp.Error
+		}
+	}
+	mlog.Info("PluginSettings.Enable is true")
+
+	if !*serverConfig.PluginSettings.EnableUploads {
+		mlog.Warn("Cannot enable plugin uploads via API. Must manually enable to test with plugins.")
+	}
+	mlog.Info("PluginSettings.EnableUploads is true")
 
 	return nil
 }

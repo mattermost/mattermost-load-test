@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -20,7 +21,6 @@ import (
 	"github.com/mattermost/mattermost-load-test/randutil"
 	"github.com/mattermost/mattermost-server/mlog"
 	"github.com/mattermost/mattermost-server/model"
-	"github.com/mattermost/mattermost-server/utils/fileutils"
 )
 
 const (
@@ -42,8 +42,7 @@ type UserEntity struct {
 }
 
 func readTestFile(name string) ([]byte, error) {
-	path, _ := fileutils.FindDir("testfiles")
-	file, err := os.Open(path + "/" + name)
+	file, err := os.Open(name)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +57,7 @@ func readTestFile(name string) ([]byte, error) {
 }
 
 func readRandomTestFile() ([]byte, error, string) {
-	path, _ := fileutils.FindDir("testfiles")
-	files, err := ioutil.ReadDir(path)
+	files, err := ioutil.ReadDir("./testfiles")
 	if err != nil {
 		panic("Can't read testfiles directory.")
 	}
@@ -72,7 +70,7 @@ func readRandomTestFile() ([]byte, error, string) {
 	}
 
 	b, err := readTestFile(file.Name())
-	return b, err, file.Name()
+	return b, err, filepath.Join("./testfiles", file.Name())
 }
 
 func actionGetStatuses(c *EntityConfig) {
