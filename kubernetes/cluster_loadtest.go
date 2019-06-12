@@ -83,7 +83,7 @@ func (c *Cluster) bulkLoad(loadtestPod string, appPod string, workers int, force
 	}
 
 	// If this command fails, assume user was already created
-	cmd = exec.Command("kubectl", "exec", appPod, "--", "./bin/mattermost", "user", "create", "--email", "success+ltadmin@simulator.amazonses.com", "--username", "ltadmin", "--password", "ltpassword", "--system_admin")
+	cmd = exec.Command("kubectl", "exec", appPod, "--", "./bin/mattermost", "user", "create", "--email", "success+ltadmin@simulator.amazonses.com", "--username", "ltadmin", "--password", "LTpassword1@#$", "--system_admin")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Info(fmt.Sprintf("system admin already created or failed to create err=%v output=%v", err, string(out)))
