@@ -104,7 +104,7 @@ func (env *TerraformEnvironment) apply() error {
 }
 
 func (env *TerraformEnvironment) destroy() error {
-	if err := env.runCommand("destroy", "-input=false", "-auto-approve"); err != nil {
+	if err := env.runCommand("destroy", "-input=false", "-force"); err != nil {
 		return err
 	}
 	return nil
