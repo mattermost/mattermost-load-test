@@ -77,6 +77,11 @@ var tests []TestItem = []TestItem{
 		ShortDesc: "Test autocomplete",
 		Test:      &loadtest.TestAutocomplete,
 	},
+	{
+		Name:      "reactions",
+		ShortDesc: "Test reactions",
+		Test:      &loadtest.TestReactions,
+	},
 }
 
 func main() {

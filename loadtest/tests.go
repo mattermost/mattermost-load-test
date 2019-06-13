@@ -181,6 +181,43 @@ func actionPost(c *EntityConfig) {
 	createPost(c, team, channelId)
 }
 
+func actionReactToPost(c *EntityConfig) {
+	team, channel := c.UserData.PickTeamChannel(c.r)
+	if team == nil || channel == nil {
+		return
+	}
+	channelId, err := c.GetTeamChannelId(team.Name, channel.Name)
+	if err != nil {
+		mlog.Error("Unable to get channel from map", mlog.String("team", team.Name), mlog.String("channel", channel.Name), mlog.Err(err))
+		return
+	}
+	posts, resp := c.Client.GetPostsForChannel(channelId, 0, 1, "---")
+	if resp.Error != nil {
+		mlog.Error("Unable to get channel posts", mlog.String("team", team.Name), mlog.String("channel", channel.Name), mlog.Err(resp.Error))
+		return
+	}
+	members, resp := c.Client.GetChannelMembers(channelId, 0, 1, "---")
+	if resp.Error != nil {
+		mlog.Error("Unable to get channel users", mlog.String("team", team.Name), mlog.String("channel", channel.Name), mlog.Err(resp.Error))
+		return
+	}
+
+	name := c.LoadTestConfig.LoadtestEnviromentConfig.PickEmoji(c.r)
+	if _, resp := c.Client.GetEmojiByName(name); resp.Error != nil {
+		mlog.Error("Unable to get emoji.", mlog.String("emoji_name", name), mlog.String("user_id", c.UserData.AuthData), mlog.Err(resp.Error))
+	}
+
+	_, resp = c.Client.SaveReaction(&model.Reaction{
+		PostId:    (*posts).ToSlice()[0].Id,
+		UserId:    (*members)[0].UserId,
+		CreateAt:  time.Now().Unix(),
+		EmojiName: name,
+	})
+	if resp.Error != nil {
+		mlog.Info("Failed to post", mlog.String("team_name", team.Name), mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.String("auth_token", c.Client.AuthToken), mlog.Err(resp.Error))
+	}
+}
+
 func createPost(c *EntityConfig, team *UserTeamImportData, channelId string) {
 	post := &model.Post{
 		ChannelId: channelId,
@@ -672,6 +709,35 @@ var townSquareSpammerUserEntity UserEntity = UserEntity{
 		{
 			Item:   actionPostToTownSquare,
 			Weight: 1,
+		},
+	},
+}
+
+var reactorUserEntity UserEntity = UserEntity{
+	Name: "Reactor",
+	Actions: []randutil.Choice{
+		{
+			Item:   actionReactToPost,
+			Weight: 1,
+		},
+	},
+}
+
+var TestReactions TestRun = TestRun{
+	UserEntities: []randutil.Choice{
+		{
+			Item: UserEntityWithRateMultiplier{
+				Entity:         standardUserEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 90,
+		},
+		{
+			Item: UserEntityWithRateMultiplier{
+				Entity:         reactorUserEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 10,
 		},
 	},
 }
