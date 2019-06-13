@@ -13,7 +13,7 @@
         "MattermostInstallDir": "/home/christopher/go/src/github.com/mattermost/mattermost-server/dist/mattermost",
         "ConfigFileLoc": "",
         "AdminEmail": "success+ltadmin@simulator.amazonses.com",
-        "AdminPassword": "ltpassword",
+        "AdminPassword": "LTpassword1@#$",
         "SkipBulkload": false,
         "MaxIdleConns": 100,
         "MaxIdleConnsPerHost": 128,
