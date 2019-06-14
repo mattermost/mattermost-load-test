@@ -59,12 +59,6 @@ pipeline {
             }
         }
 
-        if (env.BRANCH_NAME.startsWith('PR')) {
-        currentBuild.displayName = "#${env.BUILD_NUMBER} - ${env.CHANGE_BRANCH}"
-      } else {
-        currentBuild.displayName = "#${env.BUILD_NUMBER} - ${env.BRANCH_NAME}"
-      }
-
         stage('Build Docker Image'){
             steps {
                 sh "mkdir -p src/github.com/mattermost/mattermost-kubernetes"
