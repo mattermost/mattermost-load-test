@@ -140,7 +140,7 @@ pipeline {
                                 helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com
                                 helm repo add mattermost https://helm.mattermost.com
 
-                                BRANCH=`echo "${BRANCH_NAME}" | sed -e "s/\\(.*\\)/\\L\\1/" | sed -e "s/\_/-/g"`
+                                BRANCH=`echo "${BRANCH_NAME}" | sed -e "s/\\(.*\\)/\\L\\1/" | sed -e "s/\\_/-/g"`
                                 # TODO: Add support in LTOPS to create in any namespace
                                 # kubectl create ns \${BRANCH}-${BUILD_NUMBER}
 
@@ -211,7 +211,7 @@ pipeline {
                         export GOPATH=$WORKSPACE
                         export PATH=$PATH:$GOPATH/bin
                         export KUBECONFIG=${K8SCONFIG}
-                        BRANCH=`echo "${BRANCH_NAME}" | sed -e "s/\\(.*\\)/\\L\\1/" | sed -e "s/\_/-/g"`
+                        BRANCH=`echo "${BRANCH_NAME}" | sed -e "s/\\(.*\\)/\\L\\1/" | sed -e "s/\\_/-/g"`
 
                         cp ~/.mattermost-load-test-ops/${BRANCH}-${BUILD_NUMBER}/results/loadtest*.txt loadtestresults.txt
 
@@ -232,7 +232,7 @@ pipeline {
                         export GOPATH=$WORKSPACE
                         export PATH=$PATH:$GOPATH/bin
                         export KUBECONFIG=${K8SCONFIG}
-                        BRANCH=`echo "${BRANCH_NAME}" | sed -e "s/\\(.*\\)/\\L\\1/" | sed -e "s/\_/-/g"`
+                        BRANCH=`echo "${BRANCH_NAME}" | sed -e "s/\\(.*\\)/\\L\\1/" | sed -e "s/\\_/-/g"`
 
                         ltops destroy -c ${BRANCH}-${BUILD_NUMBER} || echo 0
 
