@@ -128,6 +128,7 @@ pipeline {
 
                                 helm init --client-only
                                 helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com
+                                helm repo add mattermost https://helm.mattermost.com
 
                                 BRANCH=`echo "${BRANCH_NAME}" | sed -e "s/\\(.*\\)/\\L\\1/"`
                                 # TODO: Add support in LTOPS to create in any namespace
@@ -186,7 +187,7 @@ pipeline {
         }
     }
     post {
-        always {
+        success {
             withCredentials([file(credentialsId: 'kubeconfig-mm-test-helm', variable: 'K8SCONFIG')]) {
                 dir('src/github.com/mattermost/mattermost-load-test') {
                     ansiColor('xterm') {
@@ -202,6 +203,21 @@ pipeline {
                         ltparse results -d markdown --file loadtestresults.txt > ${WORKSPACE}/results.md || echo 0
 
                         cat ${WORKSPACE}/results.md || echo 0
+                        '''
+                    }
+                }
+            }
+        }
+        always {
+            withCredentials([file(credentialsId: 'kubeconfig-mm-test-helm', variable: 'K8SCONFIG')]) {
+                dir('src/github.com/mattermost/mattermost-load-test') {
+                    ansiColor('xterm') {
+                        sh '''#/bin/bash
+                        set -ex
+                        export GOPATH=$WORKSPACE
+                        export PATH=$PATH:$GOPATH/bin
+                        export KUBECONFIG=${K8SCONFIG}
+                        BRANCH=`echo "${BRANCH_NAME}" | sed -e "s/\\(.*\\)/\\L\\1/"`
 
                         ltops destroy -c ${BRANCH}-${BUILD_NUMBER} || echo 0
 
