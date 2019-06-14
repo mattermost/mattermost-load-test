@@ -71,11 +71,13 @@ pipeline {
                         export GOPATH=$WORKSPACE
                         echo GOPATH=$GOPATH
 
-                        if [ "${BRANCH_NAME}" = "master" ]; then
+                        if [ "${BRANCH_NAME}" = "master" ]
+                        then
                           echo "Building Docker image for master"
                           export LOADTEST_BINARY=https://releases.mattermost.com/mattermost-load-test/mattermost-load-test.tar.gz
                           export DOCKER_TAG="master"
                         elif [ ! -z "${CHANGE_BRANCH}" ]
+                        then
                           echo "Building Docker image for prs"
                           export LOADTEST_BINARY="https://releases.mattermost.com/loadtest-pr/${CHANGE_BRANCH}/mattermost-load-test.tar.gz"
                           export DOCKER_TAG=${CHANGE_BRANCH}
@@ -146,9 +148,11 @@ pipeline {
                                 sed -i'.bak' 's|- loadtest.azure.k8s.mattermost.com|- '\${BRANCH}-${BUILD_NUMBER}.azure.k8s.mattermost.com'|g' ci/loadtest-helm-config.yaml
                                 sed -i'.bak' 's|mattermostLicense:|mattermostLicense: '$MMLICENSETEXT'|g' ci/loadtest-helm-config.yaml
 
-                                if [ "${BRANCH_NAME}" = "master" ]; then
+                                if [ "${BRANCH_NAME}" = "master" ]
+                                then
                                     sed -i'.bak' 's|tag: latest|tag: '${BRANCH_NAME}'|g' ci/loadtest-helm-config.yaml
                                 elif [ ! -z "${CHANGE_BRANCH}" ]
+                                then
                                     sed -i'.bak' 's|tag: latest|tag: '${CHANGE_BRANCH}'|g' ci/loadtest-helm-config.yaml
                                 else
                                     sed -i'.bak' 's|tag: latest|tag: '${BRANCH_NAME}'|g' ci/loadtest-helm-config.yaml
