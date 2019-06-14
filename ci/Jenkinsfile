@@ -59,6 +59,12 @@ pipeline {
             }
         }
 
+        if (env.BRANCH_NAME.startsWith('PR')) {
+        currentBuild.displayName = "#${env.BUILD_NUMBER} - ${env.CHANGE_BRANCH}"
+      } else {
+        currentBuild.displayName = "#${env.BUILD_NUMBER} - ${env.BRANCH_NAME}"
+      }
+
         stage('Build Docker Image'){
             steps {
                 sh "mkdir -p src/github.com/mattermost/mattermost-kubernetes"
@@ -75,10 +81,14 @@ pipeline {
                           echo "Building Docker image for master"
                           export LOADTEST_BINARY=https://releases.mattermost.com/mattermost-load-test/mattermost-load-test.tar.gz
                           export DOCKER_TAG="master"
-                        else
+                        elif [ ! -z "${CHANGE_BRANCH}" ]
                           echo "Building Docker image for prs"
                           export LOADTEST_BINARY="https://releases.mattermost.com/loadtest-pr/${CHANGE_BRANCH}/mattermost-load-test.tar.gz"
                           export DOCKER_TAG=${CHANGE_BRANCH}
+                        else
+                          echo "Building Docker image for branch"
+                          export LOADTEST_BINARY="https://releases.mattermost.com/loadtest-pr/${BRANCH_NAME}/mattermost-load-test.tar.gz"
+                          export DOCKER_TAG=${BRANCH_NAME}
                         fi
 
                         export MM_BINARY=https://releases.mattermost.com/mattermost-platform/master/mattermost-enterprise-linux-amd64.tar.gz
@@ -144,9 +154,12 @@ pipeline {
 
                                 if [ "${BRANCH_NAME}" = "master" ]; then
                                     sed -i'.bak' 's|tag: latest|tag: '${BRANCH_NAME}'|g' ci/loadtest-helm-config.yaml
-                                else
+                                elif [ ! -z "${CHANGE_BRANCH}" ]
                                     sed -i'.bak' 's|tag: latest|tag: '${CHANGE_BRANCH}'|g' ci/loadtest-helm-config.yaml
+                                else
+                                    sed -i'.bak' 's|tag: latest|tag: '${BRANCH_NAME}'|g' ci/loadtest-helm-config.yaml
                                 fi
+
                                 ltops create -c ${BRANCH}-${BUILD_NUMBER} --type kubernetes
 
                                 ltops deploy -c ${BRANCH}-${BUILD_NUMBER} --license $MMLICENSE --helm-config ci/loadtest-helm-config.yaml
