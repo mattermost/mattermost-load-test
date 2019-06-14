@@ -47,7 +47,11 @@ pipeline {
                             if( env.BRANCH_NAME == "master" ){
                                 s3Upload bucket: 'releases.mattermost.com', cacheControl: 'no-cache', file: 'mattermost-load-test.tar.gz', metadatas: ['Cache-Control:no-cache'], path: "mattermost-load-test/"
                             } else {
-                                s3Upload bucket: 'releases.mattermost.com', cacheControl: 'no-cache', file: 'mattermost-load-test.tar.gz', metadatas: ['Cache-Control:no-cache'], path: "loadtest-pr/${CHANGE_BRANCH}/"
+                                if (env.BRANCH_NAME.startsWith('PR')) {
+                                    s3Upload bucket: 'releases.mattermost.com', cacheControl: 'no-cache', file: 'mattermost-load-test.tar.gz', metadatas: ['Cache-Control:no-cache'], path: "loadtest-pr/${env.CHANGE_BRANCH}/"
+                                } else {
+                                    s3Upload bucket: 'releases.mattermost.com', cacheControl: 'no-cache', file: 'mattermost-load-test.tar.gz', metadatas: ['Cache-Control:no-cache'], path: "loadtest-pr/${env.BRANCH_NAME}/"
+                                }
                             }
                         }
                     }
