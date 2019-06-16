@@ -191,7 +191,7 @@ func actionReactToPost(c *EntityConfig) {
 		mlog.Error("Unable to get channel from map", mlog.String("team", team.Name), mlog.String("channel", channel.Name), mlog.Err(err))
 		return
 	}
-	posts, resp := c.Client.GetPostsForChannel(channelId, 0, 1, "---")
+	posts, resp := c.Client.GetPostsForChannel(channelId, 0, 10, "---")
 	if resp.Error != nil {
 		mlog.Error("Unable to get channel posts", mlog.String("team", team.Name), mlog.String("channel", channel.Name), mlog.Err(resp.Error))
 		return
@@ -210,14 +210,16 @@ func actionReactToPost(c *EntityConfig) {
 		mlog.Error("Unable to get emoji.", mlog.String("emoji_name", name), mlog.String("user_id", c.UserData.AuthData), mlog.Err(resp.Error))
 	}
 
-	_, resp = c.Client.SaveReaction(&model.Reaction{
-		PostId:    (*posts).ToSlice()[0].Id,
-		UserId:    userId,
-		CreateAt:  time.Now().Unix(),
-		EmojiName: name,
-	})
-	if resp.Error != nil {
-		mlog.Info("Failed to post", mlog.String("team_name", team.Name), mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.String("auth_token", c.Client.AuthToken), mlog.Err(resp.Error))
+	if len((*posts).ToSlice()) > 0 {
+		_, resp = c.Client.SaveReaction(&model.Reaction{
+			PostId:    (*posts).ToSlice()[0].Id,
+			UserId:    userId,
+			CreateAt:  time.Now().Unix(),
+			EmojiName: name,
+		})
+		if resp.Error != nil {
+			mlog.Info("Failed to post", mlog.String("team_name", team.Name), mlog.String("channel_id", channelId), mlog.String("username", c.UserData.Username), mlog.String("auth_token", c.Client.AuthToken), mlog.Err(resp.Error))
+		}
 	}
 }
 
