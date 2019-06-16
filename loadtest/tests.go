@@ -746,7 +746,7 @@ func actionDeactivateReactivate(c *EntityConfig) {
 	}
 
 	// Login again since the token will have been invalidated.
-	if _, response := c.Client.Login(user.Email, "Loadtestpassword1"); response != nil && response.Error != nil {
+	if _, response := c.Client.Login(user.Email, "Loadtestpassword1@#%"); response != nil && response.Error != nil {
 		mlog.Error("Failed to recreate client as user %s: %s", mlog.String("email", user.Email), mlog.Err(response.Error))
 	} else {
 		mlog.Info("Recreated client as user", mlog.String("email", user.Email))

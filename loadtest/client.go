@@ -48,7 +48,7 @@ func loginAsUsers(cfg *LoadTestConfig, adminClient *model.Client4, entityStartNu
 			mlog.Error("Failed to find user by email", mlog.String("email", email), mlog.Err(response.Error))
 		} else if ok, response := adminClient.UpdateUserActive(user.Id, true); !ok {
 			mlog.Error("Failed to activate user", mlog.String("user_id", user.Id), mlog.Err(response.Error))
-		} else if _, response := client.Login(email, "Loadtestpassword1"); response != nil && response.Error != nil {
+		} else if _, response := client.Login(email, "Loadtestpassword1@#%"); response != nil && response.Error != nil {
 			mlog.Error("Entity %v failed to login as user", mlog.Int("entity_num", entityNum), mlog.String("email", email), mlog.Err(response.Error))
 		} else {
 			mlog.Info("Entity has logged in", mlog.Int("entity_num", entityNum), mlog.String("email", email), mlog.String("token", client.AuthToken))
