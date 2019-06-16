@@ -210,6 +210,7 @@ func actionReactToPost(c *EntityConfig) {
 		mlog.Error("Unable to get emoji.", mlog.String("emoji_name", name), mlog.String("user_id", c.UserData.AuthData), mlog.Err(resp.Error))
 	}
 
+	// don't run if there are no posts in the channel for some reason
 	if len((*posts).ToSlice()) > 0 {
 		_, resp = c.Client.SaveReaction(&model.Reaction{
 			PostId:    (*posts).ToSlice()[0].Id,
