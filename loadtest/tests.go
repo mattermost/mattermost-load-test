@@ -196,10 +196,13 @@ func actionReactToPost(c *EntityConfig) {
 		mlog.Error("Unable to get channel posts", mlog.String("team", team.Name), mlog.String("channel", channel.Name), mlog.Err(resp.Error))
 		return
 	}
-	members, resp := c.Client.GetChannelMembers(channelId, 0, 1, "---")
-	if resp.Error != nil {
-		mlog.Error("Unable to get channel users", mlog.String("team", team.Name), mlog.String("channel", channel.Name), mlog.Err(resp.Error))
+
+	userId := ""
+	if user, resp := c.Client.GetMe(""); resp.Error != nil {
+		mlog.Error("Failed to get me", mlog.Err(resp.Error))
 		return
+	} else {
+		userId = user.Id
 	}
 
 	name := c.LoadTestConfig.LoadtestEnviromentConfig.PickEmoji(c.r)
@@ -209,7 +212,7 @@ func actionReactToPost(c *EntityConfig) {
 
 	_, resp = c.Client.SaveReaction(&model.Reaction{
 		PostId:    (*posts).ToSlice()[0].Id,
-		UserId:    (*members)[0].UserId,
+		UserId:    userId,
 		CreateAt:  time.Now().Unix(),
 		EmojiName: name,
 	})
