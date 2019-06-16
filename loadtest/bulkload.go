@@ -522,7 +522,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 			Roles:    "system_user",
 			// email is fixed pattern, must match loginAsUsers()
 			Email:    "success+user" + strconv.Itoa(userNum) + "@simulator.amazonses.com",
-			Password: "Loadtestpassword1",
+			Password: "Loadtestpassword1@#%",
 		}
 		// give 30% of users a name and/or nickname
 		if r.Intn(10) < 3 {
