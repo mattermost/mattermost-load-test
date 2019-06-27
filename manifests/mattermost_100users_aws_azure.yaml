@@ -1,0 +1,8 @@
+apiVersion: mattermost.com/v1alpha1
+kind: ClusterInstallation
+metadata:
+  name: mm-load-test-100users
+spec:
+  ingressName: example.dev.cloud.mattermost.com
+  replicas: 2
+  useServiceLoadBalancer: true

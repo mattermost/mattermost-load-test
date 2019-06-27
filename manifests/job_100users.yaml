@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mattermost-load-test
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: mattermost-load-test-container
+          image: mattermost/mattermost-loadtest:5.11
+          imagePullPolicy: Always
+          volumeMounts:
+          - mountPath: /mattermost-load-test/loadtestconfig.json
+            name: loadtestconfig-json
+            subPath: loadtestconfig.json
+          env:
+          - name: MM_CONFIG
+            value: "%DATA_SOURCE%"
+          command: ["/bin/bash","-c","./bin/loadtest genbulkload && /mattermost/bin/mattermost import bulk --apply /mattermost-load-test/loadtestbulkload.json && ./bin/loadtest all"]
+      volumes:
+        - name: loadtestconfig-json
+          configMap:
+            name: mattermost-loadtestconfig-json
+            items:
+            - key: loadtestconfig.json
+              path: loadtestconfig.json
