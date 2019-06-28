@@ -1,8 +1,6 @@
 # Load Test with the Mattermost Operator on Kubernetes
 
-Follow these instructions to run a load test with the [Mattermost Kubernetes Operator](https://github.com/mattermost/mattermost-operator) for 100 users.
-
-Steps for 5000, 10000, and 25000 user load tests is coming soon.
+Follow these instructions to run a load test with the [Mattermost Kubernetes Operator](https://github.com/mattermost/mattermost-operator) for 100, 5000, 10000 or 25000 users.
 
 ## 1. Set up a Kubernetes cluster
 
@@ -13,6 +11,9 @@ Use this chart to determine your cluster size:
 | User Count | Node Size | Node Count |
 | ---------- | --------- | ---------- |
 | 100 | t3.medium (2CPU, 4GB) | 4 |
+| 5000 | t3.large (2CPU, 8GB) | 8 |
+| 10000 | t3.xlarge (4CPU, 16GB) | 8 |
+| 25000 | t3.xlarge (4CPU, 16GB) | 12 |
 
 ## 2. Install the Mattermost Operator
 
@@ -20,7 +21,27 @@ Follow [section 1 of the Mattermost Operator install instructions](https://githu
 
 ## 3. Deploy a Mattermost Installation
 
-### 3.1 AWS or Azure
+### 3.1 Prepare the License
+
+To run a load test you will need to have a Mattermost license file.
+
+Download the following secret manifest:
+
+https://raw.githubusercontent.com/mattermost/mattermost-load-test/master/manifests/secret.yaml
+
+Edit that file and replace the following:
+
+| String to Replace | Value to Use | Notes |
+| ----------------- | ------------ | ----- |
+| %MM_LICENSE_FILE_CONTENTS% | The contents of your Mattermost license file | |
+
+Save and then apply the manifest:
+
+```
+$ kubectl apply -f <path-to-secret.yaml>
+```
+
+### 3.2 AWS or Azure
 
 If your Kubernetes cluster is on AWS or Azure, run the following command with the manifest file corresponding to your user count:
 
@@ -28,6 +49,9 @@ If your Kubernetes cluster is on AWS or Azure, run the following command with th
 | User Count | Manifest |
 | ---------- | -------- | 
 | 100 | https://raw.githubusercontent.com/mattermost/mattermost-load-test/master/manifests/mattermost_100users_aws_azure.yaml |
+| 5000 | https://raw.githubusercontent.com/mattermost/mattermost-load-test/master/manifests/mattermost_5000users_aws_azure.yaml |
+| 10000 | https://raw.githubusercontent.com/mattermost/mattermost-load-test/master/manifests/mattermost_10000users_aws_azure.yaml |
+| 25000 | https://raw.githubusercontent.com/mattermost/mattermost-load-test/master/manifests/mattermost_25000users_aws_azure.yaml |
 
 ```
 $ kubectl apply -f <link-to-manifest>
@@ -39,11 +63,11 @@ Wait 3-5 minutes for the deploy to complete and then run the following:
 $ kubectl get svc
 ```
 
-This will show you three services. The one with the type `LoadBalancer` will have an IP or hostname under the `EXTERNAL-IP` column. Use this to access the Mattermost installation. Write it down, you will need it later.
+This will show you some services. The one with the type `LoadBalancer` will have an IP or hostname under the `EXTERNAL-IP` column. Use this to access the Mattermost installation. Write it down, you will need it later.
 
 Optionally, you can use Route53 or another DNS service to create a CNAME to the above external IP. This is not necessary for the load test.
 
-### 3.2 Not on AWS or Azure
+### 3.3 Not on AWS or Azure
 
 If your Kubernetes cluster is running somewhere other than on Azure or AWS, you'll need to install the [NGINX Ingress Controller](https://kubernetes.github.io/ingress-nginx/deploy/). Follow the instructions in that link to install it.
 
@@ -52,6 +76,9 @@ Once NGINX Ingress is installed, run the following command with the manifest fil
 | User Count | Manifest |
 | ---------- | -------- | 
 | 100 | https://raw.githubusercontent.com/mattermost/mattermost-load-test/master/manifests/mattermost_100users_anywhere.yaml |
+| 5000 | https://raw.githubusercontent.com/mattermost/mattermost-load-test/master/manifests/mattermost_5000users_anywhere.yaml |
+| 10000 | https://raw.githubusercontent.com/mattermost/mattermost-load-test/master/manifests/mattermost_10000users_anywhere.yaml |
+| 25000 | https://raw.githubusercontent.com/mattermost/mattermost-load-test/master/manifests/mattermost_25000users_anywhere.yaml |
 
 ```
 $ kubectl apply -f <link-to-manifest>
@@ -86,7 +113,7 @@ Make sure to save on both pages.
 Create the service used by the load test agent to profile the Mattermost app servers.
 
 ```
-$ kubctl apply -f https://raw.githubusercontent.com/mattermost/mattermost-load-test/master/manifests/service.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/mattermost/mattermost-load-test/master/manifests/service.yaml
 ```
 
 ### 5.2 Configure the Load Test
@@ -96,6 +123,9 @@ Download the config map manifest file corresponding to your user count:
 | User Count | Manifest |
 | ---------- | -------- | 
 | 100 | https://raw.githubusercontent.com/mattermost/mattermost-load-test/master/manifests/configmap_100users.yaml |
+| 5000 | https://raw.githubusercontent.com/mattermost/mattermost-load-test/master/manifests/configmap_5000users.yaml |
+| 10000 | https://raw.githubusercontent.com/mattermost/mattermost-load-test/master/manifests/configmap_10000users.yaml |
+| 25000 | https://raw.githubusercontent.com/mattermost/mattermost-load-test/master/manifests/configmap_25000users.yaml |
 
 Edit the manifest and make the following replacements:
 
@@ -106,7 +136,7 @@ Edit the manifest and make the following replacements:
 | %ADMIN_EMAIL% | The email you used to create the first account | This must be the first account created on the system |
 | %ADMIN_PASSWORD% | The password you used to create the first account | |
 
-Save the manifest and apply it with:
+Save the manifest and then apply it with:
 
 ```
 $ kubectl apply -f <path-to-configmap.yaml>
@@ -136,7 +166,7 @@ To view the status of the bulk load, you can watch the logs of the pod starting 
 $ kubectl logs -f <bulk-load-pod-name>
 ```
 
-The bulk load will take between 5-30 minutes to run based on your user count.
+The bulk load will take between 5-45 minutes to run based on your user count.
 
 ### 5.4 Run the Load Test Job
 
@@ -145,6 +175,9 @@ Download the job manifest file corresponding to your user count:
 | User Count | Manifest |
 | ---------- | -------- | 
 | 100 | https://raw.githubusercontent.com/mattermost/mattermost-load-test/master/manifests/job_100users.yaml |
+| 5000 | https://raw.githubusercontent.com/mattermost/mattermost-load-test/master/manifests/job_5000users.yaml |
+| 10000 | https://raw.githubusercontent.com/mattermost/mattermost-load-test/master/manifests/job_10000users.yaml |
+| 25000 | https://raw.githubusercontent.com/mattermost/mattermost-load-test/master/manifests/job_25000users.yaml |
 
 Edit the manifest and make the following replacements:
 
@@ -190,12 +223,12 @@ Collect the logs from each pod that's name starts with `mattermost-load-test*`. 
 $ kubectl get po
 ```
 
-Then to collect the logs from each of the pods with:
+Then collect the logs from each of the pods with:
 
 ```
 $ kubectl logs <podname1> > lt.log
 $ kubectl logs <podname2> >> lt.log
-...
+... repeat above command for other pods ...
 ```
 
 With all the logs collected, use `ltparse` to get the results:

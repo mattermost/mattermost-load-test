@@ -17,7 +17,7 @@ spec:
           env:
           - name: MM_CONFIG
             value: "%DATA_SOURCE%"
-          command: ["/bin/bash","-c","./bin/loadtest genbulkload && /mattermost/bin/mattermost import bulk --apply /mattermost-load-test/loadtestbulkload.json && ./bin/loadtest all"]
+          command: ["./bin/loadtest", "all"]
       volumes:
         - name: loadtestconfig-json
           configMap:

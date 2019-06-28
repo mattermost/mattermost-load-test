@@ -25,8 +25,8 @@ data:
       },
       "LoadtestEnviromentConfig": {
         "NumTeams": 1,
-        "NumChannelsPerTeam": 250,
-        "NumUsers": 5000,
+        "NumChannelsPerTeam": 500,
+        "NumUsers": 25000,
         "PercentHighVolumeTeams": 0.2,
         "PercentMidVolumeTeams": 0.5,
         "PercentLowVolumeTeams": 0.3,
@@ -48,7 +48,7 @@ data:
       },
       "UserEntitiesConfiguration": {
         "TestLengthMinutes": 20,
-        "NumActiveEntities": 1250,
+        "NumActiveEntities": 2100,
         "ActionRateMilliseconds": 240000,
         "ActionRateMaxVarianceMilliseconds": 1500,
         "EnableRequestTiming": true,

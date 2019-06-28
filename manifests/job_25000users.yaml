@@ -1,8 +1,10 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: mattermost-bulk-load
+  name: mattermost-load-test
 spec:
+  completions: 6
+  parallelism: 6
   template:
     spec:
       restartPolicy: Never
@@ -16,8 +18,8 @@ spec:
             subPath: loadtestconfig.json
           env:
           - name: MM_CONFIG
-            value: "mysql://root:supersecretpassword@tcp(mm-100-mysql-mysql-master.mm:3306)/mattermost?charset=utf8mb4,utf8&readTimeout=30s&writeTimeout=30s"
-          command: ["/bin/bash","-c","./bin/loadtest genbulkload && /mattermost/bin/mattermost import bulk --workers 2 --apply /mattermost-load-test/loadtestbulkload.json"]
+            value: "%DATA_SOURCE%"
+          command: ["./bin/loadtest", "all"]
       volumes:
         - name: loadtestconfig-json
           configMap:

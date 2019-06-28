@@ -25,8 +25,8 @@ data:
       },
       "LoadtestEnviromentConfig": {
         "NumTeams": 1,
-        "NumChannelsPerTeam": 250,
-        "NumUsers": 5000,
+        "NumChannelsPerTeam": 500,
+        "NumUsers": 10000,
         "PercentHighVolumeTeams": 0.2,
         "PercentMidVolumeTeams": 0.5,
         "PercentLowVolumeTeams": 0.3,
