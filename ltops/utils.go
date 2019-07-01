@@ -73,18 +73,18 @@ func GetLoadtestFileOrURL(reference string) ([]byte, error) {
 	// Support the latest release from master
 	if reference == "master" {
 		tryURL := "https://releases.mattermost.com/mattermost-load-test/mattermost-load-test.tar.gz"
-		logrus.Infof("resolved %s to %s", reference, tryURL)
+		logrus.Infof("resolved 'master' %s to URL: %s", reference, tryURL)
 		return getURL(tryURL)
 	}
+	// Support a named branch.
+	tryURL := fmt.Sprintf("https://releases.mattermost.com/loadtest-pr/%s/mattermost-load-test.tar.gz", reference)
 
-	// TODO: Support a named branch. None of the active PRs seem to have their artifacts on S3.
-	// tryURL := fmt.Sprintf("https://releases.mattermost.com/loadtest-pr/%s/mattermost-load-test.tar.gz", reference)
-	// if err, data := getURL(tryURL); err == nil {
-	// 	logrus.Infof("resolved %s to %s", reference, tryURL)
-	// 	return nil, data
-	// }
+	if data, err := getURL(tryURL); err == nil {
+		logrus.Infof("resolved PR '%s' to URL: %s", reference, tryURL)
+		return data, nil
+	}
 
-	return nil, fmt.Errorf("failed to resolve %s to a loadtest URL", reference)
+	return nil, fmt.Errorf("failed to resolve '%s' to a loadtest URL", reference)
 }
 
 func getFile(file string) ([]byte, error) {
