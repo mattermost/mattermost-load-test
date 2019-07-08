@@ -4,7 +4,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -125,13 +124,13 @@ func main() {
 
 func initConfig() {
 	if err := loadtest.ReadConfig(); err != nil {
-		fmt.Printf("Failed to initialize config: %s\n", err.Error())
+		mlog.Error("Failed to initialize config", mlog.Err(err))
 		os.Exit(1)
 	}
 
 	cfg, err := loadtest.GetConfig()
 	if err != nil {
-		fmt.Printf("Failed to get logging config: %s\n", err.Error())
+		mlog.Error("Failed to get logging config: %s\n", mlog.Err(err))
 		os.Exit(1)
 	}
 

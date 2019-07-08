@@ -300,22 +300,19 @@ func sendResultsToMMServer(server, username, password, channelId, message string
 		for _, filename := range attachments {
 			file, err := os.Open(filename)
 			if err != nil {
-				fmt.Print("Unable to find: " + filename)
-				fmt.Println(" Error: " + err.Error())
+				mlog.Error("Unable to find", mlog.String("filename", filename), mlog.Err(err))
 				continue
 			}
 			data := &bytes.Buffer{}
 			if _, err := io.Copy(data, file); err != nil {
-				fmt.Print("Unable to copy file: " + filename)
-				fmt.Println(" Error: " + err.Error())
+				mlog.Error("Unable to copy file", mlog.String("filename", filename), mlog.Err(err))
 				continue
 			}
-			file.Close()
+			_ = file.Close()
 
 			fileUploadResp, resp := client.UploadFile(data.Bytes(), channelId, filename)
 			if resp.Error != nil || fileUploadResp == nil || len(fileUploadResp.FileInfos) != 1 {
-				fmt.Print("Unable to upload file: " + filename)
-				fmt.Println(" Error: " + resp.Error.Error())
+				mlog.Error("Unable to upload file", mlog.String("filename", filename), mlog.Err(resp.Error))
 				continue
 			}
 
@@ -331,8 +328,7 @@ func sendResultsToMMServer(server, username, password, channelId, message string
 		FileIds:   fileIds,
 	})
 	if resp != nil && resp.Error != nil {
-		fmt.Print("Unable to create post.")
-		fmt.Println(" Error: " + resp.Error.Error())
+		mlog.Error("Unable to create post", mlog.Err(resp.Error))
 	}
 
 	return nil

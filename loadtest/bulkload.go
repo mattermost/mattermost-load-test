@@ -622,7 +622,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 		jenc := json.NewEncoder(&output)
 		for lineObject := range lineObjectsChan {
 			if err := jenc.Encode(lineObject); err != nil {
-				fmt.Println("Problem marshaling: " + err.Error())
+				mlog.Error("Problem marshaling", mlog.Err(err))
 			}
 		}
 		close(doneChan)
@@ -772,7 +772,7 @@ func GenerateBulkloadFile(config *LoadtestEnviromentConfig) GenerateBulkloadFile
 func ConnectToDB(driverName, dataSource string) *sqlx.DB {
 	url, err := url.Parse(dataSource)
 	if err != nil {
-		fmt.Println("Unable to parse datasource: " + err.Error())
+		mlog.Error("Unable to parse datasource", mlog.Err(err))
 		return nil
 	}
 	if driverName == "mysql" {
@@ -780,11 +780,11 @@ func ConnectToDB(driverName, dataSource string) *sqlx.DB {
 	}
 	db, err := sqlx.Open(driverName, url.String())
 	if err != nil {
-		fmt.Println("Unable to open database: " + err.Error())
+		mlog.Error("Unable to open database", mlog.Err(err))
 		return nil
 	}
 	if err := db.Ping(); err != nil {
-		fmt.Println("Unable to ping DB: " + err.Error())
+		mlog.Error("Unable to ping DB", mlog.Err(err))
 		return nil
 	}
 
