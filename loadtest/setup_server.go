@@ -247,6 +247,48 @@ func checkConfigForLoadtests(adminClient *model.Client4) error {
 
 	mlog.Info("EnableIncomingWebhooks is true")
 
+	if role, resp := adminClient.GetRoleByName(model.TEAM_USER_ROLE_ID); resp.Error != nil {
+		mlog.Error("Failed to get role", mlog.String("role", model.TEAM_USER_ROLE_ID), mlog.Err(resp.Error))
+		return resp.Error
+	} else {
+		patch := model.RolePatch{}
+		*patch.Permissions = append(*patch.Permissions, role.Permissions...)
+	OUTER:
+		for _, value := range []string{model.PERMISSION_MANAGE_INCOMING_WEBHOOKS.Id,
+			model.PERMISSION_MANAGE_OUTGOING_WEBHOOKS.Id,
+			model.PERMISSION_MANAGE_SLASH_COMMANDS.Id} {
+			for _, permission := range role.Permissions {
+				if permission == value {
+					continue OUTER
+				}
+			}
+			*patch.Permissions = append(*patch.Permissions, value)
+		}
+
+		if _, resp := adminClient.PatchRole(role.Id, &patch); resp.Error != nil {
+			mlog.Error("Failed to update role", mlog.String("role", model.TEAM_USER_ROLE_ID), mlog.Err(resp.Error))
+			return resp.Error
+		}
+	}
+
+	if systemRole, resp := adminClient.GetRoleByName(model.SYSTEM_USER_ROLE_ID); resp.Error != nil {
+		mlog.Error("Failed to get role", mlog.String("role", model.SYSTEM_USER_ROLE_ID), mlog.Err(resp.Error))
+		return resp.Error
+	} else {
+		patch := model.RolePatch{}
+		*patch.Permissions = append(*patch.Permissions, systemRole.Permissions...)
+		found := false
+		for _, permission := range systemRole.Permissions {
+			if permission == model.PERMISSION_MANAGE_OAUTH.Id {
+				found = true
+				break
+			}
+		}
+		if !found {
+			*patch.Permissions = append(*patch.Permissions, model.PERMISSION_MANAGE_OAUTH.Id)
+		}
+	}
+
 	if *serverConfig.ServiceSettings.DEPRECATED_DO_NOT_USE_EnableOnlyAdminIntegrations {
 		mlog.Info("Disabling only admin integrations for loadtest.")
 		*serverConfig.ServiceSettings.DEPRECATED_DO_NOT_USE_EnableOnlyAdminIntegrations = false
