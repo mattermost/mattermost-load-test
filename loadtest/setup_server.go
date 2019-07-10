@@ -79,6 +79,7 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 		mlog.Info(fmt.Sprintf("Checking if plugin is installed: %s", pluginId))
 		remotePlugins, resp := adminClient.GetPlugins()
 		if resp.Error != nil {
+			mlog.Error("Failed to get list of installed plugins", mlog.Err(resp.Error))
 			return nil, resp.Error
 		}
 		if len(remotePlugins.Active) > 0 {
@@ -87,10 +88,11 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 				if remotePlugin.Id == pluginId {
 					status, resp := adminClient.RemovePlugin(pluginId)
 					if resp.Error != nil {
+						mlog.Error("Failed to remove plugin", mlog.Err(resp.Error))
 						return nil, resp.Error
 					}
 					if status {
-						mlog.Info(fmt.Sprintf("Removing plugin: %s", pluginId))
+						mlog.Info(fmt.Sprintf("Removed plugin: %s", pluginId))
 					}
 				}
 			}
