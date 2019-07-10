@@ -203,6 +203,12 @@ func checkConfigForLoadtests(adminClient *model.Client4) error {
 		return resp.Error
 	}
 
+	if !*serverConfig.EmailSettings.EnableSignInWithEmail {
+		err := fmt.Errorf("EnableSignInWithEmail is disabled on app server. Cannot continue")
+		mlog.Error("Failed to get the server config", mlog.Err(err))
+		return err
+	}
+
 	if !*serverConfig.TeamSettings.EnableOpenServer {
 		mlog.Info("EnableOpenServer is false, attempt to set to true for the load test...")
 		*serverConfig.TeamSettings.EnableOpenServer = true
