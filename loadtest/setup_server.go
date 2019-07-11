@@ -254,14 +254,19 @@ func checkConfigForLoadtests(adminClient *model.Client4) error {
 	} else {
 		newPermission := []string{}
 		newPermission = append(newPermission, role.Permissions...)
-	OUTER:
+
 		for _, value := range []string{model.PERMISSION_MANAGE_INCOMING_WEBHOOKS.Id,
 			model.PERMISSION_MANAGE_OUTGOING_WEBHOOKS.Id,
 			model.PERMISSION_MANAGE_SLASH_COMMANDS.Id} {
+			found := false
 			for _, permission := range role.Permissions {
 				if permission == value {
-					continue OUTER
+					found = true
+					break
 				}
+			}
+			if found {
+				continue
 			}
 			newPermission = append(newPermission, value)
 		}
