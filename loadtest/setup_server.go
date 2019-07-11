@@ -253,15 +253,60 @@ func checkConfigForLoadtests(adminClient *model.Client4) error {
 
 	mlog.Info("EnableIncomingWebhooks is true")
 
-	if *serverConfig.ServiceSettings.DEPRECATED_DO_NOT_USE_EnableOnlyAdminIntegrations {
-		mlog.Info("Disabling only admin integrations for loadtest.")
-		*serverConfig.ServiceSettings.DEPRECATED_DO_NOT_USE_EnableOnlyAdminIntegrations = false
-		if _, resp := adminClient.UpdateConfig(serverConfig); resp.Error != nil {
-			mlog.Error("Failed to set EnableOnlyAdminIntegrations", mlog.Err(resp.Error))
+	mlog.Info("Disabling only admin integrations for loadtest. 1/2")
+	if role, resp := adminClient.GetRoleByName(model.TEAM_USER_ROLE_ID); resp.Error != nil {
+		mlog.Error("Failed to get role", mlog.String("role", model.TEAM_USER_ROLE_ID), mlog.Err(resp.Error))
+		return resp.Error
+	} else {
+		newPermission := []string{}
+		newPermission = append(newPermission, role.Permissions...)
+
+		for _, value := range []string{model.PERMISSION_MANAGE_INCOMING_WEBHOOKS.Id,
+			model.PERMISSION_MANAGE_OUTGOING_WEBHOOKS.Id,
+			model.PERMISSION_MANAGE_SLASH_COMMANDS.Id} {
+			found := false
+			for _, permission := range role.Permissions {
+				if permission == value {
+					found = true
+					break
+				}
+			}
+			if found {
+				continue
+			}
+			newPermission = append(newPermission, value)
+		}
+
+		patch := model.RolePatch{Permissions: &newPermission}
+		if _, resp := adminClient.PatchRole(role.Id, &patch); resp.Error != nil {
+			mlog.Error("Failed to update role", mlog.String("role", model.TEAM_USER_ROLE_ID), mlog.Err(resp.Error))
 			return resp.Error
 		}
 	}
-	mlog.Info("EnableOnlyAdminIntegrations is false")
+
+	mlog.Info("Disabling only admin integrations for loadtest. 2/2")
+	if systemRole, resp := adminClient.GetRoleByName(model.SYSTEM_USER_ROLE_ID); resp.Error != nil {
+		mlog.Error("Failed to get role", mlog.String("role", model.SYSTEM_USER_ROLE_ID), mlog.Err(resp.Error))
+		return resp.Error
+	} else {
+		newPermission := []string{}
+		newPermission = append(newPermission, systemRole.Permissions...)
+		found := false
+		for _, permission := range systemRole.Permissions {
+			if permission == model.PERMISSION_MANAGE_OAUTH.Id {
+				found = true
+				break
+			}
+		}
+		if !found {
+			newPermission = append(newPermission, model.PERMISSION_MANAGE_OAUTH.Id)
+		}
+		patch := model.RolePatch{Permissions: &newPermission}
+		if _, resp := adminClient.PatchRole(systemRole.Id, &patch); resp.Error != nil {
+			mlog.Error("Failed to update role", mlog.String("role", model.SYSTEM_USER_ROLE_ID), mlog.Err(resp.Error))
+			return resp.Error
+		}
+	}
 
 	if !*serverConfig.PluginSettings.Enable {
 		mlog.Info("Enabling plugins for loadtest.")
