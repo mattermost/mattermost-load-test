@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/mattermost/mattermost-load-test/ltops"
+	"github.com/mattermost/mattermost-server/mlog"
 )
 
 type Cluster struct {
@@ -62,8 +63,9 @@ func (c *Cluster) GetAppInstancesAddrs() ([]string, error) {
 		return []string{}, nil
 	}
 
-	pods, err := c.Kubernetes.CoreV1().Pods("").List(metav1.ListOptions{LabelSelector: "release=" + c.Release() + ",app=mattermost-helm"})
+	pods, err := c.Kubernetes.CoreV1().Pods("").List(metav1.ListOptions{LabelSelector: "app.kubernetes.io/name=mattermost-enterprise-edition,app.kubernetes.io/component=server,app.kubernetes.io/instance=" + c.Release()})
 	if err != nil {
+		mlog.Error("failed to get the app pods", mlog.Err(err))
 		return nil, err
 	}
 
@@ -80,8 +82,9 @@ func (c *Cluster) GetLoadtestInstancesAddrs() ([]string, error) {
 		return []string{}, nil
 	}
 
-	pods, err := c.Kubernetes.CoreV1().Pods("").List(metav1.ListOptions{LabelSelector: "app=mattermost-helm-loadtest,release=" + c.Release()})
+	pods, err := c.Kubernetes.CoreV1().Pods("").List(metav1.ListOptions{LabelSelector: "app.kubernetes.io/name=mattermost-enterprise-edition,app.kubernetes.io/component=loadtest,app.kubernetes.io/instance=" + c.Release()})
 	if err != nil {
+		mlog.Error("failed to get the loadtest pods", mlog.Err(err))
 		return nil, err
 	}
 

@@ -56,7 +56,8 @@ func (c *Cluster) bulkLoad(loadtestPod string, appPod string, workers int, force
 	}
 
 	// Unfortunately kubectl cp doesn't work directly between pods
-	cmd = exec.Command("kubectl", "cp", loadtestPod+":/mattermost-load-test/loadtestbulkload.json", c.Configuration().WorkingDirectory)
+	cmd = exec.Command("kubectl", "cp", loadtestPod+":/mattermost-load-test/loadtestbulkload.json", filepath.Join(c.Configuration().WorkingDirectory, "/loadtestbulkload.json"))
+
 	if err := cmd.Run(); err != nil {
 		return err
 	}
@@ -67,7 +68,7 @@ func (c *Cluster) bulkLoad(loadtestPod string, appPod string, workers int, force
 	}
 
 	// If copying test emoji fails, still continue because we might be on an older version that does not have emoji testing
-	cmd = exec.Command("kubectl", "cp", loadtestPod+":/mattermost-load-test/testfiles/test_emoji.png", c.Configuration().WorkingDirectory)
+	cmd = exec.Command("kubectl", "cp", loadtestPod+":/mattermost-load-test/testfiles/test_emoji.png", filepath.Join(c.Configuration().WorkingDirectory, "test_emoji.png"))
 	if err := cmd.Run(); err == nil {
 		cmd = exec.Command("kubectl", "exec", appPod, "--", "mkdir", "-p", "testfiles")
 		if err := cmd.Run(); err != nil {

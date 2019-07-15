@@ -51,13 +51,13 @@ func (c *Cluster) Deploy(options *ltops.DeployOptions) error {
 		}
 
 		// Delete the app pods to make sure they reset caches and restart to pick up config changes
-		cmd = exec.Command("kubectl", "delete", "po", "-l", fmt.Sprintf("release=%v,app=mattermost-enterprise-edition", c.Release()))
+		cmd = exec.Command("kubectl", "delete", "po", "-l", fmt.Sprintf("app.kubernetes.io/name=mattermost-enterprise-edition,app.kubernetes.io/component=server,app.kubernetes.io/instance=%v", c.Release()))
 		if out, err := cmd.CombinedOutput(); err != nil {
 			return errors.Wrap(err, "unable to restart app server pods, error from kubectl: "+string(out))
 		}
 
 		// Delete the loadtest pods to make sure they pick up config changes
-		cmd = exec.Command("kubectl", "delete", "po", "-l", fmt.Sprintf("release=%v,app=mattermost-enterprise-edition-loadtest", c.Release()))
+		cmd = exec.Command("kubectl", "delete", "po", "-l", fmt.Sprintf("app.kubernetes.io/name=mattermost-enterprise-edition,app.kubernetes.io/component=loadtest,app.kubernetes.io/instance=%v", c.Release()))
 		if out, err := cmd.CombinedOutput(); err != nil {
 			return errors.Wrap(err, "unable to restart loadtest pods, error from kubectl: "+string(out))
 		}
