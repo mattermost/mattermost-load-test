@@ -88,8 +88,7 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 				if remotePlugin.Id == pluginId {
 					status, resp := adminClient.RemovePlugin(pluginId)
 					if resp.Error != nil {
-						mlog.Error("Failed to remove plugin", mlog.Err(resp.Error))
-						return nil, resp.Error
+						mlog.Error("Failed to remove plugin, attempting to continue", mlog.Err(resp.Error))
 					}
 					if status {
 						mlog.Info(fmt.Sprintf("Removed plugin: %s", pluginId))
