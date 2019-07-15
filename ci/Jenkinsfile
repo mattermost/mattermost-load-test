@@ -128,6 +128,8 @@ pipeline {
 
                                 helm init --client-only
                                 helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com
+                                helm repo add mattermost https://helm.mattermost.com
+                                helm repo update
 
                                 BRANCH=`echo "${BRANCH_NAME}" | sed -e "s/\\(.*\\)/\\L\\1/"`
                                 # TODO: Add support in LTOPS to create in any namespace
