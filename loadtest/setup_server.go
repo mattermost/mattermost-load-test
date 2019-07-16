@@ -70,14 +70,39 @@ func SetupServer(cfg *LoadTestConfig) (*ServerSetupData, error) {
 			mlog.Error("Bulk-loading supports at most one plugin deployment at this time")
 		}
 
+		pluginId := "com.mattermost.sample-plugin"
 		plugin, err := os.Open("testfiles/com.mattermost.sample-plugin-webapp-only.tar.gz")
 		if err != nil {
 			return nil, err
 		}
 
+		mlog.Info(fmt.Sprintf("Checking if plugin is installed: %s", pluginId))
+		remotePlugins, resp := adminClient.GetPlugins()
+		if resp.Error != nil {
+			mlog.Error("Failed to get list of installed plugins", mlog.Err(resp.Error))
+			return nil, resp.Error
+		}
+		if len(remotePlugins.Active) > 0 {
+			mlog.Info(fmt.Sprintf("Plugin found, removing: %s", pluginId))
+			for _, remotePlugin := range append(remotePlugins.Active, remotePlugins.Inactive...) {
+				if remotePlugin.Id == pluginId {
+					status, resp := adminClient.RemovePlugin(pluginId)
+					if resp.Error != nil {
+						mlog.Error("Failed to remove plugin, attempting to continue", mlog.Err(resp.Error))
+					}
+					if status {
+						mlog.Info(fmt.Sprintf("Removed plugin: %s", pluginId))
+					}
+				}
+			}
+		}
+
+		mlog.Info("Uploading plugin.")
 		if _, resp := adminClient.UploadPlugin(plugin); resp.Error != nil {
 			return nil, resp.Error
 		}
+
+		mlog.Info("Enabling plugin.")
 		if _, resp := adminClient.EnablePlugin("com.mattermost.sample-plugin"); resp.Error != nil {
 			return nil, resp.Error
 		}
