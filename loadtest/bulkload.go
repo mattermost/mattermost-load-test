@@ -807,7 +807,7 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 
 	teams, resp := adminClient.GetAllTeams("", 0, cfg.LoadtestEnviromentConfig.NumTeams+200)
 	if resp.Error != nil {
-		mlog.Error("Unable to get all theams", mlog.Err(resp.Error))
+		mlog.Error("Unable to get all teams", mlog.Err(resp.Error))
 		return
 	}
 
@@ -890,17 +890,17 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 				id      string
 				created time.Time
 			}
+			zero := "0"
+			emptyobject := "{}"
+			emptyarray := "[]"
 			rootPosts := make([]rootPost, 0)
 			for i := 0; i < numPostsPerChannel; i += 100 {
 				for j := 0; j < 100; j++ {
 					message := "PL" + fake.SentencesN(1)
 					now := randomTime(nil)
 					id := model.NewId()
-					zero := "0"
-					emptyobject := "{}"
-					emptyarray := "[]"
 
-					parentRoot := ""
+					var parentRoot string
 					if j == 0 {
 						rootPosts = append(rootPosts, rootPost{id, now})
 					} else {
@@ -911,13 +911,33 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 						}
 					}
 
-					results := make([]string, 0, 19)
-					results = append(results, id, fmt.Sprint(now.Unix()*1000), fmt.Sprint(now.Unix()*1000), zero, zero, zero, users[(j+i+channelNum)%len(users)].Id, channels[channelNum].Id, parentRoot, parentRoot, "", message, "", emptyobject, "", emptyarray, emptyarray, zero)
+					results := []string{
+						id,
+						fmt.Sprint(now.Unix() * 1000),
+						fmt.Sprint(now.Unix() * 1000),
+						zero,
+						zero,
+						zero,
+						users[(j+i+channelNum)%len(users)].Id,
+						channels[channelNum].Id,
+						parentRoot,
+						parentRoot,
+						"",
+						message,
+						"",
+						emptyobject,
+						"",
+						emptyarray,
+						emptyarray,
+						zero,
+					}
+
 					csvLines <- results
 				}
 			}
 		})
 
+		close(csvLines)
 		wg.Wait()
 	}
 }
@@ -930,6 +950,8 @@ func importCSVToSQL(csvLines chan []string, db *sqlx.DB) {
 			mlog.Error("Can't create a temporary file for loading posts.", mlog.Err(err))
 			return
 		}
+		defer os.Remove(tmpfile.Name())
+
 		csvWriter := csv.NewWriter(tmpfile)
 
 		numLines := 0
@@ -942,7 +964,7 @@ func importCSVToSQL(csvLines chan []string, db *sqlx.DB) {
 			if err := csvWriter.Write(line); err != nil {
 				mlog.Error("Failed to write csv line.", mlog.Err(err))
 			}
-			numLines += 1
+			numLines++
 			if numLines >= 1000 {
 				break
 			}
@@ -952,10 +974,15 @@ func importCSVToSQL(csvLines chan []string, db *sqlx.DB) {
 		tmpfile.Close()
 
 		mysql.RegisterLocalFile(tmpfile.Name())
-		_, err = db.Exec("LOAD DATA LOCAL INFILE '" + tmpfile.Name() + "' INTO TABLE Posts")
+		result, err := db.Exec("LOAD DATA LOCAL INFILE '" + tmpfile.Name() + "' INTO TABLE Posts FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n'")
 		if err != nil {
-			mlog.Error("Couldn't load csv data", mlog.Err(err))
+			mlog.Error("Error loading CSV data", mlog.Err(err))
 		}
-		os.Remove(tmpfile.Name())
+		rows, err := result.RowsAffected()
+		if err != nil {
+			mlog.Error(fmt.Sprintf("Error loading CSV data - Rows Affected: %d", rows), mlog.Err(err))
+		}
+
+		mlog.Info(fmt.Sprintf("Successfully imported %s", tmpfile.Name()))
 	}
 }
