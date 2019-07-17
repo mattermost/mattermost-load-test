@@ -21,10 +21,14 @@ func createClusterCmd(cmd *cobra.Command, args []string) error {
 	var config ltops.ClusterConfig
 	config.Name, _ = cmd.Flags().GetString("cluster")
 	config.AppInstanceType, _ = cmd.Flags().GetString("app-type")
+	config.TerraformPath, _ = cmd.Flags().GetString("terraform")
 	config.AppInstanceCount, _ = cmd.Flags().GetInt("app-count")
 	config.DBInstanceType, _ = cmd.Flags().GetString("db-type")
 	config.DBInstanceCount, _ = cmd.Flags().GetInt("db-count")
 	config.LoadtestInstanceCount, _ = cmd.Flags().GetInt("loadtest-count")
+	if verbose, _ := cmd.Flags().GetBool("verbose"); verbose {
+		config.Verbose = true
+	}
 	clusterType, _ := cmd.Flags().GetString("type")
 
 	workingDir, err := defaultWorkingDirectory()
@@ -73,6 +77,8 @@ func init() {
 	createCluster.Flags().Int("db-count", 1, "the number of db instances")
 
 	createCluster.Flags().Int("loadtest-count", 1, "the number of loadtest instances")
+
+	createCluster.Flags().String("terraform", "terraform", "the path to terraform binary to use (defaults to 'terraform')")
 
 	createCluster.Flags().SortFlags = false
 

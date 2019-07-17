@@ -1,12 +1,16 @@
 package terraform
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -17,17 +21,19 @@ import (
 const (
 	terraformDefaultFilename = "cluster.tf"
 	parametersFilename       = "generated.auto.tfvars"
-	terraformCommand         = "terraform"
+	parametersFilenameJSON   = "generated.auto.tfvars.json"
 )
 
 type TerraformEnvironment struct {
 	WorkingDirectory  string
 	TerraformFilename string
+	parameters        *terraformParameters
 }
 
 func newTerraformEnvironment(workingDirectory string, parameters *terraformParameters) (*TerraformEnvironment, error) {
 	env := TerraformEnvironment{
 		WorkingDirectory:  workingDirectory,
+		parameters:        parameters,
 		TerraformFilename: terraformDefaultFilename,
 	}
 
@@ -37,6 +43,18 @@ func newTerraformEnvironment(workingDirectory string, parameters *terraformParam
 		}
 	} else if err != nil {
 		return nil, err
+	}
+	parametersFile := parametersFilename
+	if output, err := env.runCommandResult("version"); err != nil {
+		return nil, errors.Wrap(err, "Unable to get terraform version")
+	} else {
+		versionStr := string(output)
+		if strings.HasPrefix(versionStr, "Terraform v0.12") {
+			// Terraform v0.12 is stricter with it's parameter file names. If the contents is JSON, the filename should end in .json
+			// Delete a possibly stale params file and generate a new one with JSON extension
+			_ = os.Remove(filepath.Join(env.WorkingDirectory, parametersFile))
+			parametersFile = parametersFilenameJSON
+		}
 	}
 
 	// Create terraform file in working directory
@@ -51,12 +69,12 @@ func newTerraformEnvironment(workingDirectory string, parameters *terraformParam
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to marshal terraform parameters.")
 	}
-	err = ioutil.WriteFile(filepath.Join(env.WorkingDirectory, parametersFilename), bytes, 0644)
+	err = ioutil.WriteFile(filepath.Join(env.WorkingDirectory, parametersFile), bytes, 0644)
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to write parameters file.")
 	}
 
-	// Run terraform initalazation
+	// Run terraform initialization
 	if err := env.runCommand("init", "-input=false"); err != nil {
 		return nil, errors.Wrap(err, "Unable to run init command")
 	}
@@ -77,17 +95,67 @@ func (env *TerraformEnvironment) runCommand(args ...string) error {
 	return err
 }
 
+func getCmdOutputAndLog(cmd *exec.Cmd) ([]byte, error) {
+	var stdoutBuf, stderrBuf bytes.Buffer
+	stdoutIn, _ := cmd.StdoutPipe()
+	stderrIn, _ := cmd.StderrPipe()
+
+	var errStdout, errStderr error
+	debugLogWriterStdOut := newLogrusWriter(logrus.StandardLogger().WithField("Terraform", "StdOut"), logrus.DebugLevel)
+	defer debugLogWriterStdOut.Close()
+	debugLogWriterStdErr := newLogrusWriter(logrus.StandardLogger().WithField("Terraform", "StdErr"), logrus.DebugLevel)
+	defer debugLogWriterStdErr.Close()
+	stdout := io.MultiWriter(debugLogWriterStdOut, &stdoutBuf)
+	stderr := io.MultiWriter(debugLogWriterStdErr, &stderrBuf)
+	err := cmd.Start()
+	if err != nil {
+		return nil, err
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		_, errStdout = io.Copy(stdout, stdoutIn)
+		wg.Done()
+	}()
+
+	_, errStderr = io.Copy(stderr, stderrIn)
+	wg.Wait()
+
+	err = cmd.Wait()
+	if err != nil {
+		return nil, err
+	}
+	if errStdout != nil || errStderr != nil {
+		return nil, fmt.Errorf("failed to capture stdout or stderr\n")
+	}
+
+	if len(stderrBuf.Bytes()) > 0 {
+		err = fmt.Errorf(string(stderrBuf.Bytes()))
+	}
+
+	return stdoutBuf.Bytes(), err
+}
+
 func (env *TerraformEnvironment) runCommandResult(args ...string) ([]byte, error) {
-	if _, err := exec.LookPath(terraformCommand); err != nil {
+	if _, err := exec.LookPath(env.parameters.TerraformPath); err != nil {
 		return nil, errors.Wrap(err, "Terraform not installed. Please install terraform.")
 	}
 
-	cmd := exec.Command(terraformCommand, args...)
+	cmd := exec.Command(env.parameters.TerraformPath, args...)
 	cmd.Dir = env.WorkingDirectory
-	output, err := cmd.CombinedOutput()
+	logrus.Debugf("Running command: [%v] with args: %v", env.parameters.TerraformPath, args)
+	var err error
+	var output []byte
+	if env.parameters.Verbose {
+		output, err = getCmdOutputAndLog(cmd)
+	} else {
+		output, err = cmd.CombinedOutput()
+	}
 	if err != nil {
-		logrus.Error("Failed CMD Ouptut: " + string(output))
-		return output, errors.Wrap(err, fmt.Sprintln("Terraform command failed.", terraformCommand, args))
+		logrus.Error("Failed CMD Output: " + string(output))
+		return output, errors.Wrap(err, fmt.Sprintln("Terraform command failed.", env.parameters.TerraformPath, args))
 	}
 
 	return output, nil
@@ -110,7 +178,7 @@ func (env *TerraformEnvironment) destroy() error {
 	return nil
 }
 
-func (env *TerraformEnvironment) getOuptutParams() (*terraformOutputParameters, error) {
+func (env *TerraformEnvironment) getOutputParams() (*terraformOutputParameters, error) {
 	output, err := env.runCommandResult("output", "-json")
 	if err != nil {
 		return nil, err

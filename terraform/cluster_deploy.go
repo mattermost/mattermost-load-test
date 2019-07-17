@@ -345,7 +345,7 @@ func deployToAppInstance(mattermostDistribution, license io.Reader, instanceAddr
 		return errors.Wrap(err, "unable to upload limits config")
 	}
 
-	outputParams, err := clust.Env.getOuptutParams()
+	outputParams, err := clust.Env.getOutputParams()
 	if err != nil {
 		return errors.Wrap(err, "failed to get output parameters")
 	}

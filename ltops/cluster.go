@@ -4,6 +4,7 @@ type ClusterConfig struct {
 	Name                  string
 	Type                  string
 	AppInstanceType       string
+	TerraformPath         string
 	AppInstanceCount      int
 	DBInstanceType        string
 	DBInstanceCount       int
@@ -12,6 +13,7 @@ type ClusterConfig struct {
 	Profile               string
 	Users                 int
 	BulkLoadComplete      bool
+	Verbose               bool
 }
 
 type DBSettings struct {
