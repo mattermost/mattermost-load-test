@@ -3,6 +3,8 @@ package main
 import (
 	"path/filepath"
 
+	"github.com/mattermost/mattermost-server/mlog"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
@@ -35,7 +37,7 @@ var deploy = &cobra.Command{
 		if err != nil {
 			return errors.Wrap(err, "Couldn't load cluster")
 		}
-
+		mlog.Info("Deploying to cluster...")
 		if cluster.Type() == terraform.CLUSTER_TYPE {
 			if len(deployOptions.MattermostBinaryFile) != 0 && len(deployOptions.LicenseFile) == 0 {
 				return errors.New("required flag \"license\" not set")
@@ -65,7 +67,7 @@ var deploy = &cobra.Command{
 		if err != nil {
 			return errors.Wrap(err, "Couldn't deploy load test cluster")
 		}
-
+		mlog.Info("Deployed to cluster successfully!")
 		return nil
 	},
 }
