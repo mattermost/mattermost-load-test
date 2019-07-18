@@ -22,7 +22,7 @@ provider "aws" {
 }
 
 resource "aws_instance" "app_server" {
-    tags {
+    tags = {
         Name = "${var.cluster_name}-app-${count.index}"
     }
     ami = "ami-43a15f3e"
@@ -112,7 +112,7 @@ resource "aws_security_group" "app_gossip" {
 }
 
 resource "aws_instance" "loadtest" {
-    tags {
+    tags = {
         Name = "${var.cluster_name}-loadtest-${count.index}"
     }
     ami = "ami-43a15f3e"
@@ -216,7 +216,7 @@ data "aws_iam_policy_document" "rds_enhanced_monitoring" {
 }
 
 resource "aws_instance" "proxy_server" {
-    tags {
+    tags = {
         Name = "${var.cluster_name}-proxy-${count.index}"
     }
     ami = "ami-43a15f3e"
@@ -263,7 +263,7 @@ resource "aws_security_group" "proxy" {
 resource "aws_s3_bucket" "app" {
     bucket = "${var.cluster_name}.loadtestbucket"
     acl = "private"
-    tags {
+    tags = {
         Name = "${var.cluster_name}"
     }
     force_destroy = true
@@ -319,7 +319,7 @@ EOF
 }
 
 resource "aws_instance" "metrics" {
-    tags {
+    tags = {
         Name = "${var.cluster_name}-metrics"
     }
     ami = "ami-43a15f3e"
@@ -336,6 +336,7 @@ resource "aws_instance" "metrics" {
         connection {
             user="ubuntu"
             private_key="${var.ssh_private_key}"
+            host = "${self.public_ip}"
             agent=false
         }
 
@@ -361,6 +362,7 @@ EOF
     provisioner "remote-exec" {
         connection {
             user="ubuntu"
+            host = "${self.public_ip}"
             private_key="${var.ssh_private_key}"
             agent=false
         }
@@ -377,6 +379,7 @@ EOF
         destination = "/home/ubuntu/prometheus/prometheus.yml"
         connection {
             user="ubuntu"
+            host = "${self.public_ip}"
             private_key="${var.ssh_private_key}"
             agent=false
         }
@@ -397,6 +400,7 @@ EOF
     provisioner "remote-exec" {
         connection {
             user="ubuntu"
+            host = "${self.public_ip}"
             private_key="${var.ssh_private_key}"
             agent=false
         }

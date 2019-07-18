@@ -41,7 +41,7 @@ func (c *Cluster) SiteURL() string {
 }
 
 func (c *Cluster) GetAppInstancesAddrs() ([]string, error) {
-	params, err := c.Env.getOuptutParams()
+	params, err := c.Env.getOutputParams()
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (c *Cluster) GetAppInstancesAddrs() ([]string, error) {
 }
 
 func (c *Cluster) GetLoadtestInstancesAddrs() ([]string, error) {
-	params, err := c.Env.getOuptutParams()
+	params, err := c.Env.getOutputParams()
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (c *Cluster) GetLoadtestInstancesAddrs() ([]string, error) {
 }
 
 func (c *Cluster) GetProxyInstancesAddrs() ([]string, error) {
-	params, err := c.Env.getOuptutParams()
+	params, err := c.Env.getOutputParams()
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (c *Cluster) GetProxyInstancesAddrs() ([]string, error) {
 }
 
 func (c *Cluster) GetMetricsAddr() (string, error) {
-	params, err := c.Env.getOuptutParams()
+	params, err := c.Env.getOutputParams()
 	if err != nil {
 		return "", err
 	}
@@ -79,7 +79,7 @@ func (c *Cluster) GetMetricsAddr() (string, error) {
 }
 
 func (c *Cluster) DBConnectionString() string {
-	params, err := c.Env.getOuptutParams()
+	params, err := c.Env.getOutputParams()
 	if err != nil {
 		logrus.Error("Unable to get output parameters for DBConnectionString")
 		return ""
@@ -89,7 +89,7 @@ func (c *Cluster) DBConnectionString() string {
 }
 
 func (c *Cluster) DBReaderConnectionStrings() []string {
-	params, err := c.Env.getOuptutParams()
+	params, err := c.Env.getOutputParams()
 	if err != nil {
 		logrus.Error("Unable to get output parameters for DBConnectionString")
 		return nil
@@ -103,7 +103,7 @@ func (c *Cluster) DBInstanceCount() int {
 }
 
 func (c *Cluster) DBSettings() (*ltops.DBSettings, error) {
-	params, err := c.Env.getOuptutParams()
+	params, err := c.Env.getOutputParams()
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get output parameters for DBConnectionString")
 	}

@@ -5,6 +5,8 @@ import "github.com/mattermost/mattermost-load-test/ltops"
 type terraformParameters struct {
 	ClusterName           string `json:"cluster_name"`
 	AppInstanceType       string `json:"app_instance_type"`
+	TerraformPath         string `json:"-"`
+	Verbose               bool   `json:"-"`
 	AppInstanceCount      int    `json:"app_instance_count"`
 	DBInstanceType        string `json:"db_instance_type"`
 	DBInstanceCount       int    `json:"db_instance_count"`
@@ -18,6 +20,8 @@ func terraformParametersFromClusterConfig(config *ltops.ClusterConfig, dbPasswor
 	return &terraformParameters{
 		ClusterName:           config.Name,
 		AppInstanceType:       config.AppInstanceType,
+		TerraformPath:         config.TerraformPath,
+		Verbose:               config.Verbose,
 		AppInstanceCount:      config.AppInstanceCount,
 		DBInstanceCount:       config.DBInstanceCount,
 		DBInstanceType:        config.DBInstanceType,
