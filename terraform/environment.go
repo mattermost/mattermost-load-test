@@ -146,13 +146,7 @@ func (env *TerraformEnvironment) runCommandResult(args ...string) ([]byte, error
 	cmd := exec.Command(env.parameters.TerraformPath, args...)
 	cmd.Dir = env.WorkingDirectory
 	logrus.Debugf("Running command: [%v] with args: %v", env.parameters.TerraformPath, args)
-	var err error
-	var output []byte
-	if env.parameters.Verbose {
-		output, err = getCmdOutputAndLog(cmd)
-	} else {
-		output, err = cmd.CombinedOutput()
-	}
+	output, err := getCmdOutputAndLog(cmd)
 	if err != nil {
 		logrus.Error("Failed CMD Output: " + string(output))
 		return output, errors.Wrap(err, fmt.Sprintln("Terraform command failed.", env.parameters.TerraformPath, args))
