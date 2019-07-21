@@ -26,10 +26,11 @@ var destroyCluster = &cobra.Command{
 			return errors.Wrap(err, "Couldn't load cluster")
 		}
 		mlog.Info("Destroying cluster...")
-		if err = cluster.Destroy(); err == nil {
-			mlog.Info("Custer destroyed successfully")
+		if err = cluster.Destroy(); err != nil {
+			return err
 		}
-		return err
+		mlog.Info("Cluster destroyed successfully")
+		return nil
 	},
 }
 
