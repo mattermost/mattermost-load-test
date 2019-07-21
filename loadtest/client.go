@@ -97,7 +97,7 @@ func getAdminClient(httpClient *http.Client, serverURL string, adminEmail string
 		if success, output := cmdrun.RunPlatformCommand(fmt.Sprintf("user create --email %v --password %v --system_admin --username ltadmin", adminEmail, adminPass)); !success {
 			mlog.Error("Failed to create admin user", mlog.String("output", output))
 		}
-		if success, output := cmdrun.RunPlatformCommand(fmt.Sprintf("user verify ltadmin")); !success {
+		if success, output := cmdrun.RunPlatformCommand(fmt.Sprintf("user verify %v", adminEmail)); !success {
 			mlog.Error("Failed to verify email of admin user.", mlog.String("output", output))
 		}
 		time.Sleep(time.Second)
