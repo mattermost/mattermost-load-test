@@ -3,6 +3,8 @@ package main
 import (
 	"path/filepath"
 
+	"github.com/mattermost/mattermost-server/mlog"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -23,8 +25,12 @@ var destroyCluster = &cobra.Command{
 		if err != nil {
 			return errors.Wrap(err, "Couldn't load cluster")
 		}
-
-		return cluster.Destroy()
+		mlog.Info("Destroying cluster...")
+		if err = cluster.Destroy(); err != nil {
+			return err
+		}
+		mlog.Info("Cluster destroyed successfully")
+		return nil
 	},
 }
 

@@ -3,6 +3,8 @@ package main
 import (
 	"path/filepath"
 
+	"github.com/mattermost/mattermost-server/mlog"
+
 	"github.com/mattermost/mattermost-load-test/kubernetes"
 	"github.com/mattermost/mattermost-load-test/ltops"
 	"github.com/mattermost/mattermost-load-test/terraform"
@@ -36,7 +38,7 @@ func createClusterCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	config.WorkingDirectory = filepath.Join(workingDir, config.Name)
-
+	mlog.Info("Creating cluster...")
 	if clusterType == kubernetes.CLUSTER_TYPE {
 		_, err = kubernetes.CreateCluster(&config)
 		if err != nil {
@@ -57,7 +59,7 @@ func createClusterCmd(cmd *cobra.Command, args []string) error {
 	} else {
 		return errors.New("unrecognized type: " + clusterType)
 	}
-
+	mlog.Info("Cluster created successfully!")
 	return nil
 }
 

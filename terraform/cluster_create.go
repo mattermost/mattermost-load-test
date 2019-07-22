@@ -7,7 +7,6 @@ import (
 
 	"github.com/mattermost/mattermost-load-test/ltops"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -30,8 +29,6 @@ func CreateCluster(cfg *ltops.ClusterConfig) (ltops.Cluster, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to create terrafrom environment.")
 	}
-
-	logrus.Info("creating cluster...")
 
 	if err := env.apply(); err != nil {
 		return nil, errors.Wrap(err, "Unable to run apply for create cluster")
