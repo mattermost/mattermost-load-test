@@ -139,21 +139,17 @@ func getCmdOutputAndLog(cmd *exec.Cmd) ([]byte, error) {
 }
 
 func (env *TerraformEnvironment) runCommandResult(args ...string) ([]byte, error) {
-	terraformExe := "terraform"
-	if env.parameters != nil {
-		terraformExe = env.parameters.TerraformPath
-	}
-	if _, err := exec.LookPath(terraformExe); err != nil {
+	if _, err := exec.LookPath(env.parameters.TerraformPath); err != nil {
 		return nil, errors.Wrap(err, "Terraform not installed. Please install terraform.")
 	}
 
-	cmd := exec.Command(terraformExe, args...)
+	cmd := exec.Command(env.parameters.TerraformPath, args...)
 	cmd.Dir = env.WorkingDirectory
-	logrus.Debugf("Running command: [%v] with args: %v", terraformExe, args)
+	logrus.Debugf("Running command: [%v] with args: %v", env.parameters.TerraformPath, args)
 	output, err := getCmdOutputAndLog(cmd)
 	if err != nil {
 		logrus.Error("Failed CMD Output: " + string(output))
-		return output, errors.Wrap(err, fmt.Sprintln("Terraform command failed.", terraformExe, args))
+		return output, errors.Wrap(err, fmt.Sprintln("Terraform command failed.", env.parameters.TerraformPath, args))
 	}
 
 	return output, nil
