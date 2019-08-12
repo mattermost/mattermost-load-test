@@ -85,6 +85,9 @@ func (c *Cluster) DBConnectionString() string {
 		return ""
 	}
 	databaseEndpoint := params.DBEndpoint.Value
+	if c.Config.DBEngineType == "aurora-postgresql" {
+		return "postgres://mmuser:" + c.DBPassword + "@" + databaseEndpoint + ":5432/mattermost?sslmode=disable\u0026connect_timeout=30"
+	}
 	return "mmuser:" + c.DBPassword + "@tcp(" + databaseEndpoint + ":3306)/mattermost?charset=utf8mb4,utf8&readTimeout=20s&writeTimeout=20s&timeout=20s"
 }
 
@@ -95,6 +98,9 @@ func (c *Cluster) DBReaderConnectionStrings() []string {
 		return nil
 	}
 	databaseEndpoint := params.DBReaderEndpoint.Value
+	if c.Config.DBEngineType == "aurora-postgresql" {
+		return []string{"postgres://mmuser:" + c.DBPassword + "@" + databaseEndpoint + ":5432/mattermost?sslmode=disable\u0026connect_timeout=30"}
+	}
 	return []string{"mmuser:" + c.DBPassword + "@tcp(" + databaseEndpoint + ":3306)/mattermost?charset=utf8mb4,utf8&readTimeout=20s&writeTimeout=20s&timeout=20s"}
 }
 
@@ -107,12 +113,15 @@ func (c *Cluster) DBSettings() (*ltops.DBSettings, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get output parameters for DBConnectionString")
 	}
-
+	port := 3306
+	if c.Config.DBEngineType == "aurora-postgresql" {
+		port = 5432
+	}
 	return &ltops.DBSettings{
 		Username: "mmuser",
 		Password: c.DBPassword,
 		Endpoint: params.DBEndpoint.Value,
-		Port:     3306,
+		Port:     port,
 		Database: "mattermost",
 	}, nil
 }

@@ -9,6 +9,7 @@ type terraformParameters struct {
 	Verbose               bool   `json:"-"`
 	AppInstanceCount      int    `json:"app_instance_count"`
 	DBInstanceType        string `json:"db_instance_type"`
+	DBEngineType          string `json:"db_engine_type"`
 	DBInstanceCount       int    `json:"db_instance_count"`
 	DBPassword            string `json:"db_password"`
 	LoadtestInstanceCount int    `json:"loadtest_instance_count"`
@@ -25,6 +26,7 @@ func terraformParametersFromClusterConfig(config *ltops.ClusterConfig, dbPasswor
 		AppInstanceCount:      config.AppInstanceCount,
 		DBInstanceCount:       config.DBInstanceCount,
 		DBInstanceType:        config.DBInstanceType,
+		DBEngineType:          config.DBEngineType,
 		LoadtestInstanceCount: config.LoadtestInstanceCount,
 		DBPassword:            dbPassword,
 		SSHPublicKey:          sshPublicKey,

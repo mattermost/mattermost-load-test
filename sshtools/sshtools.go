@@ -7,6 +7,8 @@ import (
 	"os/signal"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/terminal"
@@ -100,6 +102,7 @@ func SSHClient(sshKey []byte, addr string) (*ssh.Client, error) {
 }
 
 func RemoteCommand(client *ssh.Client, cmd string, commandOutput io.Writer) error {
+	logrus.Debugf("Invoking: %s", cmd)
 	session, err := client.NewSession()
 	if err != nil {
 		return errors.Wrap(err, "unable to create ssh session")

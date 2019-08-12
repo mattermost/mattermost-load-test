@@ -7,6 +7,7 @@ type ClusterConfig struct {
 	TerraformPath         string
 	AppInstanceCount      int
 	DBInstanceType        string
+	DBEngineType          string
 	DBInstanceCount       int
 	LoadtestInstanceCount int
 	WorkingDirectory      string

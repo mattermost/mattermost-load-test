@@ -174,7 +174,11 @@ func loadCmd(cmd *cobra.Command, args []string) error {
 
 	// Ensure backwards compatibility with old configuration files.
 	if driverName == "" {
-		driverName = "mysql"
+		if strings.HasPrefix(dataSource, "postgres://") {
+			driverName = "postgres"
+		} else {
+			driverName = "mysql"
+		}
 	}
 	if dataSource == "" {
 		dataSource = cfg.ConnectionConfiguration.DBEndpoint
@@ -192,7 +196,7 @@ func genBulkLoadCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	results := loadtest.GenerateBulkloadFile(&cfg.LoadtestEnviromentConfig)
-	ioutil.WriteFile("loadtestbulkload.json", results.File.Bytes(), 0644)
+	_ = ioutil.WriteFile("loadtestbulkload.json", results.File.Bytes(), 0644)
 
 	return nil
 }
