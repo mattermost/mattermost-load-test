@@ -57,6 +57,9 @@ type Cluster interface {
 	// Returns the master databame connection string
 	DBConnectionString() string
 
+	// Returns the name of the database driver to use: mysql or postgres
+	DBDriverName() string
+
 	// Returns a list of all the read-replica database connection strings
 	DBReaderConnectionStrings() []string
 

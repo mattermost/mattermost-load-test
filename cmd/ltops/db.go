@@ -42,11 +42,14 @@ func shell(cluster *ltops.Cluster) error {
 
 	logrus.Infof("Connecting to %s:%d", settings.Endpoint, settings.Port)
 	var cmd *exec.Cmd
-	if (*cluster).Configuration().DBEngineType != "aurora-postgresql" {
+
+	switch (*cluster).Configuration().DBEngineType {
+	case "aurora-postgresql":
 		cmd = exec.Command("mysql", "-u", settings.Username, fmt.Sprintf("-p%s", settings.Password), "-h", settings.Endpoint, "-P", strconv.Itoa(settings.Port), settings.Database)
-	} else {
+	default:
 		cmd = exec.Command("psql", "-n", (*cluster).DBConnectionString())
 	}
+
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr

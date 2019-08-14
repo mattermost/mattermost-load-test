@@ -78,6 +78,15 @@ func (c *Cluster) GetMetricsAddr() (string, error) {
 	return params.MetricsIp.Value, nil
 }
 
+func (c *Cluster) DBDriverName() string {
+	switch c.Config.DBEngineType {
+	case "aurora-postgresql":
+		return "postgres"
+	default:
+		return "mysql"
+	}
+}
+
 func (c *Cluster) DBConnectionString() string {
 	params, err := c.Env.getOutputParams()
 	if err != nil {
@@ -85,10 +94,12 @@ func (c *Cluster) DBConnectionString() string {
 		return ""
 	}
 	databaseEndpoint := params.DBEndpoint.Value
-	if c.Config.DBEngineType == "aurora-postgresql" {
+	switch c.Config.DBEngineType {
+	case "aurora-postgresql":
 		return "postgres://mmuser:" + c.DBPassword + "@" + databaseEndpoint + ":5432/mattermost?sslmode=disable\u0026connect_timeout=30"
+	default:
+		return "mmuser:" + c.DBPassword + "@tcp(" + databaseEndpoint + ":3306)/mattermost?charset=utf8mb4,utf8&readTimeout=20s&writeTimeout=20s&timeout=20s"
 	}
-	return "mmuser:" + c.DBPassword + "@tcp(" + databaseEndpoint + ":3306)/mattermost?charset=utf8mb4,utf8&readTimeout=20s&writeTimeout=20s&timeout=20s"
 }
 
 func (c *Cluster) DBReaderConnectionStrings() []string {
@@ -98,10 +109,12 @@ func (c *Cluster) DBReaderConnectionStrings() []string {
 		return nil
 	}
 	databaseEndpoint := params.DBReaderEndpoint.Value
-	if c.Config.DBEngineType == "aurora-postgresql" {
+	switch c.Config.DBEngineType {
+	case "aurora-postgresql":
 		return []string{"postgres://mmuser:" + c.DBPassword + "@" + databaseEndpoint + ":5432/mattermost?sslmode=disable\u0026connect_timeout=30"}
+	default:
+		return []string{"mmuser:" + c.DBPassword + "@tcp(" + databaseEndpoint + ":3306)/mattermost?charset=utf8mb4,utf8&readTimeout=20s&writeTimeout=20s&timeout=20s"}
 	}
-	return []string{"mmuser:" + c.DBPassword + "@tcp(" + databaseEndpoint + ":3306)/mattermost?charset=utf8mb4,utf8&readTimeout=20s&writeTimeout=20s&timeout=20s"}
 }
 
 func (c *Cluster) DBInstanceCount() int {
@@ -113,10 +126,16 @@ func (c *Cluster) DBSettings() (*ltops.DBSettings, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get output parameters for DBConnectionString")
 	}
-	port := 3306
-	if c.Config.DBEngineType == "aurora-postgresql" {
+
+	var port int
+
+	switch c.Config.DBEngineType {
+	case "aurora-postgresql":
 		port = 5432
+	default:
+		port = 3306
 	}
+
 	return &ltops.DBSettings{
 		Username: "mmuser",
 		Password: c.DBPassword,

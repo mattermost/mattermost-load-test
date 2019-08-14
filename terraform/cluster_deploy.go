@@ -221,17 +221,13 @@ func configureLoadtestInstance(instanceNum int, client *ssh.Client, cluster ltop
 
 	websocketURL := *siteURL
 	websocketURL.Scheme = "ws"
-	driverName := "mysql"
-	if cluster.Configuration().DBEngineType == "aurora-postgresql" {
-		driverName = "postgres"
-	}
 
 	for k, v := range map[string]interface{}{
 		".ConnectionConfiguration.ServerURL":            serverURL.String(),
 		".ConnectionConfiguration.WebsocketURL":         websocketURL.String(),
 		".ConnectionConfiguration.PProfURL":             "http://" + appURL + ":8067/debug/pprof",
 		".ConnectionConfiguration.DataSource":           cluster.DBConnectionString(),
-		".ConnectionConfiguration.DriverName":           driverName,
+		".ConnectionConfiguration.DriverName":           cluster.DBDriverName(),
 		".ConnectionConfiguration.LocalCommands":        false,
 		".ConnectionConfiguration.SSHHostnamePort":      appURL + ":22",
 		".ConnectionConfiguration.SSHUsername":          "ubuntu",
@@ -359,10 +355,6 @@ func deployToAppInstance(mattermostDistribution, license io.Reader, instanceAddr
 	s3AccessKeySecret := outputParams.S3AccessKeySecret.Value
 	s3Bucket := outputParams.S3bucket.Value
 	s3Region := outputParams.S3bucketRegion.Value
-	driverName := "mysql"
-	if clust.Configuration().DBEngineType == "aurora-postgresql" {
-		driverName = "postgres"
-	}
 	for k, v := range map[string]interface{}{
 		".ServiceSettings.ListenAddress":               ":80",
 		".ServiceSettings.LicenseFileLocation":         remoteLicenseFilePath,
@@ -370,7 +362,7 @@ func deployToAppInstance(mattermostDistribution, license io.Reader, instanceAddr
 		".ServiceSettings.EnableAPIv3":                 true,
 		".ServiceSettings.EnableLinkPreviews":          true,
 		".ServiceSettings.EnableSecurityFixAlert":      false,
-		".SqlSettings.DriverName":                      driverName,
+		".SqlSettings.DriverName":                      clust.DBDriverName(),
 		".SqlSettings.DataSource":                      clust.DBConnectionString(),
 		".SqlSettings.DataSourceReplicas":              clust.DBReaderConnectionStrings(),
 		".SqlSettings.MaxOpenConns":                    3000,
