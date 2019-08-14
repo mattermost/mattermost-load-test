@@ -45,9 +45,11 @@ func shell(cluster *ltops.Cluster) error {
 
 	switch (*cluster).Configuration().DBEngineType {
 	case "aurora-postgresql":
+		cmd = exec.Command("psql", "-n", (*cluster).DBConnectionString())
+	case "aurora", "aurora-mysql":
 		cmd = exec.Command("mysql", "-u", settings.Username, fmt.Sprintf("-p%s", settings.Password), "-h", settings.Endpoint, "-P", strconv.Itoa(settings.Port), settings.Database)
 	default:
-		cmd = exec.Command("psql", "-n", (*cluster).DBConnectionString())
+		return errors.Wrapf(err, "failed to get database settings, invalid db-engine-type: %v", (*cluster).Configuration().DBEngineType)
 	}
 
 	cmd.Stdout = os.Stdout

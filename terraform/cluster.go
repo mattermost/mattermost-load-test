@@ -82,8 +82,11 @@ func (c *Cluster) DBDriverName() string {
 	switch c.Config.DBEngineType {
 	case "aurora-postgresql":
 		return "postgres"
-	default:
+	case "aurora", "aurora-mysql":
 		return "mysql"
+	default:
+		logrus.Errorf("Unable to get db driver name, invalid db-engine-type %v", c.Config.DBEngineType)
+		return ""
 	}
 }
 
@@ -97,8 +100,11 @@ func (c *Cluster) DBConnectionString() string {
 	switch c.Config.DBEngineType {
 	case "aurora-postgresql":
 		return "postgres://mmuser:" + c.DBPassword + "@" + databaseEndpoint + ":5432/mattermost?sslmode=disable\u0026connect_timeout=30"
-	default:
+	case "aurora", "aurora-mysql":
 		return "mmuser:" + c.DBPassword + "@tcp(" + databaseEndpoint + ":3306)/mattermost?charset=utf8mb4,utf8&readTimeout=20s&writeTimeout=20s&timeout=20s"
+	default:
+		logrus.Errorf("Unable to get endpoint, invalid db-engine-type %v", c.Config.DBEngineType)
+		return ""
 	}
 }
 
@@ -112,8 +118,11 @@ func (c *Cluster) DBReaderConnectionStrings() []string {
 	switch c.Config.DBEngineType {
 	case "aurora-postgresql":
 		return []string{"postgres://mmuser:" + c.DBPassword + "@" + databaseEndpoint + ":5432/mattermost?sslmode=disable\u0026connect_timeout=30"}
-	default:
+	case "aurora", "aurora-mysql":
 		return []string{"mmuser:" + c.DBPassword + "@tcp(" + databaseEndpoint + ":3306)/mattermost?charset=utf8mb4,utf8&readTimeout=20s&writeTimeout=20s&timeout=20s"}
+	default:
+		logrus.Errorf("Unable to get endpoint, invalid db-engine-type %v", c.Config.DBEngineType)
+		return nil
 	}
 }
 
