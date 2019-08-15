@@ -15,7 +15,7 @@ import (
 
 var dbCommand = &cobra.Command{
 	Use:     "db",
-	Short:   "Launches mysql connected to the cluster database",
+	Short:   "Launches mysql or postgres connected to the cluster database",
 	PreRunE: showHelpIfNoFlags,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		clusterName, _ := cmd.Flags().GetString("cluster")
@@ -30,20 +30,28 @@ var dbCommand = &cobra.Command{
 			return errors.Wrap(err, "couldn't load cluster")
 		}
 
-		settings, err := cluster.DBSettings()
-		if err != nil {
-			return errors.Wrap(err, "failed to get database settings")
-		}
-
-		// TODO: support psql
-		return mysql(settings)
+		return shell(&cluster)
 	},
 }
 
-func mysql(settings *ltops.DBSettings) error {
-	logrus.Infof("Connecting to %s:%d", settings.Endpoint, settings.Port)
+func shell(cluster *ltops.Cluster) error {
+	settings, err := (*cluster).DBSettings()
+	if err != nil {
+		return errors.Wrap(err, "failed to get database settings")
+	}
 
-	cmd := exec.Command("mysql", "-u", settings.Username, fmt.Sprintf("-p%s", settings.Password), "-h", settings.Endpoint, "-P", strconv.Itoa(settings.Port), settings.Database)
+	logrus.Infof("Connecting to %s:%d", settings.Endpoint, settings.Port)
+	var cmd *exec.Cmd
+
+	switch (*cluster).Configuration().DBEngineType {
+	case "aurora-postgresql":
+		cmd = exec.Command("psql", "-n", (*cluster).DBConnectionString())
+	case "aurora", "aurora-mysql":
+		cmd = exec.Command("mysql", "-u", settings.Username, fmt.Sprintf("-p%s", settings.Password), "-h", settings.Endpoint, "-P", strconv.Itoa(settings.Port), settings.Database)
+	default:
+		return errors.Wrapf(err, "failed to get database settings, invalid db-engine-type: %v", (*cluster).Configuration().DBEngineType)
+	}
+
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
@@ -52,7 +60,7 @@ func mysql(settings *ltops.DBSettings) error {
 
 func init() {
 	dbCommand.Flags().StringP("cluster", "c", "", "the name of the cluster (required)")
-	dbCommand.MarkFlagRequired("cluster")
+	_ = dbCommand.MarkFlagRequired("cluster")
 
 	dbCommand.Flags().SortFlags = false
 

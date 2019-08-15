@@ -33,12 +33,15 @@ ltops create \
     --db-count 1 \
     --loadtest-count 1 \
     --app-type m4.large \
-    --db-type db.r4.large
+    --db-type db.r4.large \
+    --db-engine aurora-mysql
 ```
 
 The `--app-count` flag determines how many Mattermost instances are deployed behind the proxy server. The `--app-type` flag determines the [Amazon EC2 instance type](https://aws.amazon.com/ec2/instance-types/) used for each Mattermost instance.
 
 The `--db-count` flag determines how many Amazon RDS instances are deployed. One instance is always the master, with the remaining configured as read-only replicas. The `--db-type` flag determines the [Amazon RDS DB Instance Class](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html).
+
+The `--db-engine` flag is optional and specifies which Database Engine should be deployed to RDS. Supported values are: aurora, aurora-mysql, aurora-postgresql
 
 More and bigger Mattermost and Amazon RDS instances will help your cluster scale to larger load tests.
 
@@ -90,7 +93,7 @@ Display your cluster configurations:
 ltops status
 ```
 
-Launch the MySQL CLI against the master database instance configured for your cluster:
+Launch the MySQL/Postgres CLI against the master database instance configured for your cluster:
 ```
 ltops db --cluster cluster-name
 ```

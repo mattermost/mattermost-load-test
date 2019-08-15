@@ -9,6 +9,9 @@ variable "app_instance_count" {
 variable "db_instance_count" {
     default = 1
 }
+variable "db_engine_type" {
+    default = "aurora"
+}
 variable "loadtest_instance_count" {
     default = 1
 }
@@ -153,6 +156,7 @@ resource "aws_rds_cluster_instance" "db_cluster_instances" {
     identifier = "${var.cluster_name}-db-${count.index}"
     cluster_identifier = "${aws_rds_cluster.db_cluster.id}"
     instance_class = "${var.db_instance_type}"
+    engine = "${var.db_engine_type}"
     publicly_accessible = true
     apply_immediately = true
     monitoring_interval = 10
@@ -164,6 +168,7 @@ resource "aws_rds_cluster" "db_cluster" {
     database_name = "mattermost"
     master_username = "mmuser"
     master_password = "${var.db_password}"
+    engine = "${var.db_engine_type}"
     skip_final_snapshot = true
     apply_immediately = true
     vpc_security_group_ids = ["${aws_security_group.db.id}"]
@@ -184,6 +189,13 @@ resource "aws_security_group" "db" {
     ingress {
         from_port = 3306
         to_port = 3306
+        protocol = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    ingress {
+        from_port = 5432
+        to_port = 5432
         protocol = "tcp"
         cidr_blocks = ["0.0.0.0/0"]
     }

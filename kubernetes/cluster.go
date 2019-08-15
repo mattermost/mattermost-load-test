@@ -146,6 +146,10 @@ func (c *Cluster) GetMetricsPodName() (string, error) {
 	return pods.Items[0].Name, nil
 }
 
+func (c *Cluster) DBDriverName() string {
+	return "mysql"
+}
+
 func (c *Cluster) DBConnectionString() string {
 	if len(c.Release()) == 0 {
 		return ""

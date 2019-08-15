@@ -27,6 +27,7 @@ func createClusterCmd(cmd *cobra.Command, args []string) error {
 	config.AppInstanceCount, _ = cmd.Flags().GetInt("app-count")
 	config.DBInstanceType, _ = cmd.Flags().GetString("db-type")
 	config.DBInstanceCount, _ = cmd.Flags().GetInt("db-count")
+	config.DBEngineType, _ = cmd.Flags().GetString("db-engine")
 	config.LoadtestInstanceCount, _ = cmd.Flags().GetInt("loadtest-count")
 	if verbose, _ := cmd.Flags().GetBool("verbose"); verbose {
 		config.Verbose = true
@@ -75,6 +76,8 @@ func init() {
 	createCluster.Flags().Int("app-count", 1, "the number of app instances")
 
 	createCluster.Flags().String("db-type", "", "the db instance type (required for terraform)")
+
+	createCluster.Flags().String("db-engine", "", "the db engine type (required for terraform, default=aurora, possible values: aurora, aurora-mysql, aurora-postgresql)")
 
 	createCluster.Flags().Int("db-count", 1, "the number of db instances")
 

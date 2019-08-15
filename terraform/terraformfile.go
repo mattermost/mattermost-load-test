@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 )
-
 type asset struct {
 	bytes []byte
 	info  os.FileInfo
@@ -55,6 +54,9 @@ variable "app_instance_count" {
 }
 variable "db_instance_count" {
     default = 1
+}
+variable "db_engine_type" {
+    default = "aurora"
 }
 variable "loadtest_instance_count" {
     default = 1
@@ -200,6 +202,7 @@ resource "aws_rds_cluster_instance" "db_cluster_instances" {
     identifier = "${var.cluster_name}-db-${count.index}"
     cluster_identifier = "${aws_rds_cluster.db_cluster.id}"
     instance_class = "${var.db_instance_type}"
+    engine = "${var.db_engine_type}"
     publicly_accessible = true
     apply_immediately = true
     monitoring_interval = 10
@@ -211,6 +214,7 @@ resource "aws_rds_cluster" "db_cluster" {
     database_name = "mattermost"
     master_username = "mmuser"
     master_password = "${var.db_password}"
+    engine = "${var.db_engine_type}"
     skip_final_snapshot = true
     apply_immediately = true
     vpc_security_group_ids = ["${aws_security_group.db.id}"]
@@ -231,6 +235,13 @@ resource "aws_security_group" "db" {
     ingress {
         from_port = 3306
         to_port = 3306
+        protocol = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    ingress {
+        from_port = 5432
+        to_port = 5432
         protocol = "tcp"
         cidr_blocks = ["0.0.0.0/0"]
     }
@@ -527,7 +538,7 @@ func clusterTf() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "cluster.tf", size: 11843, mode: os.FileMode(436), modTime: time.Unix(1563363644, 0)}
+	info := bindataFileInfo{name: "cluster.tf", size: 12100, mode: os.FileMode(436), modTime: time.Unix(1565533851, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -626,7 +637,6 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
-
 var _bintree = &bintree{nil, map[string]*bintree{
 	"cluster.tf": &bintree{clusterTf, map[string]*bintree{}},
 }}
@@ -677,3 +687,4 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
+
