@@ -1,0 +1,187 @@
+version: 2.1
+
+orbs:
+  aws-s3: circleci/aws-s3@1.0.11
+
+only_branches: &only_branches
+  filters:
+    branches:
+      ignore: master
+
+only_master: &only_master
+  filters:
+    branches:
+      only: master
+
+only_v_tags: &only_v_tags
+  filters:
+    tags:
+      only: /^v.*/
+    branches:
+      ignore: /.*/
+
+jobs:
+  build-ltops-and-test:
+    docker:
+      - image: circleci/golang:1.12
+    steps:
+      - checkout
+      - restore_cache:
+          key: dependencies-{{ checksum "go.sum" }}
+      - run:
+          name: Install dependencies
+          command: |
+            export PATH=$PATH:$GOPATH/bin
+            mkdir -p $GOPATH/bin
+            make install
+      - save_cache:
+          key: dependencies-{{ checksum "go.sum" }}
+          paths:
+            - $GOPATH/bin
+      - run:
+          name: Build package
+          command: make package
+      - run:
+          name: Test
+          command: |
+            set +x
+            ltops --help
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
+
+  deploy-branches:
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - attach_workspace:
+          at: .
+      - aws-s3/sync:
+          from: dist/mattermost-load-test.tar.gz
+          to: s3://releases.mattermost.com/loadtest-pr/${CIRCLE_BRANCH}/
+          arguments: --cache-control no-cache
+
+  deploy-master:
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - attach_workspace:
+          at: .
+      - aws-s3/sync:
+          from: dist/mattermost-load-test.tar.gz
+          to: s3://releases.mattermost.com/mattermost-load-test/
+          arguments: --cache-control no-cache
+
+  deploy-tag:
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - attach_workspace:
+          at: .
+      - aws-s3/sync:
+          from: dist/mattermost-load-test.tar.gz
+          to: s3://releases.mattermost.com/loadtest/${CIRCLE_TAG}/
+          arguments: --cache-control no-cache
+
+  build-docker-branches:
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    steps:
+      - setup_remote_docker
+      - run:
+          command: |
+            curl https://raw.githubusercontent.com/mattermost/mattermost-helm/master/docker/loadtest/Dockerfile > Dockerfile
+
+            export MM_BINARY=https://releases.mattermost.com/mattermost-platform/master/mattermost-enterprise-linux-amd64.tar.gz
+            export LOADTEST_BINARY=https://releases.mattermost.com/loadtest-pr/${CIRCLE_BRANCH}/mattermost-load-test.tar.gz
+            export DOCKER_TAG="${CIRCLE_SHA1}"
+
+            docker build --build-arg MM_BINARY=$MM_BINARY --build-arg LOADTEST_BINARY=$LOADTEST_BINARY -t mattermost/mattermost-loadtest:${DOCKER_TAG} . --no-cache
+            docker login --username ${DOCKER_USER} --password ${DOCKER_PASS}
+            docker push mattermost/mattermost-loadtest:${DOCKER_TAG}
+            docker logout
+            docker rmi -f mattermost/mattermost-loadtest:${DOCKER_TAG}
+
+  build-docker-master:
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    steps:
+      - setup_remote_docker
+      - run:
+          command: |
+            curl https://raw.githubusercontent.com/mattermost/mattermost-helm/master/docker/loadtest/Dockerfile > Dockerfile
+
+            export MM_BINARY=https://releases.mattermost.com/mattermost-platform/master/mattermost-enterprise-linux-amd64.tar.gz
+            export LOADTEST_BINARY=https://releases.mattermost.com/mattermost-load-test/mattermost-load-test.tar.gz
+            export DOCKER_TAG="master"
+
+            docker build --build-arg MM_BINARY=$MM_BINARY --build-arg LOADTEST_BINARY=$LOADTEST_BINARY -t mattermost/mattermost-loadtest:${DOCKER_TAG} . --no-cache
+            docker login --username ${DOCKER_USER} --password ${DOCKER_PASS}
+            docker push mattermost/mattermost-loadtest:${DOCKER_TAG}
+            docker logout
+            docker rmi -f mattermost/mattermost-loadtest:${DOCKER_TAG}
+
+  build-docker-tags:
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    steps:
+      - setup_remote_docker
+      - run:
+          command: |
+            curl https://raw.githubusercontent.com/mattermost/mattermost-helm/master/docker/loadtest/Dockerfile > Dockerfile
+
+            export MM_BINARY=https://releases.mattermost.com/mattermost-platform/master/mattermost-enterprise-linux-amd64.tar.gz
+            export LOADTEST_BINARY=https://releases.mattermost.com/loadtest/${CIRCLE_TAG}/mattermost-load-test.tar.gz
+            export DOCKER_TAG="${CIRCLE_TAG}"
+
+            docker build --build-arg MM_BINARY=$MM_BINARY --build-arg LOADTEST_BINARY=$LOADTEST_BINARY -t mattermost/mattermost-loadtest:${DOCKER_TAG} . --no-cache
+            docker login --username ${DOCKER_USER} --password ${DOCKER_PASS}
+            docker push mattermost/mattermost-loadtest:${DOCKER_TAG}
+            docker logout
+            docker rmi -f mattermost/mattermost-loadtest:${DOCKER_TAG}
+
+workflows:
+  version: 2
+  branches_build_and_deploy:
+    jobs:
+      - build-ltops-and-test:
+          <<: *only_branches
+      - deploy-branches:
+          requires:
+            - build-ltops-and-test
+          <<: *only_branches
+      - build-docker-branches:
+          <<: *only_branches
+          requires:
+            - deploy-branches
+
+  master_build_and_deploy:
+    jobs:
+      - build-ltops-and-test:
+          <<: *only_master
+      - deploy-master:
+          context: matterbuild-docker
+          <<: *only_master
+          requires:
+            - build-ltops-and-test
+      - build-docker-master:
+          context: matterbuild-docker
+          <<: *only_master
+          requires:
+            - deploy-master
+
+  tags_build_and_deploy:
+    jobs:
+      - build-ltops-and-test:
+          <<: *only_v_tags
+      - deploy-tag:
+          context: matterbuild-docker
+          <<: *only_v_tags
+          requires:
+            - build-ltops-and-test
+      - build-docker-tags:
+          context: matterbuild-docker
+          <<: *only_v_tags
+          requires:
+            - deploy-tag
