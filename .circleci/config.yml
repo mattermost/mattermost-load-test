@@ -148,10 +148,12 @@ workflows:
       - build-ltops-and-test:
           <<: *only_branches
       - deploy-branches:
+          context: mattermost-ci-s3
           requires:
             - build-ltops-and-test
           <<: *only_branches
       - build-docker-branches:
+          context: matterbuild-docker
           <<: *only_branches
           requires:
             - deploy-branches
@@ -161,7 +163,7 @@ workflows:
       - build-ltops-and-test:
           <<: *only_master
       - deploy-master:
-          context: matterbuild-docker
+          context: mattermost-ci-s3
           <<: *only_master
           requires:
             - build-ltops-and-test
@@ -176,7 +178,7 @@ workflows:
       - build-ltops-and-test:
           <<: *only_v_tags
       - deploy-tag:
-          context: matterbuild-docker
+          context: mattermost-ci-s3
           <<: *only_v_tags
           requires:
             - build-ltops-and-test
