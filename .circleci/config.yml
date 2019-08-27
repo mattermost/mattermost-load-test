@@ -37,7 +37,7 @@ jobs:
       - save_cache:
           key: dependencies-{{ checksum "go.sum" }}
           paths:
-            - $GOPATH/bin
+            - $GOPATH/pkg/mod
       - run:
           name: Build package
           command: make package
@@ -84,7 +84,7 @@ jobs:
           to: s3://releases.mattermost.com/loadtest/${CIRCLE_TAG}/
           arguments: --cache-control no-cache
 
-  build-docker-branches:
+  build-docker:
     docker:
       - image: circleci/buildpack-deps:stretch
     steps:
@@ -94,46 +94,17 @@ jobs:
             curl https://raw.githubusercontent.com/mattermost/mattermost-helm/master/docker/loadtest/Dockerfile > Dockerfile
 
             export MM_BINARY=https://releases.mattermost.com/mattermost-platform/master/mattermost-enterprise-linux-amd64.tar.gz
-            export LOADTEST_BINARY=https://releases.mattermost.com/loadtest-pr/${CIRCLE_BRANCH}/mattermost-load-test.tar.gz
-            export DOCKER_TAG="${CIRCLE_SHA1}"
 
-            docker build --build-arg MM_BINARY=$MM_BINARY --build-arg LOADTEST_BINARY=$LOADTEST_BINARY -t mattermost/mattermost-loadtest:${DOCKER_TAG} . --no-cache
-            docker login --username ${DOCKER_USER} --password ${DOCKER_PASS}
-            docker push mattermost/mattermost-loadtest:${DOCKER_TAG}
-            docker logout
-            docker rmi -f mattermost/mattermost-loadtest:${DOCKER_TAG}
-
-  build-docker-master:
-    docker:
-      - image: circleci/buildpack-deps:stretch
-    steps:
-      - setup_remote_docker
-      - run:
-          command: |
-            curl https://raw.githubusercontent.com/mattermost/mattermost-helm/master/docker/loadtest/Dockerfile > Dockerfile
-
-            export MM_BINARY=https://releases.mattermost.com/mattermost-platform/master/mattermost-enterprise-linux-amd64.tar.gz
-            export LOADTEST_BINARY=https://releases.mattermost.com/mattermost-load-test/mattermost-load-test.tar.gz
-            export DOCKER_TAG="master"
-
-            docker build --build-arg MM_BINARY=$MM_BINARY --build-arg LOADTEST_BINARY=$LOADTEST_BINARY -t mattermost/mattermost-loadtest:${DOCKER_TAG} . --no-cache
-            docker login --username ${DOCKER_USER} --password ${DOCKER_PASS}
-            docker push mattermost/mattermost-loadtest:${DOCKER_TAG}
-            docker logout
-            docker rmi -f mattermost/mattermost-loadtest:${DOCKER_TAG}
-
-  build-docker-tags:
-    docker:
-      - image: circleci/buildpack-deps:stretch
-    steps:
-      - setup_remote_docker
-      - run:
-          command: |
-            curl https://raw.githubusercontent.com/mattermost/mattermost-helm/master/docker/loadtest/Dockerfile > Dockerfile
-
-            export MM_BINARY=https://releases.mattermost.com/mattermost-platform/master/mattermost-enterprise-linux-amd64.tar.gz
-            export LOADTEST_BINARY=https://releases.mattermost.com/loadtest/${CIRCLE_TAG}/mattermost-load-test.tar.gz
-            export DOCKER_TAG="${CIRCLE_TAG}"
+            if [[ $(echo "${CIRCLE_BRANCH}" | grep -c "^v.*") == 0 && "${CIRCLE_BRANCH}" != "master" ]];then
+              export DOCKER_TAG="${CIRCLE_SHA1}"
+              export LOADTEST_BINARY=https://releases.mattermost.com/loadtest-pr/${CIRCLE_BRANCH}/mattermost-load-test.tar.gz
+            elif [[ "${CIRCLE_BRANCH}" == "master" ]];then
+              export DOCKER_TAG="master"
+              export LOADTEST_BINARY=https://releases.mattermost.com/mattermost-load-test/mattermost-load-test.tar.gz
+            else
+              export DOCKER_TAG="${CIRCLE_TAG}"
+              export LOADTEST_BINARY=https://releases.mattermost.com/loadtest/${CIRCLE_TAG}/mattermost-load-test.tar.gz
+            fi;
 
             docker build --build-arg MM_BINARY=$MM_BINARY --build-arg LOADTEST_BINARY=$LOADTEST_BINARY -t mattermost/mattermost-loadtest:${DOCKER_TAG} . --no-cache
             docker login --username ${DOCKER_USER} --password ${DOCKER_PASS}
@@ -152,7 +123,7 @@ workflows:
           requires:
             - build-ltops-and-test
           <<: *only_branches
-      - build-docker-branches:
+      - build-docker:
           context: matterbuild-docker
           <<: *only_branches
           requires:
@@ -167,7 +138,7 @@ workflows:
           <<: *only_master
           requires:
             - build-ltops-and-test
-      - build-docker-master:
+      - build-docker:
           context: matterbuild-docker
           <<: *only_master
           requires:
@@ -182,7 +153,7 @@ workflows:
           <<: *only_v_tags
           requires:
             - build-ltops-and-test
-      - build-docker-tags:
+      - build-docker:
           context: matterbuild-docker
           <<: *only_v_tags
           requires:
