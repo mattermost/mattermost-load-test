@@ -20,6 +20,9 @@ only_v_tags: &only_v_tags
     branches:
       ignore: /.*/
 
+mm_binary: &mm_binary
+  mm-binary: https://releases.mattermost.com/mattermost-platform/master/mattermost-enterprise-linux-amd64.tar.gz
+
 jobs:
   build-ltops-and-test:
     docker:
@@ -51,110 +54,98 @@ jobs:
           paths:
             - dist
 
-  deploy-branches:
+  deploy:
     docker:
       - image: circleci/python:3.6
+    parameters:
+      s3-sync-to:
+        type: string
     steps:
       - attach_workspace:
           at: .
       - aws-s3/sync:
-          from: dist/mattermost-load-test.tar.gz
-          to: s3://releases.mattermost.com/loadtest-pr/${CIRCLE_BRANCH}/
-          arguments: --cache-control no-cache
-
-  deploy-master:
-    docker:
-      - image: circleci/python:3.6
-    steps:
-      - attach_workspace:
-          at: .
-      - aws-s3/sync:
-          from: dist/mattermost-load-test.tar.gz
-          to: s3://releases.mattermost.com/mattermost-load-test/
-          arguments: --cache-control no-cache
-
-  deploy-tag:
-    docker:
-      - image: circleci/python:3.6
-    steps:
-      - attach_workspace:
-          at: .
-      - aws-s3/sync:
-          from: dist/mattermost-load-test.tar.gz
-          to: s3://releases.mattermost.com/loadtest/${CIRCLE_TAG}/
+          from: mattermost-load-test/dist/mattermost-load-test.tar.gz
+          to: << parameters.s3-sync-to >>
           arguments: --cache-control no-cache
 
   build-docker:
     docker:
       - image: circleci/buildpack-deps:stretch
+    parameters:
+      mm-binary:
+        type: string
+      loadtest-binary:
+        type: string
+      docker-tag:
+        type: string
     steps:
+      - checkout
       - setup_remote_docker
       - run:
+          command: >
+            docker build
+            --build-arg MM_BINARY=<< parameters.mm-binary >>
+            --build-arg LOADTEST_BINARY=<< parameters.loadtest-binary >>
+            -t mattermost/mattermost-loadtest:<< parameters.docker-tag >>
+            .
+            --no-cache
+      - run:
           command: |
-            curl https://raw.githubusercontent.com/mattermost/mattermost-helm/master/docker/loadtest/Dockerfile > Dockerfile
-
-            export MM_BINARY=https://releases.mattermost.com/mattermost-platform/master/mattermost-enterprise-linux-amd64.tar.gz
-
-            if [[ $(echo "${CIRCLE_BRANCH}" | grep -c "^v.*") == 0 && "${CIRCLE_BRANCH}" != "master" ]];then
-              export DOCKER_TAG="${CIRCLE_SHA1}"
-              export LOADTEST_BINARY=https://releases.mattermost.com/loadtest-pr/${CIRCLE_BRANCH}/mattermost-load-test.tar.gz
-            elif [[ "${CIRCLE_BRANCH}" == "master" ]];then
-              export DOCKER_TAG="master"
-              export LOADTEST_BINARY=https://releases.mattermost.com/mattermost-load-test/mattermost-load-test.tar.gz
-            else
-              export DOCKER_TAG="${CIRCLE_TAG}"
-              export LOADTEST_BINARY=https://releases.mattermost.com/loadtest/${CIRCLE_TAG}/mattermost-load-test.tar.gz
-            fi;
-
-            docker build --build-arg MM_BINARY=$MM_BINARY --build-arg LOADTEST_BINARY=$LOADTEST_BINARY -t mattermost/mattermost-loadtest:${DOCKER_TAG} . --no-cache
             docker login --username ${DOCKER_USER} --password ${DOCKER_PASS}
-            docker push mattermost/mattermost-loadtest:${DOCKER_TAG}
+            docker push mattermost/mattermost-loadtest:<< parameters.docker-tag >>
             docker logout
-            docker rmi -f mattermost/mattermost-loadtest:${DOCKER_TAG}
+            docker rmi -f mattermost/mattermost-loadtest:<< parameters.docker-tag >>
 
 workflows:
   version: 2
-  branches_build_and_deploy:
+  build_and_deploy:
     jobs:
-      - build-ltops-and-test:
-          <<: *only_branches
-      - deploy-branches:
+      - build-ltops-and-test
+
+      - deploy:
+          name: deploy-branches
+          s3-sync-to: s3://releases.mattermost.com/loadtest-pr/${CIRCLE_BRANCH}/
           context: mattermost-ci-s3
           requires:
             - build-ltops-and-test
           <<: *only_branches
       - build-docker:
+          <<: *mm_binary
+          loadtest-binary: https://releases.mattermost.com/loadtest-pr/${CIRCLE_BRANCH}/mattermost-load-test.tar.gz
+          docker-tag: ${CIRCLE_SHA1}
           context: matterbuild-docker
           <<: *only_branches
           requires:
             - deploy-branches
 
-  master_build_and_deploy:
-    jobs:
-      - build-ltops-and-test:
-          <<: *only_master
-      - deploy-master:
+      - deploy:
+          name: deploy-master
+          s3-sync-to: s3://releases.mattermost.com/mattermost-load-test/
           context: mattermost-ci-s3
           <<: *only_master
           requires:
             - build-ltops-and-test
       - build-docker:
+          <<: *mm_binary
+          loadtest-binary: https://releases.mattermost.com/mattermost-load-test/mattermost-load-test.tar.gz
+          docker-tag: master
           context: matterbuild-docker
           <<: *only_master
           requires:
             - deploy-master
 
-  tags_build_and_deploy:
-    jobs:
-      - build-ltops-and-test:
-          <<: *only_v_tags
-      - deploy-tag:
+      - deploy:
+          name: deploy-tags
+          s3-sync-to: s3://releases.mattermost.com/mattermost-load-test/${CIRCLE_TAG}/
           context: mattermost-ci-s3
           <<: *only_v_tags
           requires:
             - build-ltops-and-test
       - build-docker:
+          <<: *mm_binary
+          loadtest-binary: https://releases.mattermost.com/mattermost-load-test/${CIRCLE_TAG}/mattermost-load-test.tar.gz
+          docker-tag: ${CIRCLE_TAG}
           context: matterbuild-docker
           <<: *only_v_tags
           requires:
-            - deploy-tag
+            - deploy-tags
