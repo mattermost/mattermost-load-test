@@ -54,18 +54,18 @@ jobs:
           paths:
             - dist
 
-  deploy:
+  upload-s3:
     docker:
       - image: circleci/python:3.6
     parameters:
-      s3-sync-to:
+      s3-copy-to:
         type: string
     steps:
       - attach_workspace:
           at: .
-      - aws-s3/sync:
-          from: mattermost-load-test/dist/mattermost-load-test.tar.gz
-          to: << parameters.s3-sync-to >>
+      - aws-s3/copy:
+          from: dist/mattermost-load-test.tar.gz
+          to: << parameters.s3-copy-to >>
           arguments: --cache-control no-cache
 
   build-docker:
@@ -98,13 +98,13 @@ jobs:
 
 workflows:
   version: 2
-  build_and_deploy:
+  build_and_upload_and_build_push_image:
     jobs:
       - build-ltops-and-test
 
-      - deploy:
-          name: deploy-branches
-          s3-sync-to: s3://releases.mattermost.com/loadtest-pr/${CIRCLE_BRANCH}/
+      - upload-s3:
+          name: upload-s3-branches
+          s3-copy-to: s3://releases.mattermost.com/loadtest-pr/${CIRCLE_BRANCH}/
           context: mattermost-ci-s3
           requires:
             - build-ltops-and-test
@@ -116,11 +116,11 @@ workflows:
           context: matterbuild-docker
           <<: *only_branches
           requires:
-            - deploy-branches
+            - upload-s3-branches
 
-      - deploy:
-          name: deploy-master
-          s3-sync-to: s3://releases.mattermost.com/mattermost-load-test/
+      - upload-s3:
+          name: upload-s3-master
+          s3-copy-to: s3://releases.mattermost.com/mattermost-load-test/
           context: mattermost-ci-s3
           <<: *only_master
           requires:
@@ -132,11 +132,11 @@ workflows:
           context: matterbuild-docker
           <<: *only_master
           requires:
-            - deploy-master
+            - upload-s3-master
 
-      - deploy:
-          name: deploy-tags
-          s3-sync-to: s3://releases.mattermost.com/mattermost-load-test/${CIRCLE_TAG}/
+      - upload-s3:
+          name: upload-s3-tags
+          s3-copy-to: s3://releases.mattermost.com/mattermost-load-test/${CIRCLE_TAG}/
           context: mattermost-ci-s3
           <<: *only_v_tags
           requires:
@@ -148,4 +148,4 @@ workflows:
           context: matterbuild-docker
           <<: *only_v_tags
           requires:
-            - deploy-tags
+            - upload-s3-tags
