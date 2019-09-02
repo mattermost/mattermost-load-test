@@ -91,7 +91,7 @@ jobs:
             --no-cache
       - run:
           command: |
-            docker login --username ${DOCKER_USER} --password ${DOCKER_PASS}
+            echo "$DOCKER_PASS" | docker login --username $DOCKER_USER --password-stdin
             docker push mattermost/mattermost-loadtest:<< parameters.docker-tag >>
             docker logout
             docker rmi -f mattermost/mattermost-loadtest:<< parameters.docker-tag >>
