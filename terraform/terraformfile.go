@@ -360,6 +360,14 @@ resource "aws_iam_user_policy" "s3" {
     "Version": "2012-10-17",
     "Statement": [
         {
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket",
+                "s3:GetBucketLocation"
+            ],
+            "Resource": "arn:aws:s3:::${aws_s3_bucket.app.id}"
+        },
+        {
             "Action": [
                 "s3:AbortMultipartUpload",
                 "s3:DeleteObject",
@@ -538,7 +546,7 @@ func clusterTf() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "cluster.tf", size: 12100, mode: os.FileMode(436), modTime: time.Unix(1565533851, 0)}
+	info := bindataFileInfo{name: "cluster.tf", size: 12326, mode: os.FileMode(420), modTime: time.Unix(1567509855, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
