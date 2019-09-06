@@ -56,7 +56,7 @@ Deploy Mattermost, the Nginx proxy and the `loadtest` tool to prepare for runnin
 ltops deploy \
     --cluster cluster-name \
     --mattermost master \
-    --license $HOME/mylicence.mattermost-license 
+    --license $HOME/mylicence.mattermost-license \
     --loadtests master
 ```
 
