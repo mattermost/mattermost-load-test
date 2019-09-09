@@ -1,13 +1,29 @@
-FROM golang:1-alpine
-WORKDIR /go/src/github.com/mattermost/mattermost-load-test
-COPY . .
-RUN apk --no-cache add make git
-RUN go get -u github.com/golang/dep/cmd/dep
-RUN make package
+FROM golang:latest
 
-FROM alpine:3.7
-RUN apk --no-cache add ca-certificates
-WORKDIR /opt/mattermost-load-test
-COPY --from=0 /go/src/github.com/mattermost/mattermost-load-test/dist/mattermost-load-test .
+ENV PATH="/mattermost-load-test/bin:${PATH}"
+ENV PATH="/mattermost/bin:${PATH}"
+ARG LOADTEST_BINARY
+ARG MM_BINARY
 
-ENTRYPOINT ["./bin/loadtest"]
+WORKDIR /
+
+RUN apt-get update \
+    && apt-get -y install \
+      curl \
+      jq \
+      netcat \
+      net-tools \
+      iproute2 \
+      dnsutils \
+      graphviz
+
+RUN mkdir -p /mattermost/data \
+    && curl $MM_BINARY | tar -xvz \
+    && rm -rf /mattermost/config/config.json
+
+RUN mkdir -p /mattermost-load-test \
+	&& curl $LOADTEST_BINARY | tar -xvz \
+	&& rm -f /mattermost-load-test/loadtestconfig.json
+
+WORKDIR /mattermost-load-test
+CMD ["tail", "-f", "/dev/null"]
