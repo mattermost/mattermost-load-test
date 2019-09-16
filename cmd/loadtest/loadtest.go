@@ -57,6 +57,11 @@ var tests []TestItem = []TestItem{
 		Test:      &loadtest.TestTownSquareSpam,
 	},
 	{
+		Name:      "channel-leave-join",
+		ShortDesc: "Test leaving and joining a channel while under load",
+		Test:      &loadtest.TestLeaveJoinChannel,
+	},
+	{
 		Name:      "team-leave-join",
 		ShortDesc: "Test leaving and joining a team while under load",
 		Test:      &loadtest.TestLeaveJoinTeam,
