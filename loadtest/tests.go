@@ -193,9 +193,16 @@ func actionLeaveJoinTeam(c *EntityConfig) {
 
 	time.Sleep(time.Second * 1)
 
-	if _, resp := c.Client.AddTeamMemberFromInvite("", inviteId); resp.Error != nil {
-		mlog.Error("Failed to join team with invite_id", mlog.String("team_id", teamId), mlog.String("invite_id", inviteId), mlog.Err(resp.Error))
-		return
+	if rand.Float64() > 0.5 {
+		if _, resp := c.Client.AddTeamMemberFromInvite("", inviteId); resp.Error != nil {
+			mlog.Error("Failed to join team with invite_id", mlog.String("team_id", teamId), mlog.String("invite_id", inviteId), mlog.Err(resp.Error))
+			return
+		}
+	} else {
+		if _, resp := c.Client.AddTeamMember(teamId, userId); resp.Error != nil {
+			mlog.Error("Failed to join team", mlog.String("team_id", teamId), mlog.String("user_id", userId), mlog.Err(resp.Error))
+			return
+		}
 	}
 }
 
