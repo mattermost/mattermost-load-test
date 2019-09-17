@@ -35,6 +35,12 @@ type UserEntitiesConfiguration struct {
 	NeedsProfileStatusChance          float64
 	DoStatusPolling                   bool
 	RandomizeEntitySelection          bool
+	UserProfileUpdateFullnameChance   float64
+	UserProfileUpdateUsernameChance   float64
+	UserProfileUpdateNicknameChance   float64
+	UserProfileUpdatePositionChance   float64
+	UserProfileUpdateEmailChance      float64
+	UserProfileUpdateImageChance      float64
 }
 
 type ConnectionConfiguration struct {

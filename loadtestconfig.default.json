@@ -69,7 +69,13 @@
         "NeedsProfilesByIdChance": 0.22,
         "NeedsProfileStatusChance": 0.80,
         "DoStatusPolling": true,
-        "RandomizeEntitySelection": false
+        "RandomizeEntitySelection": false,
+        "UserProfileUpdateFullnameChance": 0.01,
+        "UserProfileUpdateUsernameChance": 0.005,
+        "UserProfileUpdateNicknameChance": 0.01,
+        "UserProfileUpdatePositionChance": 0.107,
+        "UserProfileUpdateEmailChance": 0.003,
+        "UserProfileUpdateImageChance": 0.865
     },
     "ResultsConfiguration": {
         "PProfDelayMinutes": 15,

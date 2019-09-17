@@ -548,6 +548,75 @@ func actionGetTeamUnreads(c *EntityConfig) {
 	}
 }
 
+func actionUpdateUserProfile(c *EntityConfig) {
+	user, resp := c.Client.GetMe("")
+	if resp.Error != nil {
+		mlog.Error("Failed to get me", mlog.Err(resp.Error))
+		return
+	}
+
+	patch := &model.UserPatch{}
+
+	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.UserProfileUpdateFullnameChance {
+		patch.FirstName = model.NewString(fmt.Sprintf("%s_new", user.FirstName))
+		patch.LastName = model.NewString(fmt.Sprintf("%s_new", user.LastName))
+	}
+
+	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.UserProfileUpdateUsernameChance {
+		patch.Username = model.NewString(fmt.Sprintf("%s_new", user.Username))
+	}
+
+	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.UserProfileUpdateNicknameChance {
+		patch.Nickname = model.NewString(fmt.Sprintf("%s_new", user.Nickname))
+	}
+
+	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.UserProfileUpdatePositionChance {
+		patch.Position = model.NewString(fmt.Sprintf("%s_new", user.Position))
+	}
+
+	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.UserProfileUpdateEmailChance {
+		patch.Email = model.NewString(fmt.Sprintf("new_%s", user.Email))
+		patch.Password = model.NewString(c.UserData.Password)
+	}
+
+	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.UserProfileUpdateImageChance {
+		imagePath := "./testfiles/test.png"
+		imageData, err := readTestFile(imagePath)
+		if err != nil {
+			mlog.Error("Failed reading testfile", mlog.String("filename", imagePath), mlog.Err(err))
+			return
+		}
+		_, resp = c.Client.SetProfileImage(user.Id, imageData)
+		if resp.Error != nil {
+			mlog.Error("Failed to set user profile image", mlog.String("user_id", user.Id), mlog.Err(resp.Error))
+			return
+		}
+	}
+
+	if patch.FirstName == nil && patch.LastName == nil && patch.Username == nil && patch.Nickname == nil && patch.Position == nil && patch.Email == nil {
+		return
+	}
+
+	_, resp = c.Client.PatchUser(user.Id, patch)
+	if resp.Error != nil {
+		mlog.Error("Failed to patch user", mlog.String("user_id", user.Id), mlog.Err(resp.Error))
+		return
+	}
+
+	_, resp = c.Client.GetMe("")
+	if resp.Error != nil {
+		mlog.Error("Failed to get me", mlog.Err(resp.Error))
+		return
+	}
+
+	user.Password = c.UserData.Password
+	_, resp = c.Client.UpdateUser(user)
+	if resp.Error != nil {
+		mlog.Error("Failed to update user", mlog.String("user_id", user.Id), mlog.Err(resp.Error))
+		return
+	}
+}
+
 var posterEntity UserEntity = UserEntity{
 	Name: "Poster",
 	Actions: []randutil.Choice{
@@ -636,6 +705,28 @@ var TestSearchUsers TestRun = TestRun{
 	},
 }
 
+var updateUserProfileEntity UserEntity = UserEntity{
+	Name: "Update User Profile",
+	Actions: []randutil.Choice{
+		{
+			Item:   actionUpdateUserProfile,
+			Weight: 1,
+		},
+	},
+}
+
+var TestUpdateUserProfile TestRun = TestRun{
+	UserEntities: []randutil.Choice{
+		{
+			Item: UserEntityWithRateMultiplier{
+				Entity:         updateUserProfileEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 100,
+		},
+	},
+}
+
 var standardUserEntity UserEntity = UserEntity{
 	Name: "Standard",
 	Actions: []randutil.Choice{
@@ -674,6 +765,10 @@ var standardUserEntity UserEntity = UserEntity{
 		{
 			Item:   actionSearchUser,
 			Weight: 2,
+		},
+		{
+			Item:   actionUpdateUserProfile,
+			Weight: 1,
 		},
 	},
 }
