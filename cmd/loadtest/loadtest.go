@@ -76,6 +76,11 @@ var tests []TestItem = []TestItem{
 		ShortDesc: "Test autocomplete",
 		Test:      &loadtest.TestAutocomplete,
 	},
+	{
+		Name:      "user-update-profile",
+		ShortDesc: "Test users updating their profiles",
+		Test:      &loadtest.TestUpdateUserProfile,
+	},
 }
 
 func main() {
