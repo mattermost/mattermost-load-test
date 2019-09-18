@@ -137,19 +137,17 @@ func actionLeaveJoinChannel(c *EntityConfig) {
 	removed, _ := c.Client.RemoveUserFromChannel(channelId, userId)
 
 	if removed {
-		time.Sleep(time.Second * 1)
-		_, resp := c.Client.AddChannelMember(channelId, userId)
-		if resp.Error != nil {
-			mlog.Error("Failed to add user to channel", mlog.String("channel_id", channelId), mlog.String("user_id", userId), mlog.Err(resp.Error))
-			return
-		}
-	} else {
-		_, resp := c.Client.AddChannelMember(channelId, userId)
-		if resp.Error != nil {
-			mlog.Error("Failed to add user to channel", mlog.String("channel_id", channelId), mlog.String("user_id", userId), mlog.Err(resp.Error))
-			return
-		}
-		time.Sleep(time.Second * 1)
+		time.Sleep(1 * time.Second)
+	}
+
+	_, resp := c.Client.AddChannelMember(channelId, userId)
+	if resp.Error != nil {
+		mlog.Error("Failed to add user to channel", mlog.String("channel_id", channelId), mlog.String("user_id", userId), mlog.Err(resp.Error))
+		return
+	}
+
+	if !removed {
+		time.Sleep(1 * time.Second)
 		_, resp = c.Client.RemoveUserFromChannel(channelId, userId)
 		if resp.Error != nil {
 			mlog.Error("Failed remove user from channel", mlog.String("channel_id", channelId), mlog.String("user_id", userId), mlog.Err(resp.Error))
