@@ -108,6 +108,54 @@ func actionGetStatuses(c *EntityConfig) {
 	}
 }
 
+func actionLeaveJoinChannel(c *EntityConfig) {
+	team, channel := c.UserData.PickTeamChannel(c.r)
+
+	if team == nil || channel == nil {
+		return
+	}
+
+	channelId, err := c.GetTeamChannelId(team.Name, channel.Name)
+	if err != nil {
+		mlog.Error("Unable to get channel from map", mlog.String("team", team.Name), mlog.String("channel", channel.Name), mlog.Err(err))
+		return
+	}
+
+	userId := ""
+	if user, resp := c.Client.GetMe(""); resp.Error != nil {
+		mlog.Error("Failed to get me", mlog.Err(resp.Error))
+		return
+	} else {
+		userId = user.Id
+	}
+
+	if _, resp := c.Client.GetChannel(channelId, ""); resp.Error != nil {
+		mlog.Error("Failed to get channel", mlog.String("channel_id", channelId), mlog.Err(resp.Error))
+		return
+	}
+
+	removed, _ := c.Client.RemoveUserFromChannel(channelId, userId)
+
+	if removed {
+		time.Sleep(1 * time.Second)
+	}
+
+	_, resp := c.Client.AddChannelMember(channelId, userId)
+	if resp.Error != nil {
+		mlog.Error("Failed to add user to channel", mlog.String("channel_id", channelId), mlog.String("user_id", userId), mlog.Err(resp.Error))
+		return
+	}
+
+	if !removed {
+		time.Sleep(1 * time.Second)
+		_, resp = c.Client.RemoveUserFromChannel(channelId, userId)
+		if resp.Error != nil {
+			mlog.Error("Failed remove user from channel", mlog.String("channel_id", channelId), mlog.String("user_id", userId), mlog.Err(resp.Error))
+			return
+		}
+	}
+}
+
 func actionLeaveJoinTeam(c *EntityConfig) {
 	importTeam := c.UserData.PickTeam(c.r)
 	if importTeam == nil {
@@ -143,9 +191,16 @@ func actionLeaveJoinTeam(c *EntityConfig) {
 
 	time.Sleep(time.Second * 1)
 
-	if _, resp := c.Client.AddTeamMemberFromInvite("", inviteId); resp.Error != nil {
-		mlog.Error("Failed to join team with invite_id", mlog.String("team_id", teamId), mlog.String("invite_id", inviteId), mlog.Err(resp.Error))
-		return
+	if rand.Float64() > 0.5 {
+		if _, resp := c.Client.AddTeamMemberFromInvite("", inviteId); resp.Error != nil {
+			mlog.Error("Failed to join team with invite_id", mlog.String("team_id", teamId), mlog.String("invite_id", inviteId), mlog.Err(resp.Error))
+			return
+		}
+	} else {
+		if _, resp := c.Client.AddTeamMember(teamId, userId); resp.Error != nil {
+			mlog.Error("Failed to join team", mlog.String("team_id", teamId), mlog.String("user_id", userId), mlog.Err(resp.Error))
+			return
+		}
 	}
 }
 
@@ -831,12 +886,41 @@ var TestTownSquareSpam TestRun = TestRun{
 	},
 }
 
+var channelLeaverJoinerUserEntity UserEntity = UserEntity{
+	Name: "ChannelLeaverJoiner",
+	Actions: []randutil.Choice{
+		{
+			Item:   actionLeaveJoinChannel,
+			Weight: 1,
+		},
+	},
+}
+
 var teamLeaverJoinerUserEntity UserEntity = UserEntity{
 	Name: "TeamLeaverJoiner",
 	Actions: []randutil.Choice{
 		{
 			Item:   actionLeaveJoinTeam,
 			Weight: 1,
+		},
+	},
+}
+
+var TestLeaveJoinChannel TestRun = TestRun{
+	UserEntities: []randutil.Choice{
+		{
+			Item: UserEntityWithRateMultiplier{
+				Entity:         standardUserEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 90,
+		},
+		{
+			Item: UserEntityWithRateMultiplier{
+				Entity:         channelLeaverJoinerUserEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 10,
 		},
 	},
 }
