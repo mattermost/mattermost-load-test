@@ -30,7 +30,7 @@ import (
 func RunTest(test *TestRun) error {
 	r := rand.New(rand.NewSource(0))
 
-	interruptChannel := make(chan os.Signal)
+	interruptChannel := make(chan os.Signal, 1)
 	signal.Notify(interruptChannel, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	clientTimingStats := NewClientTimingStats()
