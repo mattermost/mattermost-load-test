@@ -5,6 +5,7 @@ package loadtest
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -287,6 +288,135 @@ func createPost(c *EntityConfig, team *UserTeamImportData, channelId string) {
 
 	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.SystemEmojiReactionChance {
 		addReaction(c, post, "smile")
+	}
+}
+
+func createChannel(c *EntityConfig, teamId string, userId string) (*model.Channel, error) {
+	const (
+		PUBLIC_CHANNEL = iota + 1
+		PRIVATE_CHANNEL
+		DIRECT_CHANNEL
+		GROUP_CHANNEL
+	)
+
+	choices := []randutil.Choice{
+		{
+			Weight: int(c.LoadTestConfig.UserEntitiesConfiguration.PublicChannelCreationChance * 1000),
+			Item:   PUBLIC_CHANNEL,
+		},
+		{
+			Weight: int(c.LoadTestConfig.UserEntitiesConfiguration.PrivateChannelCreationChance * 1000),
+			Item:   PRIVATE_CHANNEL,
+		},
+		{
+			Weight: int(c.LoadTestConfig.UserEntitiesConfiguration.DirectChannelCreationChance * 1000),
+			Item:   DIRECT_CHANNEL,
+		},
+		{
+			Weight: int(c.LoadTestConfig.UserEntitiesConfiguration.GroupChannelCreationChance * 1000),
+			Item:   GROUP_CHANNEL,
+		},
+	}
+
+	choice, err := randutil.WeightedChoice(c.r, choices)
+	if err != nil {
+		return nil, err
+	}
+
+	if choice.Item == PUBLIC_CHANNEL || choice.Item == PRIVATE_CHANNEL {
+		channel := &model.Channel{}
+		channel.TeamId = teamId
+		channel.Name = makeChannelName(c.r.Int())
+		channel.DisplayName = makeChannelDisplayName(c.r.Int())
+
+		if choice.Item == PUBLIC_CHANNEL {
+			channel.Type = "O"
+		} else {
+			channel.Type = "P"
+		}
+
+		newChannel, resp := c.Client.CreateChannel(channel)
+		if resp.Error != nil {
+			return nil, resp.Error
+		}
+
+		return newChannel, nil
+	} else if choice.Item == DIRECT_CHANNEL || choice.Item == GROUP_CHANNEL {
+
+		users, resp := c.Client.GetUsers(0, 100, "")
+		if resp.Error != nil {
+			return nil, resp.Error
+		}
+
+		if choice.Item == DIRECT_CHANNEL && len(users) < 2 {
+			return nil, errors.New("not enough users to create direct channel")
+		} else if choice.Item == GROUP_CHANNEL && len(users) < 3 {
+			return nil, errors.New("not enough users to create group channel")
+		}
+
+		rand.Shuffle(len(users), func(i, j int) {
+			users[i], users[j] = users[j], users[i]
+		})
+
+		var others []string
+
+		for _, user := range users {
+			if user.Id != userId {
+				others = append(others, user.Id)
+				if choice.Item == DIRECT_CHANNEL || len(others) > 1 {
+					break
+				}
+			}
+		}
+
+		if choice.Item == DIRECT_CHANNEL && len(others) != 1 {
+			return nil, errors.New("could not find a user to create a direct channel with")
+		}
+
+		var newChannel *model.Channel
+
+		if choice.Item == DIRECT_CHANNEL {
+			newChannel, resp = c.Client.CreateDirectChannel(userId, others[0])
+		} else {
+			newChannel, resp = c.Client.CreateGroupChannel(others)
+		}
+
+		if resp.Error != nil {
+			return nil, resp.Error
+		}
+
+		return newChannel, nil
+	}
+
+	return nil, nil
+}
+
+func actionCreateDeleteChannel(c *EntityConfig) {
+	team := c.UserData.PickTeam(c.r)
+	if team == nil {
+		return
+	}
+	teamId := c.TeamMap[team.Name]
+
+	user, resp := c.Client.GetMe("")
+	if resp.Error != nil {
+		mlog.Error("Failed to get me", mlog.Err(resp.Error))
+		return
+	}
+
+	channel, err := createChannel(c, teamId, user.Id)
+	if err != nil {
+		mlog.Error("Failed to create channel", mlog.Err(err))
+		return
+	}
+
+	if channel.Type != "O" && channel.Type != "P" {
+		return
+	}
+
+	if _, resp := c.Client.DeleteChannel(channel.Id); resp.Error != nil {
+		mlog.Error("Failed to delete channel", mlog.Err(resp.Error), mlog.String("channel_id", channel.Id))
+		return
 	}
 }
 
@@ -766,6 +896,10 @@ var updateUserProfileEntity UserEntity = UserEntity{
 		{
 			Item:   actionUpdateUserProfile,
 			Weight: 1,
+		},
+		{
+			Item:   actionCreateDeleteChannel,
+			Weight: 2,
 		},
 	},
 }

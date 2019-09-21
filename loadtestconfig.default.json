@@ -75,7 +75,11 @@
         "UserProfileUpdateNicknameChance": 0.01,
         "UserProfileUpdatePositionChance": 0.107,
         "UserProfileUpdateEmailChance": 0.003,
-        "UserProfileUpdateImageChance": 0.865
+        "UserProfileUpdateImageChance": 0.865,
+        "PublicChannelCreationChance": 0.12,
+        "PrivateChannelCreationChance": 0.04,
+        "DirectChannelCreationChance": 0.82,
+        "GroupChannelCreationChance": 0.02
     },
     "ResultsConfiguration": {
         "PProfDelayMinutes": 15,

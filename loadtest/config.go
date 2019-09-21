@@ -41,6 +41,10 @@ type UserEntitiesConfiguration struct {
 	UserProfileUpdatePositionChance   float64
 	UserProfileUpdateEmailChance      float64
 	UserProfileUpdateImageChance      float64
+	PublicChannelCreationChance       float64
+	PrivateChannelCreationChance      float64
+	DirectChannelCreationChance       float64
+	GroupChannelCreationChance        float64
 }
 
 type ConnectionConfiguration struct {
