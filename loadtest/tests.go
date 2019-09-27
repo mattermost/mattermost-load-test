@@ -227,24 +227,80 @@ func createPost(c *EntityConfig, team *UserTeamImportData, channelId string) {
 
 	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.CustomEmojiReactionChance && c.LoadTestConfig.LoadtestEnviromentConfig.NumEmoji > 0 {
 		name := c.LoadTestConfig.LoadtestEnviromentConfig.PickEmoji(c.r)
-		addReaction(c, post, name)
+		addReaction(c, post.UserId, post.Id, name)
 	}
 
 	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.SystemEmojiReactionChance {
-		addReaction(c, post, "smile")
+		addReaction(c, post.UserId, post.Id, "smile")
 	}
 }
 
-func addReaction(c *EntityConfig, post *model.Post, name string) {
+func addReaction(c *EntityConfig, userId, postId, name string) {
 	reaction := &model.Reaction{
-		UserId:    post.UserId,
-		PostId:    post.Id,
+		UserId:    userId,
+		PostId:    postId,
 		EmojiName: name,
 	}
 
 	_, resp := c.Client.SaveReaction(reaction)
 	if resp.Error != nil {
 		mlog.Info("Failed to save reaction", mlog.String("user_id", reaction.UserId), mlog.String("post_id", reaction.PostId), mlog.String("emoji_name", reaction.EmojiName))
+	}
+}
+
+func actionPostReactions(c *EntityConfig) {
+	user, resp := c.Client.GetMe("")
+	if resp.Error != nil {
+		mlog.Error("Failed to get me", mlog.Err(resp.Error))
+		return
+	}
+
+	team, channel := c.UserData.PickTeamChannel(c.r)
+	if team == nil || channel == nil {
+		return
+	}
+
+	teamId := c.TeamMap[team.Name]
+	if teamId == "" {
+		mlog.Error("Unable to get team from map", mlog.String("team", team.Name))
+		return
+	}
+
+	channels, resp := c.Client.GetChannelsForTeamForUser(teamId, user.Id, "")
+	if resp.Error != nil {
+		mlog.Info("Unable to get channels for user", mlog.String("user_id", user.Id), mlog.Err(resp.Error))
+		return
+	}
+
+	length := len(channels)
+	if length == 0 {
+		return
+	}
+
+	idx, _ := randutil.IntRange(c.r, 0, length)
+	channelId := channels[idx].Id
+
+	list, resp := c.Client.GetPostsForChannel(channelId, 0, 60, "")
+	if resp.Error != nil {
+		mlog.Error("Unable to get posts for channel", mlog.String("channel_id", channelId), mlog.Err(resp.Error))
+		return
+	}
+
+	length = len(list.Order)
+	if length == 0 {
+		return
+	}
+
+	idx, _ = randutil.IntRange(c.r, 0, length)
+
+	numReactions := c.LoadTestConfig.UserEntitiesConfiguration.NumPostReactionsPerUser
+
+	for i := 0; i < numReactions; i++ {
+		emojiName := c.LoadTestConfig.LoadtestEnviromentConfig.PickEmoji(c.r)
+		addReaction(c, user.Id, list.Order[idx], emojiName)
+		if i != (numReactions - 1) {
+			time.Sleep(time.Duration(c.LoadTestConfig.UserEntitiesConfiguration.PostReactionsRateMilliseconds) * time.Millisecond)
+		}
 	}
 }
 
@@ -632,6 +688,28 @@ var TestBasicPosting TestRun = TestRun{
 		{
 			Item: UserEntityWithRateMultiplier{
 				Entity:         posterEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 100,
+		},
+	},
+}
+
+var reactionsPoster UserEntity = UserEntity{
+	Name: "ReactionsPoster",
+	Actions: []randutil.Choice{
+		{
+			Item:   actionPostReactions,
+			Weight: 1,
+		},
+	},
+}
+
+var TestPostReactions TestRun = TestRun{
+	UserEntities: []randutil.Choice{
+		{
+			Item: UserEntityWithRateMultiplier{
+				Entity:         reactionsPoster,
 				RateMultiplier: 1.0,
 			},
 			Weight: 100,

@@ -81,6 +81,11 @@ var tests []TestItem = []TestItem{
 		ShortDesc: "Test users updating their profiles",
 		Test:      &loadtest.TestUpdateUserProfile,
 	},
+	{
+		Name:      "post-reactions",
+		ShortDesc: "Test users posting reactions",
+		Test:      &loadtest.TestPostReactions,
+	},
 }
 
 func main() {
