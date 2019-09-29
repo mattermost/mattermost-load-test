@@ -330,9 +330,9 @@ func createChannel(c *EntityConfig, teamId string, userId string) (*model.Channe
 		channel.DisplayName = makeChannelDisplayName(c.r.Int())
 
 		if choice.Item == PUBLIC_CHANNEL {
-			channel.Type = "O"
+			channel.Type = model.CHANNEL_OPEN
 		} else {
-			channel.Type = "P"
+			channel.Type = model.CHANNEL_PRIVATE
 		}
 
 		newChannel, resp := c.Client.CreateChannel(channel)
@@ -410,7 +410,7 @@ func actionCreateDeleteChannel(c *EntityConfig) {
 		return
 	}
 
-	if channel.Type != "O" && channel.Type != "P" {
+	if channel.Type != model.CHANNEL_OPEN && channel.Type != model.CHANNEL_PRIVATE {
 		return
 	}
 
