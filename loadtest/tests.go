@@ -388,18 +388,50 @@ func actionGetChannel(c *EntityConfig) {
 	}
 }
 
-func actionPerformSearch(c *EntityConfig) {
+func actionPerformSearch(c *EntityConfig) *model.PostList {
 	team, _ := c.UserData.PickTeamChannel(c.r)
 	if team == nil {
-		return
+		return nil
 	}
 	teamId := c.TeamMap[team.Name]
 
-	_, resp := c.Client.SearchPosts(teamId, fake.Words(), false)
+	list, resp := c.Client.SearchPosts(teamId, fake.Words(), false)
 	if resp.Error != nil {
 		mlog.Error("Failed to search", mlog.Err(resp.Error))
+		return nil
 	}
 
+	return list
+}
+
+func actionGetPostsBeforeAfter(c *EntityConfig) {
+	list := actionPerformSearch(c)
+
+	if list == nil {
+		return
+	}
+
+	length := len(list.Order)
+	if length == 0 {
+		return
+	}
+
+	idx, _ := randutil.IntRange(c.r, 0, length)
+	post := list.Posts[list.Order[idx]]
+
+	_, resp := c.Client.GetPostsBefore(post.ChannelId, post.Id, 0, c.LoadTestConfig.UserEntitiesConfiguration.NumPostsGetBeforeAfter, "")
+
+	if resp.Error != nil {
+		mlog.Error("Failed to get posts before", mlog.String("channel_id", post.ChannelId), mlog.String("post_id", post.Id), mlog.Err(resp.Error))
+		return
+	}
+
+	_, resp = c.Client.GetPostsAfter(post.ChannelId, post.Id, 0, c.LoadTestConfig.UserEntitiesConfiguration.NumPostsGetBeforeAfter, "")
+
+	if resp.Error != nil {
+		mlog.Error("Failed to get posts after", mlog.String("channel_id", post.ChannelId), mlog.String("post_id", post.Id), mlog.Err(resp.Error))
+		return
+	}
 }
 
 func actionAutocompleteChannel(c *EntityConfig) {
@@ -769,6 +801,10 @@ var standardUserEntity UserEntity = UserEntity{
 		{
 			Item:   actionUpdateUserProfile,
 			Weight: 1,
+		},
+		{
+			Item:   actionGetPostsBeforeAfter,
+			Weight: 2,
 		},
 	},
 }

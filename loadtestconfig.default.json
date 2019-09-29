@@ -75,7 +75,8 @@
         "UserProfileUpdateNicknameChance": 0.01,
         "UserProfileUpdatePositionChance": 0.107,
         "UserProfileUpdateEmailChance": 0.003,
-        "UserProfileUpdateImageChance": 0.865
+        "UserProfileUpdateImageChance": 0.865,
+        "NumPostsGetBeforeAfter": 10
     },
     "ResultsConfiguration": {
         "PProfDelayMinutes": 15,
