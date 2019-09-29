@@ -52,7 +52,9 @@
         "MidVolumeChannelSelectionWeight": 3,
         "LowVolumeChannelSelectionWeight": 1,
         "PercentCustomSchemeTeams": 0.2,
-        "PercentCustomSchemeChannels": 0.1
+        "PercentCustomSchemeChannels": 0.1,
+        "NumPostReactionsPerUser": 1,
+        "PostReactionsRateMilliseconds": 1000
     },
     "UserEntitiesConfiguration": {
         "TestLengthMinutes": 20,
