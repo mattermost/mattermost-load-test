@@ -603,6 +603,37 @@ func actionGetTeamUnreads(c *EntityConfig) {
 	}
 }
 
+func actionGetChannelUnreads(c *EntityConfig) {
+	user, resp := c.Client.GetMe("")
+	if resp.Error != nil {
+		mlog.Error("Failed to get me", mlog.Err(resp.Error))
+		return
+	}
+
+	team, channel := c.UserData.PickTeamChannel(c.r)
+	if team == nil || channel == nil {
+		return
+	}
+
+	channelId, err := c.GetTeamChannelId(team.Name, channel.Name)
+	if err != nil {
+		mlog.Error("Unable to get channel from map", mlog.String("team", team.Name), mlog.String("channel", channel.Name), mlog.Err(err))
+		return
+	}
+
+	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.GetPostsAroundLastUnreadChance {
+		_, resp := c.Client.GetPostsAroundLastUnread(channelId, user.Id, 1, 1)
+		mlog.Info("Failed to get posts around last unread", mlog.String("channel_id", channelId), mlog.Err(resp.Error))
+		return
+	}
+
+	_, resp = c.Client.GetChannelUnread(channelId, user.Id)
+	if resp.Error != nil {
+		mlog.Info("Failed to get channel unreads", mlog.String("channel_id", channelId), mlog.Err(resp.Error))
+		return
+	}
+}
+
 func actionUpdateUserProfile(c *EntityConfig) {
 	user, resp := c.Client.GetMe("")
 	if resp.Error != nil {
@@ -800,6 +831,10 @@ var standardUserEntity UserEntity = UserEntity{
 		{
 			Item:   actionGetTeamUnreads,
 			Weight: 41,
+		},
+		{
+			Item:   actionGetChannelUnreads,
+			Weight: 10,
 		},
 		{
 			Item:   actionAutocompleteChannel,

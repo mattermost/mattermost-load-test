@@ -41,6 +41,7 @@ type UserEntitiesConfiguration struct {
 	UserProfileUpdatePositionChance   float64
 	UserProfileUpdateEmailChance      float64
 	UserProfileUpdateImageChance      float64
+	GetPostsAroundLastUnreadChance    float64
 }
 
 type ConnectionConfiguration struct {
