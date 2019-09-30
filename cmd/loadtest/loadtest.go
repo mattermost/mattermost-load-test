@@ -86,6 +86,11 @@ var tests []TestItem = []TestItem{
 		ShortDesc: "Test users updating their profiles",
 		Test:      &loadtest.TestUpdateUserProfile,
 	},
+	{
+		Name:      "channel-create-delete",
+		ShortDesc: "Test channel creation/deletion",
+		Test:      &loadtest.TestChannelCreateDelete,
+	},
 }
 
 func main() {

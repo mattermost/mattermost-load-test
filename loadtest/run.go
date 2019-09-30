@@ -176,6 +176,7 @@ func RunTest(test *TestRun) error {
 			EntityName:          usertype.Entity.Name,
 			EntityActions:       usertype.Entity.Actions,
 			UserData:            serverData.BulkloadResult.Users[entityNum],
+			Users:               serverData.BulkloadResult.Users,
 			ChannelMap:          serverData.ChannelIdMap,
 			TeamMap:             serverData.TeamIdMap,
 			TownSquareMap:       serverData.TownSquareIdMap,

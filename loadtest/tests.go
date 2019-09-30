@@ -291,6 +291,29 @@ func createPost(c *EntityConfig, team *UserTeamImportData, channelId string) {
 	}
 }
 
+func searchRandomUsers(c *EntityConfig, teamId string, n int) ([]*model.User, error) {
+	list := []*model.User{}
+	for i := 0; i < n; i++ {
+		userdata := PickUser(c.Users, c.r)
+		if userdata == nil {
+			return nil, errors.New("could not randomly pick user")
+		}
+		for j := 1; j <= len(userdata.Username); j++ {
+			substring := userdata.Username[:j]
+			users, resp := c.Client.SearchUsers(&model.UserSearch{TeamId: teamId, Term: substring})
+			if resp.Error != nil {
+				return nil, resp.Error
+			}
+			if len(users) == 1 {
+				list = append(list, users[0])
+				break
+			}
+			time.Sleep(time.Millisecond * 150)
+		}
+	}
+	return list, nil
+}
+
 func createChannel(c *EntityConfig, teamId string, userId string) (*model.Channel, error) {
 	const (
 		PUBLIC_CHANNEL = iota + 1
@@ -342,43 +365,32 @@ func createChannel(c *EntityConfig, teamId string, userId string) (*model.Channe
 
 		return newChannel, nil
 	} else if choice.Item == DIRECT_CHANNEL || choice.Item == GROUP_CHANNEL {
-
-		users, resp := c.Client.GetUsers(0, 100, "")
-		if resp.Error != nil {
-			return nil, resp.Error
-		}
-
-		if choice.Item == DIRECT_CHANNEL && len(users) < 2 {
-			return nil, errors.New("not enough users to create direct channel")
-		} else if choice.Item == GROUP_CHANNEL && len(users) < 3 {
-			return nil, errors.New("not enough users to create group channel")
-		}
-
-		rand.Shuffle(len(users), func(i, j int) {
-			users[i], users[j] = users[j], users[i]
-		})
-
-		var others []string
-
-		for _, user := range users {
-			if user.Id != userId {
-				others = append(others, user.Id)
-				if choice.Item == DIRECT_CHANNEL || len(others) > 1 {
-					break
-				}
-			}
-		}
-
-		if choice.Item == DIRECT_CHANNEL && len(others) != 1 {
-			return nil, errors.New("could not find a user to create a direct channel with")
-		}
-
 		var newChannel *model.Channel
+		var resp *model.Response
 
 		if choice.Item == DIRECT_CHANNEL {
-			newChannel, resp = c.Client.CreateDirectChannel(userId, others[0])
+			users, err := searchRandomUsers(c, teamId, 1)
+			if err != nil {
+				return nil, err
+			} else if len(users) != 1 {
+				return nil, errors.New("could not find user to create direct channel with")
+			}
+
+			newChannel, resp = c.Client.CreateDirectChannel(userId, users[0].Id)
 		} else {
-			newChannel, resp = c.Client.CreateGroupChannel(others)
+			users, err := searchRandomUsers(c, teamId, 2)
+			if err != nil {
+				return nil, err
+			} else if len(users) != 2 {
+				return nil, errors.New("could not find users to create group channel with")
+			}
+
+			userIds := []string{}
+			for i := 0; i < len(users); i++ {
+				userIds = append(userIds, users[i].Id)
+			}
+
+			newChannel, resp = c.Client.CreateGroupChannel(userIds)
 		}
 
 		if resp.Error != nil {
@@ -890,16 +902,34 @@ var TestSearchUsers TestRun = TestRun{
 	},
 }
 
+var channelCreateDeleteEntity UserEntity = UserEntity{
+	Name: "Create/Delete channel",
+	Actions: []randutil.Choice{
+		{
+			Item:   actionCreateDeleteChannel,
+			Weight: 1,
+		},
+	},
+}
+
+var TestChannelCreateDelete TestRun = TestRun{
+	UserEntities: []randutil.Choice{
+		{
+			Item: UserEntityWithRateMultiplier{
+				Entity:         channelCreateDeleteEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 100,
+		},
+	},
+}
+
 var updateUserProfileEntity UserEntity = UserEntity{
 	Name: "Update User Profile",
 	Actions: []randutil.Choice{
 		{
 			Item:   actionUpdateUserProfile,
 			Weight: 1,
-		},
-		{
-			Item:   actionCreateDeleteChannel,
-			Weight: 2,
 		},
 	},
 }
