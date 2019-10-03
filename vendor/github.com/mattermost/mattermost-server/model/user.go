@@ -4,11 +4,14 @@
 package model
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"regexp"
+	"sort"
 	"strings"
 	"unicode/utf8"
 
@@ -81,8 +84,14 @@ type User struct {
 	MfaSecret              string    `json:"mfa_secret,omitempty"`
 	LastActivityAt         int64     `db:"-" json:"last_activity_at,omitempty"`
 	IsBot                  bool      `db:"-" json:"is_bot,omitempty"`
+	BotDescription         string    `db:"-" json:"bot_description,omitempty"`
 	TermsOfServiceId       string    `db:"-" json:"terms_of_service_id,omitempty"`
 	TermsOfServiceCreateAt int64     `db:"-" json:"terms_of_service_create_at,omitempty"`
+}
+
+type UserUpdate struct {
+	Old *User
+	New *User
 }
 
 type UserPatch struct {
@@ -115,6 +124,93 @@ type UserForIndexing struct {
 	DeleteAt    int64    `json:"delete_at"`
 	TeamsIds    []string `json:"team_id"`
 	ChannelsIds []string `json:"channel_id"`
+}
+
+type ViewUsersRestrictions struct {
+	Teams    []string
+	Channels []string
+}
+
+func (r *ViewUsersRestrictions) Hash() string {
+	if r == nil {
+		return ""
+	}
+	ids := append(r.Teams, r.Channels...)
+	sort.Strings(ids)
+	hash := sha256.New()
+	hash.Write([]byte(strings.Join(ids, "")))
+	return fmt.Sprintf("%x", hash.Sum(nil))
+}
+
+type UserSlice []*User
+
+func (u UserSlice) Usernames() []string {
+	usernames := []string{}
+	for _, user := range u {
+		usernames = append(usernames, user.Username)
+	}
+	sort.Strings(usernames)
+	return usernames
+}
+
+func (u UserSlice) IDs() []string {
+	ids := []string{}
+	for _, user := range u {
+		ids = append(ids, user.Id)
+	}
+	return ids
+}
+
+func (u UserSlice) FilterWithoutBots() UserSlice {
+	var matches []*User
+
+	for _, user := range u {
+		if !user.IsBot {
+			matches = append(matches, user)
+		}
+	}
+	return UserSlice(matches)
+}
+
+func (u UserSlice) FilterByActive(active bool) UserSlice {
+	var matches []*User
+
+	for _, user := range u {
+		if user.DeleteAt == 0 && active {
+			matches = append(matches, user)
+		} else if user.DeleteAt != 0 && !active {
+			matches = append(matches, user)
+		}
+	}
+	return UserSlice(matches)
+}
+
+func (u UserSlice) FilterByID(ids []string) UserSlice {
+	var matches []*User
+	for _, user := range u {
+		for _, id := range ids {
+			if id == user.Id {
+				matches = append(matches, user)
+			}
+		}
+	}
+	return UserSlice(matches)
+}
+
+func (u UserSlice) FilterWithoutID(ids []string) UserSlice {
+	var keep []*User
+	for _, user := range u {
+		present := false
+		for _, id := range ids {
+			if id == user.Id {
+				present = true
+			}
+		}
+		if !present {
+			keep = append(keep, user)
+		}
+	}
+	return UserSlice(keep)
 }
 
 func (u *User) DeepCopy() *User {
@@ -398,6 +494,18 @@ func (u *User) Sanitize(options map[string]bool) {
 	}
 }
 
+// Remove any input data from the user object that is not user controlled
+func (u *User) SanitizeInput() {
+	u.AuthData = NewString("")
+	u.AuthService = ""
+	u.LastPasswordUpdate = 0
+	u.LastPictureUpdate = 0
+	u.FailedAttempts = 0
+	u.EmailVerified = false
+	u.MfaActive = false
+	u.MfaSecret = ""
+}
+
 func (u *User) ClearNonProfileFields() {
 	u.Password = ""
 	u.AuthData = NewString("")
@@ -443,8 +551,8 @@ func (u *User) GetFullName() string {
 	}
 }
 
-func (u *User) GetDisplayName(nameFormat string) string {
-	displayName := u.Username
+func (u *User) getDisplayName(baseName, nameFormat string) string {
+	displayName := baseName
 
 	if nameFormat == SHOW_NICKNAME_FULLNAME {
 		if len(u.Nickname) > 0 {
@@ -459,6 +567,18 @@ func (u *User) GetDisplayName(nameFormat string) string {
 	}
 
 	return displayName
+}
+
+func (u *User) GetDisplayName(nameFormat string) string {
+	displayName := u.Username
+
+	return u.getDisplayName(displayName, nameFormat)
+}
+
+func (u *User) GetDisplayNameWithPrefix(nameFormat, prefix string) string {
+	displayName := prefix + u.Username
+
+	return u.getDisplayName(displayName, nameFormat)
 }
 
 func (u *User) GetRoles() []string {
@@ -485,6 +605,12 @@ func IsValidUserRoles(userRoles string) bool {
 	}
 
 	return true
+}
+
+// Make sure you acually want to use this function. In context.go there are functions to check permissions
+// This function should not be used to check permissions.
+func (u *User) IsGuest() bool {
+	return IsInRole(u.Roles, SYSTEM_GUEST_ROLE_ID)
 }
 
 // Make sure you acually want to use this function. In context.go there are functions to check permissions
@@ -677,4 +803,36 @@ func IsValidLocale(locale string) bool {
 	}
 
 	return true
+}
+
+type UserWithGroups struct {
+	User
+	GroupIDs    *string  `json:"-"`
+	Groups      []*Group `json:"groups"`
+	SchemeGuest bool     `json:"scheme_guest"`
+	SchemeUser  bool     `json:"scheme_user"`
+	SchemeAdmin bool     `json:"scheme_admin"`
+}
+
+func (u *UserWithGroups) GetGroupIDs() []string {
+	if u.GroupIDs == nil {
+		return nil
+	}
+	trimmed := strings.TrimSpace(*u.GroupIDs)
+	if len(trimmed) == 0 {
+		return nil
+	}
+	return strings.Split(trimmed, ",")
+}
+
+type UsersWithGroupsAndCount struct {
+	Users []*UserWithGroups `json:"users"`
+	Count int64             `json:"total_count"`
+}
+
+func UsersWithGroupsAndCountFromJson(data io.Reader) *UsersWithGroupsAndCount {
+	uwg := &UsersWithGroupsAndCount{}
+	bodyBytes, _ := ioutil.ReadAll(data)
+	json.Unmarshal(bodyBytes, uwg)
+	return uwg
 }
