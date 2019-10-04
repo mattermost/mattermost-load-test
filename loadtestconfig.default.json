@@ -53,7 +53,8 @@
         "LowVolumeChannelSelectionWeight": 1,
         "PercentCustomSchemeTeams": 0.2,
         "PercentCustomSchemeChannels": 0.1,
-        "GetPostsAroundLastUnreadChance": 0.5
+        "GetPostsAroundLastUnreadChance": 0.5,
+        "NumGetPostsAroundLastUnread": 1
     },
     "UserEntitiesConfiguration": {
         "TestLengthMinutes": 20,
