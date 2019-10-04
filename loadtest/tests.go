@@ -624,8 +624,10 @@ func actionGetChannelUnreads(c *EntityConfig) {
 	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.GetPostsAroundLastUnreadChance {
 		numPosts := c.LoadTestConfig.UserEntitiesConfiguration.NumGetPostsAroundLastUnread
 		_, resp := c.Client.GetPostsAroundLastUnread(channelId, user.Id, numPosts, numPosts)
-		mlog.Info("Failed to get posts around last unread", mlog.String("channel_id", channelId), mlog.Err(resp.Error))
-		return
+		if resp.Error != nil {
+			mlog.Info("Failed to get posts around last unread", mlog.String("channel_id", channelId), mlog.Err(resp.Error))
+			return
+		}
 	}
 
 	_, resp = c.Client.GetChannelUnread(channelId, user.Id)
