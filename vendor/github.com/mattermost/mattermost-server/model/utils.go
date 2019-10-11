@@ -21,7 +21,7 @@ import (
 	"time"
 	"unicode"
 
-	goi18n "github.com/nicksnyder/go-i18n/i18n"
+	goi18n "github.com/mattermost/go-i18n/i18n"
 	"github.com/pborman/uuid"
 )
 
@@ -302,16 +302,35 @@ func StringFromJson(data io.Reader) string {
 	}
 }
 
-func GetServerIpAddress() string {
-	if addrs, err := net.InterfaceAddrs(); err != nil {
-		return ""
+func GetServerIpAddress(iface string) string {
+	var addrs []net.Addr
+	if len(iface) == 0 {
+		var err error
+		addrs, err = net.InterfaceAddrs()
+		if err != nil {
+			return ""
+		}
 	} else {
-		for _, addr := range addrs {
-
-			if ip, ok := addr.(*net.IPNet); ok && !ip.IP.IsLoopback() && !ip.IP.IsLinkLocalUnicast() && !ip.IP.IsLinkLocalMulticast() {
-				if ip.IP.To4() != nil {
-					return ip.IP.String()
+		interfaces, err := net.Interfaces()
+		if err != nil {
+			return ""
+		}
+		for _, i := range interfaces {
+			if i.Name == iface {
+				addrs, err = i.Addrs()
+				if err != nil {
+					return ""
 				}
+				break
+			}
+		}
+	}
+
+	for _, addr := range addrs {
+
+		if ip, ok := addr.(*net.IPNet); ok && !ip.IP.IsLoopback() && !ip.IP.IsLinkLocalUnicast() && !ip.IP.IsLinkLocalMulticast() {
+			if ip.IP.To4() != nil {
+				return ip.IP.String()
 			}
 		}
 	}
@@ -346,6 +365,8 @@ var reservedName = []string{
 	"post",
 	"api",
 	"oauth",
+	"error",
+	"help",
 }
 
 func IsValidChannelIdentifier(s string) bool {

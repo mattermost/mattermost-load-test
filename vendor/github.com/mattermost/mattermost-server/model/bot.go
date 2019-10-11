@@ -169,6 +169,17 @@ func UserFromBot(b *Bot) *User {
 		Username:  b.Username,
 		Email:     fmt.Sprintf("%s@localhost", strings.ToLower(b.Username)),
 		FirstName: b.DisplayName,
+		Roles:     SYSTEM_USER_ROLE_ID,
+	}
+}
+
+// BotFromUser returns a bot model given a user model
+func BotFromUser(u *User) *Bot {
+	return &Bot{
+		OwnerId:     u.Id,
+		UserId:      u.Id,
+		Username:    u.Username,
+		DisplayName: u.GetDisplayName(SHOW_USERNAME),
 	}
 }
 

@@ -52,7 +52,9 @@
         "MidVolumeChannelSelectionWeight": 3,
         "LowVolumeChannelSelectionWeight": 1,
         "PercentCustomSchemeTeams": 0.2,
-        "PercentCustomSchemeChannels": 0.1
+        "PercentCustomSchemeChannels": 0.1,
+        "GetPostsAroundLastUnreadChance": 0.5,
+        "NumGetPostsAroundLastUnread": 1
     },
     "UserEntitiesConfiguration": {
         "TestLengthMinutes": 20,
@@ -77,7 +79,8 @@
         "UserProfileUpdateEmailChance": 0.003,
         "UserProfileUpdateImageChance": 0.865,
         "NumPostReactionsPerUser": 1,
-        "PostReactionsRateMilliseconds": 1000
+        "PostReactionsRateMilliseconds": 1000,
+        "NumPostsGetBeforeAfter": 10
     },
     "ResultsConfiguration": {
         "PProfDelayMinutes": 15,
