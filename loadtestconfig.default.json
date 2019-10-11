@@ -78,6 +78,8 @@
         "UserProfileUpdatePositionChance": 0.107,
         "UserProfileUpdateEmailChance": 0.003,
         "UserProfileUpdateImageChance": 0.865,
+        "NumPostReactionsPerUser": 1,
+        "PostReactionsRateMilliseconds": 1000,
         "NumPostsGetBeforeAfter": 10
     },
     "ResultsConfiguration": {
