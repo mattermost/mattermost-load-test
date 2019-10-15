@@ -283,11 +283,11 @@ func createPost(c *EntityConfig, team *UserTeamImportData, channelId string) {
 
 	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.CustomEmojiReactionChance && c.LoadTestConfig.LoadtestEnviromentConfig.NumEmoji > 0 {
 		name := c.LoadTestConfig.LoadtestEnviromentConfig.PickEmoji(c.r)
-		addReaction(c, post, name)
+		addReaction(c, post.UserId, post.Id, name)
 	}
 
 	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.SystemEmojiReactionChance {
-		addReaction(c, post, "smile")
+		addReaction(c, post.UserId, post.Id, "smile")
 	}
 }
 
@@ -432,16 +432,72 @@ func actionCreateDeleteChannel(c *EntityConfig) {
 	}
 }
 
-func addReaction(c *EntityConfig, post *model.Post, name string) {
+func addReaction(c *EntityConfig, userId, postId, name string) {
 	reaction := &model.Reaction{
-		UserId:    post.UserId,
-		PostId:    post.Id,
+		UserId:    userId,
+		PostId:    postId,
 		EmojiName: name,
 	}
 
 	_, resp := c.Client.SaveReaction(reaction)
 	if resp.Error != nil {
 		mlog.Info("Failed to save reaction", mlog.String("user_id", reaction.UserId), mlog.String("post_id", reaction.PostId), mlog.String("emoji_name", reaction.EmojiName))
+	}
+}
+
+func actionPostReactions(c *EntityConfig) {
+	user, resp := c.Client.GetMe("")
+	if resp.Error != nil {
+		mlog.Error("Failed to get me", mlog.Err(resp.Error))
+		return
+	}
+
+	team, channel := c.UserData.PickTeamChannel(c.r)
+	if team == nil || channel == nil {
+		return
+	}
+
+	teamId := c.TeamMap[team.Name]
+	if teamId == "" {
+		mlog.Error("Unable to get team from map", mlog.String("team", team.Name))
+		return
+	}
+
+	channels, resp := c.Client.GetChannelsForTeamForUser(teamId, user.Id, "")
+	if resp.Error != nil {
+		mlog.Info("Unable to get channels for user", mlog.String("user_id", user.Id), mlog.Err(resp.Error))
+		return
+	}
+
+	length := len(channels)
+	if length == 0 {
+		return
+	}
+
+	idx, _ := randutil.IntRange(c.r, 0, length)
+	channelId := channels[idx].Id
+
+	list, resp := c.Client.GetPostsForChannel(channelId, 0, 60, "")
+	if resp.Error != nil {
+		mlog.Error("Unable to get posts for channel", mlog.String("channel_id", channelId), mlog.Err(resp.Error))
+		return
+	}
+
+	length = len(list.Order)
+	if length == 0 {
+		return
+	}
+
+	idx, _ = randutil.IntRange(c.r, 0, length)
+
+	numReactions := c.LoadTestConfig.UserEntitiesConfiguration.NumPostReactionsPerUser
+
+	for i := 0; i < numReactions; i++ {
+		emojiName := c.LoadTestConfig.LoadtestEnviromentConfig.PickEmoji(c.r)
+		addReaction(c, user.Id, list.Order[idx], emojiName)
+		if i != (numReactions - 1) {
+			time.Sleep(time.Duration(c.LoadTestConfig.UserEntitiesConfiguration.PostReactionsRateMilliseconds) * time.Millisecond)
+		}
 	}
 }
 
@@ -585,18 +641,50 @@ func actionGetChannel(c *EntityConfig) {
 	}
 }
 
-func actionPerformSearch(c *EntityConfig) {
+func actionPerformSearch(c *EntityConfig) *model.PostList {
 	team, _ := c.UserData.PickTeamChannel(c.r)
 	if team == nil {
-		return
+		return nil
 	}
 	teamId := c.TeamMap[team.Name]
 
-	_, resp := c.Client.SearchPosts(teamId, fake.Words(), false)
+	list, resp := c.Client.SearchPosts(teamId, fake.Words(), false)
 	if resp.Error != nil {
 		mlog.Error("Failed to search", mlog.Err(resp.Error))
+		return nil
 	}
 
+	return list
+}
+
+func actionGetPostsBeforeAfter(c *EntityConfig) {
+	list := actionPerformSearch(c)
+
+	if list == nil {
+		return
+	}
+
+	length := len(list.Order)
+	if length == 0 {
+		return
+	}
+
+	idx, _ := randutil.IntRange(c.r, 0, length)
+	post := list.Posts[list.Order[idx]]
+
+	_, resp := c.Client.GetPostsBefore(post.ChannelId, post.Id, 0, c.LoadTestConfig.UserEntitiesConfiguration.NumPostsGetBeforeAfter, "")
+
+	if resp.Error != nil {
+		mlog.Error("Failed to get posts before", mlog.String("channel_id", post.ChannelId), mlog.String("post_id", post.Id), mlog.Err(resp.Error))
+		return
+	}
+
+	_, resp = c.Client.GetPostsAfter(post.ChannelId, post.Id, 0, c.LoadTestConfig.UserEntitiesConfiguration.NumPostsGetBeforeAfter, "")
+
+	if resp.Error != nil {
+		mlog.Error("Failed to get posts after", mlog.String("channel_id", post.ChannelId), mlog.String("post_id", post.Id), mlog.Err(resp.Error))
+		return
+	}
 }
 
 func actionAutocompleteChannel(c *EntityConfig) {
@@ -745,6 +833,40 @@ func actionGetTeamUnreads(c *EntityConfig) {
 	}
 }
 
+func actionGetChannelUnreads(c *EntityConfig) {
+	user, resp := c.Client.GetMe("")
+	if resp.Error != nil {
+		mlog.Error("Failed to get me", mlog.Err(resp.Error))
+		return
+	}
+
+	team, channel := c.UserData.PickTeamChannel(c.r)
+	if team == nil || channel == nil {
+		return
+	}
+
+	channelId, err := c.GetTeamChannelId(team.Name, channel.Name)
+	if err != nil {
+		mlog.Error("Unable to get channel from map", mlog.String("team", team.Name), mlog.String("channel", channel.Name), mlog.Err(err))
+		return
+	}
+
+	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.GetPostsAroundLastUnreadChance {
+		numPosts := c.LoadTestConfig.UserEntitiesConfiguration.NumGetPostsAroundLastUnread
+		_, resp := c.Client.GetPostsAroundLastUnread(channelId, user.Id, numPosts, numPosts)
+		if resp.Error != nil {
+			mlog.Info("Failed to get posts around last unread", mlog.String("channel_id", channelId), mlog.Err(resp.Error))
+			return
+		}
+	}
+
+	_, resp = c.Client.GetChannelUnread(channelId, user.Id)
+	if resp.Error != nil {
+		mlog.Info("Failed to get channel unreads", mlog.String("channel_id", channelId), mlog.Err(resp.Error))
+		return
+	}
+}
+
 func actionUpdateUserProfile(c *EntityConfig) {
 	user, resp := c.Client.GetMe("")
 	if resp.Error != nil {
@@ -829,6 +951,28 @@ var TestBasicPosting TestRun = TestRun{
 		{
 			Item: UserEntityWithRateMultiplier{
 				Entity:         posterEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 100,
+		},
+	},
+}
+
+var reactionsPoster UserEntity = UserEntity{
+	Name: "ReactionsPoster",
+	Actions: []randutil.Choice{
+		{
+			Item:   actionPostReactions,
+			Weight: 1,
+		},
+	},
+}
+
+var TestPostReactions TestRun = TestRun{
+	UserEntities: []randutil.Choice{
+		{
+			Item: UserEntityWithRateMultiplier{
+				Entity:         reactionsPoster,
 				RateMultiplier: 1.0,
 			},
 			Weight: 100,
@@ -966,6 +1110,10 @@ var standardUserEntity UserEntity = UserEntity{
 			Weight: 41,
 		},
 		{
+			Item:   actionGetChannelUnreads,
+			Weight: 10,
+		},
+		{
 			Item:   actionAutocompleteChannel,
 			Weight: 1,
 		},
@@ -988,6 +1136,10 @@ var standardUserEntity UserEntity = UserEntity{
 		{
 			Item:   actionUpdateUserProfile,
 			Weight: 1,
+		},
+		{
+			Item:   actionGetPostsBeforeAfter,
+			Weight: 2,
 		},
 	},
 }

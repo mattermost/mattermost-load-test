@@ -91,6 +91,11 @@ var tests []TestItem = []TestItem{
 		ShortDesc: "Test channel creation/deletion",
 		Test:      &loadtest.TestChannelCreateDelete,
 	},
+	{
+		Name:      "post-reactions",
+		ShortDesc: "Test users posting reactions",
+		Test:      &loadtest.TestPostReactions,
+	},
 }
 
 func main() {

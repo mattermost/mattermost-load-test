@@ -45,6 +45,11 @@ type UserEntitiesConfiguration struct {
 	PrivateChannelCreationChance      float64
 	DirectChannelCreationChance       float64
 	GroupChannelCreationChance        float64
+	NumPostReactionsPerUser           int
+	PostReactionsRateMilliseconds     int
+	NumPostsGetBeforeAfter            int
+	GetPostsAroundLastUnreadChance    float64
+	NumGetPostsAroundLastUnread       int
 }
 
 type ConnectionConfiguration struct {
