@@ -5,6 +5,7 @@ package loadtest
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -287,6 +288,147 @@ func createPost(c *EntityConfig, team *UserTeamImportData, channelId string) {
 
 	if rand.Float64() < c.LoadTestConfig.UserEntitiesConfiguration.SystemEmojiReactionChance {
 		addReaction(c, post.UserId, post.Id, "smile")
+	}
+}
+
+func searchRandomUsers(c *EntityConfig, teamId string, n int) ([]*model.User, error) {
+	list := []*model.User{}
+	for i := 0; i < n; i++ {
+		userdata := PickUser(c.Users, c.r)
+		if userdata == nil {
+			return nil, errors.New("could not randomly pick user")
+		}
+		for j := 1; j <= len(userdata.Username); j++ {
+			substring := userdata.Username[:j]
+			users, resp := c.Client.SearchUsers(&model.UserSearch{TeamId: teamId, Term: substring})
+			if resp.Error != nil {
+				return nil, resp.Error
+			}
+			if len(users) == 1 {
+				list = append(list, users[0])
+				break
+			}
+			time.Sleep(time.Millisecond * 150)
+		}
+	}
+	return list, nil
+}
+
+func createChannel(c *EntityConfig, teamId string, userId string) (*model.Channel, error) {
+	const (
+		PUBLIC_CHANNEL = iota + 1
+		PRIVATE_CHANNEL
+		DIRECT_CHANNEL
+		GROUP_CHANNEL
+	)
+
+	choices := []randutil.Choice{
+		{
+			Weight: int(c.LoadTestConfig.UserEntitiesConfiguration.PublicChannelCreationChance * 1000),
+			Item:   PUBLIC_CHANNEL,
+		},
+		{
+			Weight: int(c.LoadTestConfig.UserEntitiesConfiguration.PrivateChannelCreationChance * 1000),
+			Item:   PRIVATE_CHANNEL,
+		},
+		{
+			Weight: int(c.LoadTestConfig.UserEntitiesConfiguration.DirectChannelCreationChance * 1000),
+			Item:   DIRECT_CHANNEL,
+		},
+		{
+			Weight: int(c.LoadTestConfig.UserEntitiesConfiguration.GroupChannelCreationChance * 1000),
+			Item:   GROUP_CHANNEL,
+		},
+	}
+
+	choice, err := randutil.WeightedChoice(c.r, choices)
+	if err != nil {
+		return nil, err
+	}
+
+	if choice.Item == PUBLIC_CHANNEL || choice.Item == PRIVATE_CHANNEL {
+		channel := &model.Channel{}
+		channel.TeamId = teamId
+		channel.Name = makeChannelName(c.r.Int())
+		channel.DisplayName = makeChannelDisplayName(c.r.Int())
+
+		if choice.Item == PUBLIC_CHANNEL {
+			channel.Type = model.CHANNEL_OPEN
+		} else {
+			channel.Type = model.CHANNEL_PRIVATE
+		}
+
+		newChannel, resp := c.Client.CreateChannel(channel)
+		if resp.Error != nil {
+			return nil, resp.Error
+		}
+
+		return newChannel, nil
+	} else if choice.Item == DIRECT_CHANNEL || choice.Item == GROUP_CHANNEL {
+		var newChannel *model.Channel
+		var resp *model.Response
+
+		if choice.Item == DIRECT_CHANNEL {
+			users, err := searchRandomUsers(c, teamId, 1)
+			if err != nil {
+				return nil, err
+			} else if len(users) != 1 {
+				return nil, errors.New("could not find user to create direct channel with")
+			}
+
+			newChannel, resp = c.Client.CreateDirectChannel(userId, users[0].Id)
+		} else {
+			users, err := searchRandomUsers(c, teamId, 2)
+			if err != nil {
+				return nil, err
+			} else if len(users) != 2 {
+				return nil, errors.New("could not find users to create group channel with")
+			}
+
+			userIds := []string{}
+			for i := 0; i < len(users); i++ {
+				userIds = append(userIds, users[i].Id)
+			}
+
+			newChannel, resp = c.Client.CreateGroupChannel(userIds)
+		}
+
+		if resp.Error != nil {
+			return nil, resp.Error
+		}
+
+		return newChannel, nil
+	}
+
+	return nil, nil
+}
+
+func actionCreateDeleteChannel(c *EntityConfig) {
+	team := c.UserData.PickTeam(c.r)
+	if team == nil {
+		return
+	}
+	teamId := c.TeamMap[team.Name]
+
+	user, resp := c.Client.GetMe("")
+	if resp.Error != nil {
+		mlog.Error("Failed to get me", mlog.Err(resp.Error))
+		return
+	}
+
+	channel, err := createChannel(c, teamId, user.Id)
+	if err != nil {
+		mlog.Error("Failed to create channel", mlog.Err(err))
+		return
+	}
+
+	if channel.Type != model.CHANNEL_OPEN && channel.Type != model.CHANNEL_PRIVATE {
+		return
+	}
+
+	if _, resp := c.Client.DeleteChannel(channel.Id); resp.Error != nil {
+		mlog.Error("Failed to delete channel", mlog.Err(resp.Error), mlog.String("channel_id", channel.Id))
+		return
 	}
 }
 
@@ -897,6 +1039,28 @@ var TestSearchUsers TestRun = TestRun{
 		{
 			Item: UserEntityWithRateMultiplier{
 				Entity:         searchUsersEntity,
+				RateMultiplier: 1.0,
+			},
+			Weight: 100,
+		},
+	},
+}
+
+var channelCreateDeleteEntity UserEntity = UserEntity{
+	Name: "Create/Delete channel",
+	Actions: []randutil.Choice{
+		{
+			Item:   actionCreateDeleteChannel,
+			Weight: 1,
+		},
+	},
+}
+
+var TestChannelCreateDelete TestRun = TestRun{
+	UserEntities: []randutil.Choice{
+		{
+			Item: UserEntityWithRateMultiplier{
+				Entity:         channelCreateDeleteEntity,
 				RateMultiplier: 1.0,
 			},
 			Weight: 100,

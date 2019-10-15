@@ -30,7 +30,7 @@ import (
 func RunTest(test *TestRun) error {
 	r := rand.New(rand.NewSource(0))
 
-	interruptChannel := make(chan os.Signal)
+	interruptChannel := make(chan os.Signal, 1)
 	signal.Notify(interruptChannel, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	clientTimingStats := NewClientTimingStats()
@@ -176,6 +176,7 @@ func RunTest(test *TestRun) error {
 			EntityName:          usertype.Entity.Name,
 			EntityActions:       usertype.Entity.Actions,
 			UserData:            serverData.BulkloadResult.Users[entityNum],
+			Users:               serverData.BulkloadResult.Users,
 			ChannelMap:          serverData.ChannelIdMap,
 			TeamMap:             serverData.TeamIdMap,
 			TownSquareMap:       serverData.TownSquareIdMap,

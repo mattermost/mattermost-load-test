@@ -204,6 +204,18 @@ type GenerateBulkloadFileResult struct {
 	Emojis   []EmojiImportData
 }
 
+func PickUser(users []UserImportData, r *rand.Rand) *UserImportData {
+	length := len(users)
+	if length == 0 {
+		return nil
+	}
+	idx, err := randutil.IntRange(r, 0, length)
+	if err != nil {
+		return nil
+	}
+	return &users[idx]
+}
+
 func (c *LoadtestEnviromentConfig) PickEmoji(r *rand.Rand) string {
 	return fmt.Sprintf("loadtestemoji%v", r.Intn(c.NumEmoji-1))
 }
