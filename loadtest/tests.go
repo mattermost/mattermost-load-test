@@ -644,7 +644,7 @@ func actionGetChannel(c *EntityConfig) {
 func searchPosts(c *EntityConfig) (*model.PostList, error) {
 	team := c.UserData.PickTeam(c.r)
 	if team == nil {
-		return nil, errors.New("Could not pick team")
+		return nil, nil
 	}
 	teamId := c.TeamMap[team.Name]
 	list, resp := c.Client.SearchPosts(teamId, fake.Words(), false)
@@ -667,6 +667,10 @@ func actionGetPostsBeforeAfter(c *EntityConfig) {
 
 	if err != nil {
 		mlog.Error("Failed to perform posts search", mlog.Err(err))
+		return
+	}
+
+	if list == nil {
 		return
 	}
 
