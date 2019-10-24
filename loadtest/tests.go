@@ -641,24 +641,34 @@ func actionGetChannel(c *EntityConfig) {
 	}
 }
 
-func actionPerformSearch(c *EntityConfig) *model.PostList {
-	team, _ := c.UserData.PickTeamChannel(c.r)
+func searchPosts(c *EntityConfig) (*model.PostList, error) {
+	team := c.UserData.PickTeam(c.r)
 	if team == nil {
-		return nil
+		return nil, nil
 	}
 	teamId := c.TeamMap[team.Name]
-
 	list, resp := c.Client.SearchPosts(teamId, fake.Words(), false)
 	if resp.Error != nil {
-		mlog.Error("Failed to search", mlog.Err(resp.Error))
-		return nil
+		return nil, resp.Error
 	}
+	return list, nil
+}
 
-	return list
+func actionPerformSearch(c *EntityConfig) {
+	_, err := searchPosts(c)
+	if err != nil {
+		mlog.Error("Failed to perform posts search", mlog.Err(err))
+		return
+	}
 }
 
 func actionGetPostsBeforeAfter(c *EntityConfig) {
-	list := actionPerformSearch(c)
+	list, err := searchPosts(c)
+
+	if err != nil {
+		mlog.Error("Failed to perform posts search", mlog.Err(err))
+		return
+	}
 
 	if list == nil {
 		return
