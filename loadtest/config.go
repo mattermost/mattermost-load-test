@@ -11,7 +11,6 @@ import (
 )
 
 type LoadTestConfig struct {
-	LoadtestEnviromentConfig  LoadtestEnviromentConfig
 	ConnectionConfiguration   ConnectionConfiguration
 	UserEntitiesConfiguration UserEntitiesConfiguration
 	ResultsConfiguration      ResultsConfiguration

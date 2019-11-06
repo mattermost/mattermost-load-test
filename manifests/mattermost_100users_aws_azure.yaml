@@ -1,9 +1,0 @@
-apiVersion: mattermost.com/v1alpha1
-kind: ClusterInstallation
-metadata:
-  name: mm-100
-spec:
-  ingressName: example.dev.cloud.mattermost.com
-  mattermostLicenseSecret: mattermost-license
-  replicas: 1
-  useServiceLoadBalancer: true
