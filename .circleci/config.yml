@@ -104,14 +104,14 @@ workflows:
 
       - upload-s3:
           name: upload-s3-branches
-          s3-copy-to: s3://releases.mattermost.com/loadtest-pr/${CIRCLE_BRANCH}/
+          s3-copy-to: s3://pr-builds.mattermost.com/loadtest-pr/${CIRCLE_BRANCH}/
           context: mattermost-ci-s3
           requires:
             - build-ltops-and-test
           <<: *only_branches
       - build-docker:
           <<: *mm_binary
-          loadtest-binary: https://releases.mattermost.com/loadtest-pr/${CIRCLE_BRANCH}/mattermost-load-test.tar.gz
+          loadtest-binary: https://pr-builds.mattermost.com/loadtest-pr/${CIRCLE_BRANCH}/mattermost-load-test.tar.gz
           docker-tag: ${CIRCLE_SHA1}
           context: matterbuild-docker
           <<: *only_branches
@@ -120,14 +120,14 @@ workflows:
 
       - upload-s3:
           name: upload-s3-master
-          s3-copy-to: s3://releases.mattermost.com/mattermost-load-test/
-          context: mattermost-ci-s3
+          s3-copy-to: s3://pr-builds.mattermost.com/mattermost-load-test/
+          context: mattermost-ci-pr-builds-s3
           <<: *only_master
           requires:
             - build-ltops-and-test
       - build-docker:
           <<: *mm_binary
-          loadtest-binary: https://releases.mattermost.com/mattermost-load-test/mattermost-load-test.tar.gz
+          loadtest-binary: https://pr-builds.mattermost.com/mattermost-load-test/mattermost-load-test.tar.gz
           docker-tag: master
           context: matterbuild-docker
           <<: *only_master
@@ -136,14 +136,14 @@ workflows:
 
       - upload-s3:
           name: upload-s3-tags
-          s3-copy-to: s3://releases.mattermost.com/mattermost-load-test/${CIRCLE_TAG}/
-          context: mattermost-ci-s3
+          s3-copy-to: s3://pr-builds.mattermost.com/mattermost-load-test/${CIRCLE_TAG}/
+          context: mattermost-ci-pr-builds-s3
           <<: *only_v_tags
           requires:
             - build-ltops-and-test
       - build-docker:
           <<: *mm_binary
-          loadtest-binary: https://releases.mattermost.com/mattermost-load-test/${CIRCLE_TAG}/mattermost-load-test.tar.gz
+          loadtest-binary: https://pr-builds.mattermost.com/mattermost-load-test/${CIRCLE_TAG}/mattermost-load-test.tar.gz
           docker-tag: ${CIRCLE_TAG}
           context: matterbuild-docker
           <<: *only_v_tags
