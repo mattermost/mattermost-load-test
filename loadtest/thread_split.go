@@ -12,6 +12,7 @@ func ThreadSplit(arrayLen int, numThreads int, action func(int)) {
 	wg.Add(numThreads)
 	for threadNum := 0; threadNum < numThreads; threadNum++ {
 		go func(threadNum int) {
+			defer wg.Done()
 			var end int
 			if threadNum == numThreads-1 {
 				end = arrayLen
@@ -22,7 +23,6 @@ func ThreadSplit(arrayLen int, numThreads int, action func(int)) {
 			for i := start; i < end; i++ {
 				action(i)
 			}
-			wg.Done()
 		}(threadNum)
 	}
 	wg.Wait()

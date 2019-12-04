@@ -147,6 +147,7 @@ func (c *Cluster) Loadtest(options *ltops.LoadTestOptions) error {
 	for i, pod := range loadtestPods {
 		pod := pod
 		go func() {
+			defer wg.Done()
 			var err error
 			if i == 0 {
 				err = c.loadtestPod(pod, options.ResultsWriter)
@@ -156,7 +157,6 @@ func (c *Cluster) Loadtest(options *ltops.LoadTestOptions) error {
 			if err != nil {
 				log.Error(err)
 			}
-			wg.Done()
 		}()
 		// Give some time between instances just to avoid any races
 		time.Sleep(time.Second * 10)
