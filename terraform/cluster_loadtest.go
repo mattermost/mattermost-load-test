@@ -98,11 +98,11 @@ func (c *Cluster) Loadtest(options *ltops.LoadTestOptions) error {
 		addr := addr
 		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			logger := logrus.StandardLogger().WithField("instance", addr)
 			if err = c.loadtestInstance(logger, addr, instanceNum, configFile); err != nil {
 				logrus.Error(err)
 			}
-			wg.Done()
 		}()
 	}
 

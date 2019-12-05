@@ -116,8 +116,8 @@ func getCmdOutputAndLog(cmd *exec.Cmd) ([]byte, error) {
 	wg.Add(1)
 
 	go func() {
+		defer wg.Done()
 		_, errStdout = io.Copy(stdout, stdoutIn)
-		wg.Done()
 	}()
 
 	_, errStderr = io.Copy(stderr, stderrIn)

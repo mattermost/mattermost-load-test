@@ -889,8 +889,8 @@ func LoadPosts(cfg *LoadTestConfig, driverName, dataSource string) {
 		for i := 0; i < 4; i++ {
 			wg.Add(1)
 			go func() {
+				defer wg.Done()
 				importCSVToSQL(csvLines, db)
-				wg.Done()
 			}()
 		}
 
