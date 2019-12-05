@@ -98,20 +98,35 @@ jobs:
 
 workflows:
   version: 2
+
   build_and_upload_and_build_push_image:
+    parameters:
+      bucket-release:
+        type: string
+        default: releases.mattermost.com/mattermost-load-test
+      bucket-test:
+        type: string
+        default: pr-builds.mattermost.com/loadtest
+      context-release:
+        type: string
+        default: mattermost-release-s3
+      context-test:
+        type: string
+        default: mattermost-ci-pr-builds-s3
+
     jobs:
       - build-ltops-and-test
 
       - upload-s3:
           name: upload-s3-branches
-          s3-copy-to: s3://releases.mattermost.com/loadtest-pr/${CIRCLE_BRANCH}/
-          context: mattermost-ci-s3
+          s3-copy-to: s3://<< parameters.bucket-test >>/${CIRCLE_BRANCH}/
+          context: << parameters.context-test >>
           requires:
             - build-ltops-and-test
           <<: *only_branches
       - build-docker:
           <<: *mm_binary
-          loadtest-binary: https://releases.mattermost.com/loadtest-pr/${CIRCLE_BRANCH}/mattermost-load-test.tar.gz
+          loadtest-binary: https://<< parameters.bucket-test >>/${CIRCLE_BRANCH}/mattermost-load-test.tar.gz
           docker-tag: ${CIRCLE_SHA1}
           context: matterbuild-docker
           <<: *only_branches
@@ -120,14 +135,14 @@ workflows:
 
       - upload-s3:
           name: upload-s3-master
-          s3-copy-to: s3://releases.mattermost.com/mattermost-load-test/
-          context: mattermost-ci-s3
+          s3-copy-to: s3://<< parameters.bucket-release >>/
+          context: << parameters.context-release >>
           <<: *only_master
           requires:
             - build-ltops-and-test
       - build-docker:
           <<: *mm_binary
-          loadtest-binary: https://releases.mattermost.com/mattermost-load-test/mattermost-load-test.tar.gz
+          loadtest-binary: https://<< parameters.bucket-release >>/mattermost-load-test.tar.gz
           docker-tag: master
           context: matterbuild-docker
           <<: *only_master
@@ -136,14 +151,14 @@ workflows:
 
       - upload-s3:
           name: upload-s3-tags
-          s3-copy-to: s3://releases.mattermost.com/mattermost-load-test/${CIRCLE_TAG}/
-          context: mattermost-ci-s3
+          s3-copy-to: s3://<< parameters.bucket-release >>/${CIRCLE_TAG}/
+          context: << parameters.context-release >>
           <<: *only_v_tags
           requires:
             - build-ltops-and-test
       - build-docker:
           <<: *mm_binary
-          loadtest-binary: https://releases.mattermost.com/mattermost-load-test/${CIRCLE_TAG}/mattermost-load-test.tar.gz
+          loadtest-binary: https://<< parameters.bucket-release >>/${CIRCLE_TAG}/mattermost-load-test.tar.gz
           docker-tag: ${CIRCLE_TAG}
           context: matterbuild-docker
           <<: *only_v_tags
