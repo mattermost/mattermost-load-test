@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/mattermost/mattermost-load-test/loadtest"
-	"github.com/mattermost/mattermost-server/mlog"
+	"github.com/mattermost/mattermost-server/v5/mlog"
 )
 
 type TestItem struct {

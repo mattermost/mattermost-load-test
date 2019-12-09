@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mattermost/mattermost-server/mlog"
+	"github.com/mattermost/mattermost-server/v5/mlog"
 	"golang.org/x/crypto/ssh"
 )
 

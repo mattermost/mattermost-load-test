@@ -6,13 +6,13 @@ import (
 	"time"
 
 	sqlx "github.com/jmoiron/sqlx"
-	"github.com/mattermost/mattermost-server/model"
+	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/pkg/errors"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 
-	"github.com/mattermost/mattermost-server/mlog"
+	"github.com/mattermost/mattermost-server/v5/mlog"
 )
 
 const (
