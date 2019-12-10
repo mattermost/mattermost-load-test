@@ -3,7 +3,7 @@ package main
 import (
 	"path/filepath"
 
-	"github.com/mattermost/mattermost-server/mlog"
+	"github.com/mattermost/mattermost-server/v5/mlog"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
