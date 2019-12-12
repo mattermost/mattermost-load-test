@@ -11,7 +11,9 @@ go get github.com/mattermost/mattermost-load-test/cmd/loadtest
 go get github.com/mattermost/mattermost-load-test/cmd/ltparse
 ```
 
-Then install [terraform](https://www.terraform.io/intro/getting-started/install.html), and optionally, install the [AWS CLI tool](https://aws.amazon.com/cli/).
+You're going to need [terraform](https://www.terraform.io/intro/getting-started/install.html) version 0.11. If you're using ubuntu, we don't recommend to install it using Snap because you could have some permission problems.
+
+Optionally, install the [AWS CLI tool](https://aws.amazon.com/cli/).
 
 ## Configure for AWS
 
