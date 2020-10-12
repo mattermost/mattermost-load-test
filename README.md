@@ -1,5 +1,10 @@
 # Mattermost Load Test 
 
+**This tool is deprecated and should no longer be used. It has been replaced by: https://github.com/mattermost/mattermost-load-test-ng**
+
+
+# Old README
+
 Mattermost Load Test provides a set of tools written in [Go](https://golang.org/) for profiling [Mattermost](https://github.com/mattermost/mattermost-server) under heavy load simulating real-world usage of the Mattermost Enterprise Edition E20 at scale.
 
 In setting up this system you will: 
